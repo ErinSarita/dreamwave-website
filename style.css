@@ -208,6 +208,16 @@ a, button { cursor: var(--droplet); }
   margin-bottom: 1.4rem;
 }
 
+.hero-logo {
+  display: block;
+  width: clamp(56px, 9vw, 76px);
+  height: auto;
+  margin: 0 auto 1.8rem;
+  border-radius: 50%;
+  box-shadow: 0 0 45px rgba(45, 90, 220, 0.45), 0 0 90px rgba(45, 90, 220, 0.2);
+  animation: breathe 5s ease-in-out infinite;
+}
+
 .hero h2, .section h3 {
   font-family: var(--serif);
   font-weight: 300;
