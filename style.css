@@ -292,6 +292,14 @@ a, button { cursor: var(--droplet); }
   font-size: 1rem;
 }
 
+/* "Why this exists" — centered, larger title over the three columns */
+#sanctuary .kicker { text-align: center; }
+#sanctuary h3 {
+  text-align: center;
+  font-size: clamp(2.6rem, 6vw, 4.4rem);
+  margin-bottom: 3rem;
+}
+
 /* "Why this exists" — stacked on narrow screens, three even columns on wide.
    Skips the two-across stage that would orphan the third paragraph. */
 .reason-cols {
