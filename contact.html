@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contact — DreamWave Journal</title>
+<meta name="description" content="Get in touch with the DreamWave Journal team." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; background: #04060a; color: #8b96a3; }
+</style>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body class="legal-page">
+
+<nav class="legal-nav">
+  <a class="brand" href="index.html">DreamWave</a>
+  <a class="back" href="index.html">← Back to site</a>
+</nav>
+
+<article class="legal contact-page">
+  <p class="kicker">DreamWave Journal</p>
+  <h1>Contact</h1>
+  <p class="lead">
+    Questions, feedback, or a story from the other side of sleep —
+    we read everything. Messages go to contact@dreamwavejournal.com.
+  </p>
+
+  <form class="contact-form" action="https://formsubmit.co/contact@dreamwavejournal.com" method="POST">
+    <!-- FormSubmit settings -->
+    <input type="hidden" name="_subject" value="New message from dreamwavejournal website" />
+    <input type="hidden" name="_captcha" value="false" />
+    <input type="hidden" name="_template" value="table" />
+    <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off" />
+
+    <label>
+      Your name
+      <input type="text" name="name" required autocomplete="name" />
+    </label>
+    <label>
+      Your email
+      <input type="email" name="email" required autocomplete="email" />
+    </label>
+    <label>
+      Message
+      <textarea name="message" rows="7" required></textarea>
+    </label>
+    <button type="submit" class="btn-solid">Send message</button>
+  </form>
+</article>
+
+<div class="legal-foot">
+  <span>© 2026 DreamWave Journal</span>
+  <a href="privacy.html">Privacy Policy</a>
+  <a href="terms.html">Terms of Service</a>
+  <a href="index.html">Home</a>
+</div>
+
+</body>
+</html>
