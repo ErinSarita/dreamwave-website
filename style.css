@@ -292,6 +292,19 @@ a, button { cursor: var(--droplet); }
   font-size: 1rem;
 }
 
+/* "Why this exists" — stacked on narrow screens, three even columns on wide.
+   Skips the two-across stage that would orphan the third paragraph. */
+.reason-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+  margin-top: 1rem;
+  font-size: 1rem;
+}
+@media (min-width: 900px) {
+  .reason-cols { grid-template-columns: repeat(3, 1fr); }
+}
+
 /* steps */
 .steps {
   display: grid;
