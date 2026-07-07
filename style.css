@@ -371,7 +371,7 @@ a, button { cursor: var(--droplet); }
 
 /* review block, nested at the base of the closing section */
 .review-block {
-  margin-top: 6rem;
+  margin-top: 10rem;
   padding-top: 5rem;
   border-top: 1px solid var(--line);
 }
