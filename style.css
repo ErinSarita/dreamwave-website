@@ -120,14 +120,6 @@ a, button { cursor: var(--droplet); }
   color: #3f4750;
 }
 
-.gate-lede {
-  max-width: 30rem;
-  margin: 1.4rem auto 0;
-  font-size: 0.95rem;
-  line-height: 1.65;
-  color: var(--mist);
-}
-
 @keyframes breathe {
   0%, 100% { opacity: 0.45; }
   50% { opacity: 0.9; }
