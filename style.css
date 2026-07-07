@@ -210,7 +210,7 @@ a, button { cursor: var(--droplet); }
 
 .hero-logo {
   display: block;
-  width: clamp(56px, 9vw, 76px);
+  width: clamp(72px, 12vw, 100px);
   height: auto;
   margin: 0 auto 1.8rem;
   border-radius: 50%;
