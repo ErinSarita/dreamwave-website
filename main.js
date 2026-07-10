@@ -157,19 +157,20 @@
     document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
   }
 
-  /* ---- screenshot carousel arrows ---- */
-  const track = document.getElementById("carousel-track");
-  if (track) {
+  /* ---- screenshot carousels ---- */
+  document.querySelectorAll(".carousel").forEach((carousel) => {
+    const track = carousel.querySelector(".carousel-track");
+    if (!track) return;
     // hide any slide whose screenshot hasn't been added yet
     track.querySelectorAll(".shot img").forEach((im) => {
       im.addEventListener("error", () => { im.closest(".shot").style.display = "none"; });
     });
     const step = () => (track.querySelector(".shot")?.offsetWidth || 260) + 32;
-    document.getElementById("car-prev").addEventListener("click", () =>
+    carousel.querySelector(".car-prev")?.addEventListener("click", () =>
       track.scrollBy({ left: -step(), behavior: "smooth" })
     );
-    document.getElementById("car-next").addEventListener("click", () =>
+    carousel.querySelector(".car-next")?.addEventListener("click", () =>
       track.scrollBy({ left: step(), behavior: "smooth" })
     );
-  }
+  });
 })();
