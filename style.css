@@ -501,6 +501,70 @@ a, button { cursor: var(--droplet); }
 }
 .carousel-nav button:hover { color: var(--glow); border-color: rgba(200, 215, 230, 0.5); }
 
+/* ---------- journal: multi-tab list ---------- */
+.tab-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.3rem;
+  max-width: 48rem;
+}
+@media (min-width: 760px) {
+  .tab-list { grid-template-columns: 1fr 1fr; gap: 1.6rem 2.6rem; }
+}
+.tab-list li {
+  border-left: 1px solid var(--line);
+  padding-left: 1.1rem;
+  font-size: 0.94rem;
+  color: var(--mist);
+  line-height: 1.55;
+}
+.tab-list li strong {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.2rem;
+  color: var(--glow);
+  margin-bottom: 0.3rem;
+}
+
+/* ---------- journal: ownership ---------- */
+.ownership {
+  margin-top: 3.5rem;
+  border-top: 1px solid var(--line);
+  padding-top: 2.6rem;
+}
+.ownership h4 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: var(--glow);
+  margin: 0 0 1.8rem;
+}
+.own-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+.own-list li {
+  font-size: 0.92rem;
+  color: var(--mist);
+  line-height: 1.6;
+}
+.own-list li strong { color: var(--glow); font-weight: 500; }
+.own-list a {
+  color: var(--mist);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.4s;
+}
+.own-list a:hover { color: var(--glow); }
+
 /* ---------- footer legal links (main site) ---------- */
 .closing footer a {
   color: var(--mist);
