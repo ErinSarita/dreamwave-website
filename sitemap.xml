@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://dreamwavejournal.com/</loc>
+    <image:image>
+      <image:loc>https://dreamwavejournal.com/images/og-dreamwave-journal.png</image:loc>
+      <image:title>DreamWave Journal, a sanctuary for inner experience</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dreamwavejournal.com/images/logo.png</image:loc>
+      <image:title>DreamWave Journal app icon</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dreamwavejournal.com/images/journal-entries.png</image:loc>
+      <image:title>DreamWave Journal, journal entries grouped into mini journals</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dreamwavejournal.com/images/screen-tracker.png</image:loc>
+      <image:title>DreamWave Journal, tracker with streaks, heat maps and moon phases</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dreamwavejournal.com/images/screen-practice.png</image:loc>
+      <image:title>DreamWave Journal, build a daily practice</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dreamwavejournal.com/privacy-policy/</loc>
+  </url>
+  <url>
+    <loc>https://dreamwavejournal.com/terms-of-service/</loc>
+  </url>
+  <url>
+    <loc>https://dreamwavejournal.com/contact.html</loc>
+  </url>
+</urlset>

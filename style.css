@@ -389,6 +389,28 @@ a, button { cursor: var(--droplet); }
   filter: drop-shadow(0 0 14px rgba(45, 90, 220, 0.55));
 }
 
+/* availability banner */
+.availability-banner {
+  background: rgba(45, 90, 220, 0.08);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: clamp(1.8rem, 3vw, 2.4rem) clamp(1.5rem, 6vw, 4rem);
+}
+.banner-content {
+  max-width: 68rem;
+  margin: 0 auto;
+  text-align: center;
+}
+.banner-text {
+  font-size: 0.95rem;
+  color: var(--mist);
+  line-height: 1.6;
+}
+.banner-text strong {
+  color: var(--glow);
+  font-weight: 500;
+}
+
 /* closing */
 .closing { text-align: center; }
 .closing h3 { font-size: clamp(2.2rem, 5vw, 3.6rem); }
