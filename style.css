@@ -263,53 +263,20 @@ a, button { cursor: var(--droplet); }
 }
 .btn-ghost:hover { color: var(--glow); border-color: rgba(200, 215, 230, 0.5); }
 
-/* App store download buttons */
-.app-store-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.btn-appstore {
+/* Store icons inside the hero buttons */
+.hero-actions .btn-solid, .hero-actions .btn-ghost {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.6rem;
-  padding: 0.9rem 2rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-decoration: none;
-  transition: all 0.3s;
-  border: 1.5px solid rgba(139, 150, 163, 0.4);
-  color: var(--glow);
-  background: rgba(45, 90, 220, 0.08);
 }
-.btn-appstore.ios {
-  background: rgba(45, 90, 220, 0.12);
-  border-color: rgba(45, 90, 220, 0.4);
+.btn-icon {
+  width: 1.15em;
+  height: 1.15em;
+  flex-shrink: 0;
 }
-.btn-appstore.ios:hover {
-  background: rgba(45, 90, 220, 0.18);
-  box-shadow: 0 0 30px rgba(45, 90, 220, 0.25);
-}
-.btn-appstore.google-play {
-  background: rgba(139, 150, 163, 0.06);
-  border-color: rgba(139, 150, 163, 0.3);
-}
-.btn-appstore.google-play.disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-.btn-appstore.google-play.disabled:hover {
-  background: rgba(139, 150, 163, 0.06);
-  box-shadow: none;
-}
-.appstore-icon {
-  font-size: 1.2em;
-}
+.btn-soon { cursor: default; opacity: 0.75; }
+.btn-soon:hover { color: var(--mist); border-color: var(--line); }
 
 .scroll-hint { margin-top: 5rem; }
 .scroll-hint span {
