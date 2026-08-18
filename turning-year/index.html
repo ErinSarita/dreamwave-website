@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Turning Year: a solar cycle from solstice to solstice</title>
+<meta name="description" content="An interactive wheel of the solar year: 365 (or 366) days counted from one winter solstice to the next, with equinoxes, cross-quarter fire festivals, Chinese solar terms, frost dates, and a 24-hour clock of sun and moon for every single day.">
+<meta name="color-scheme" content="dark light">
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='none' stroke='%23e8b84b' stroke-width='7'/><circle cx='50' cy='6' r='9' fill='%23e8b84b'/></svg>">
+</head>
+<body data-theme="night">
+
+<div class="app" id="app">
+
+  <!-- ------------------------------------------------------------ sidebar -->
+  <aside class="panel" id="panel">
+    <header class="panel-head">
+      <h1>The Turning Year</h1>
+      <p class="sub">One solar cycle, winter solstice to winter solstice</p>
+    </header>
+
+    <section class="field">
+      <label for="place-input">Place</label>
+      <div class="place-row">
+        <input id="place-input" type="text" autocomplete="off" spellcheck="false"
+               placeholder="Search a city…" aria-describedby="place-meta">
+        <button id="geo-btn" class="icon-btn" title="Use my location" aria-label="Use my location">◎</button>
+      </div>
+      <ul id="place-results" class="results" role="listbox" hidden></ul>
+      <p class="meta" id="place-meta"></p>
+    </section>
+
+    <section class="field">
+      <label>Cycle</label>
+      <div class="cycle-row">
+        <button id="cycle-prev" class="icon-btn" aria-label="Previous cycle">‹</button>
+        <div class="cycle-label">
+          <strong id="cycle-title">…</strong>
+          <span class="meta" id="cycle-meta"></span>
+        </div>
+        <button id="cycle-next" class="icon-btn" aria-label="Next cycle">›</button>
+      </div>
+      <button id="cycle-today" class="ghost-btn">Go to today</button>
+      <div class="goto-row">
+        <input type="date" id="goto-date" aria-label="Go to date" min="1700-01-01" max="2300-12-31">
+        <button id="goto-btn" class="ghost-btn" style="margin-top:0">Go</button>
+      </div>
+      <p class="meta" id="goto-meta">Any date, past or future, in this place's own calendar.</p>
+    </section>
+
+    <section class="field">
+      <label>Layers</label>
+      <div class="toggles">
+        <label class="tog"><input type="checkbox" id="lay-moon" checked><span>Moon</span></label>
+        <label class="tog"><input type="checkbox" id="lay-terms"><span>24 solar terms</span></label>
+        <label class="tog"><input type="checkbox" id="lay-frost" checked><span>Frost</span></label>
+        <label class="tog"><input type="checkbox" id="lay-months" checked><span>Months</span></label>
+        <label class="tog"><input type="checkbox" id="lay-trad"><span>Traditional festival dates</span></label>
+        <label class="tog"><input type="checkbox" id="lay-sky" checked><span>Big Dipper at nightfall</span></label>
+      </div>
+    </section>
+
+    <section class="field">
+      <label>Frost dates</label>
+      <div class="frost-grid">
+        <span class="frost-tag">Last spring frost</span>
+        <input type="text" id="frost-last" class="md-input" placeholder="Apr 25" aria-label="Last spring frost">
+        <span class="frost-tag">First autumn frost</span>
+        <input type="text" id="frost-first" class="md-input" placeholder="Oct 15" aria-label="First autumn frost">
+      </div>
+      <p class="meta" id="frost-meta"></p>
+    </section>
+
+    <section class="field legend">
+      <label>Legend</label>
+      <p class="meta" id="legend-context" hidden>Reading this day's 24-hour clock</p>
+      <ul id="legend-list">
+        <li><i class="sw sw-day"></i> Daylight hours (bar length)</li>
+        <li><i class="sw sw-night"></i> Dark hours</li>
+        <li><i class="sw sw-moon"></i> Moon, shaded by illumination</li>
+        <li><i class="sw sw-grow"></i> Growing season, dark where it's safe, fading to light where frost still could</li>
+        <li><i class="sw sw-sol"></i> Solstice &amp; equinox</li>
+        <li><i class="sw sw-cq"></i> Midseason (cross-quarter day)</li>
+        <li><i class="sw sw-noted"></i> A day you've written a note on</li>
+        <li><i class="sw sw-sky"></i> The Big Dipper facing north at nightfall</li>
+      </ul>
+    </section>
+
+    <footer class="panel-foot">
+      <button id="compare-btn" class="ghost-btn">Compare the seasons' sun path</button>
+      <button id="about-btn" class="ghost-btn">About &amp; accuracy</button>
+      <button id="theme-btn" class="ghost-btn">Daylight theme</button>
+    </footer>
+  </aside>
+
+  <!-- -------------------------------------------------------------- stage -->
+  <main class="stage" id="stage">
+
+    <nav class="crumbs" id="crumbs" aria-label="Zoom level">
+      <button data-level="year" class="crumb is-on">Year</button>
+      <span class="crumb-sep">›</span>
+      <button data-level="season" class="crumb" id="crumb-season" disabled>Season</button>
+      <span class="crumb-sep">›</span>
+      <button data-level="day" class="crumb" id="crumb-day" disabled>Day</button>
+    </nav>
+
+    <div class="scene scene-wheel" id="scene-wheel">
+      <svg id="wheel-svg" viewBox="-125 -125 1250 1250" role="img"
+           aria-label="Radial calendar of one solar cycle">
+        <defs>
+          <radialGradient id="g-vignette" cx="50%" cy="50%" r="50%">
+            <stop offset="55%" stop-color="var(--void)" stop-opacity="0"/>
+            <stop offset="100%" stop-color="var(--void)" stop-opacity=".85"/>
+          </radialGradient>
+          <linearGradient id="g-gold" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stop-color="var(--sun-deep)"/>
+            <stop offset="100%" stop-color="var(--sun-bright)"/>
+          </linearGradient>
+        </defs>
+        <g id="wheel"></g>
+        <circle cx="500" cy="500" r="620" fill="url(#g-vignette)" pointer-events="none"/>
+        <g id="hud"></g>
+      </svg>
+      <div class="readout" id="readout"></div>
+    </div>
+
+    <div class="scene scene-day" id="scene-day" hidden>
+      <svg id="day-svg" viewBox="-115 -115 1230 1230" role="img"
+           aria-label="Twenty-four hour clock of sun and moon">
+        <g id="dayclock"></g>
+      </svg>
+      <div class="day-panel" id="day-panel"></div>
+    </div>
+
+    <div class="loading" id="loading" hidden><span class="spin"></span> Computing the sky…</div>
+    <button class="panel-toggle" id="panel-toggle" aria-label="Toggle controls">☰</button>
+
+    <div class="zoom-controls" id="zoom-controls">
+      <button id="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+      <button id="zoom-out" aria-label="Zoom out" title="Zoom out">−</button>
+      <button id="zoom-reset" aria-label="Reset zoom" title="Reset zoom">⤾</button>
+    </div>
+  </main>
+</div>
+
+<div class="modal" id="about" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="about-h">
+    <button class="close" id="about-close" aria-label="Close">×</button>
+    <h2 id="about-h">About this wheel</h2>
+
+    <h3>What the year is</h3>
+    <p>The cycle here is not the calendar year. It starts on the day of the winter
+    solstice and runs to the day before the next winter solstice. Because the
+    tropical year is about 365.2422 days long, that count comes out to
+    <strong>365 days in most cycles and 366 in some</strong>, roughly one in four,
+    but not on a fixed rule. Nothing in this site adds a leap day; the length is
+    simply the number of sunrises between one solstice and the next.</p>
+
+    <h3>The eight stations</h3>
+    <p>Four are astronomical: the two solstices and the two equinoxes. Four are the
+    midpoints between them, labelled by which season they're the midpoint of (Winter
+    Midseason, Spring Midseason, and so on) rather than by one tradition's name for
+    them. Those same four points are also the Gaelic cross-quarter fire festivals
+    (Imbolc, Beltane, Lughnasadh, Samhain), kept as the alt line under each label,
+    and they are the same instants as four of the Chinese solar terms marking the
+    openings of the seasons:
+    立春 Lìchūn, 立夏 Lìxià, 立秋 Lìqiū, 立冬 Lìdōng. This site places them where the
+    Sun actually reaches 315°, 45°, 135° and 225° of apparent longitude. Turn on
+    <em>Traditional festival dates</em> to also mark the fixed calendar dates
+    (1 February, 1 May, 1 August, 1 November) that the folk calendar settled on;
+    they drift a few days from the astronomical midpoints.</p>
+
+    <h3>Check it against the actual sky</h3>
+    <p>Solstices and equinoxes are defined by the Sun's position, not by any
+    star, but the Big Dipper is a real, checkable consequence of the same
+    orbital motion: because it circles Polaris once a year in addition to once
+    a night, its orientation at a fixed clock time drifts through the seasons.
+    Each of the four cardinal stations carries a small sketch of the Dipper's
+    bowl and handle exactly as they stand facing north at nightfall (nautical
+    twilight) on that date, computed for your place, not a generic diagram.
+    Go outside after dark near one of those dates and it should match. Below
+    the latitude where the Dipper never clears the horizon, the circle is
+    left empty instead of guessing.</p>
+
+    <h3>The 24 solar terms</h3>
+    <p>Turn this layer on and the wheel marks all 24 equal divisions of the Sun's
+    apparent longitude, 15° apart, numbered 1 to 24 starting near day 1. They are
+    real, precise divisions of the year. What they are traditionally called in
+    Chinese is not: names like 雨水 (Rain Water) or 霜降 (Frost Descends) describe a
+    climate calendar built for a particular part of China, and translating them
+    into English (“Grain Rain”, “Frost Descends”) makes them sound like a forecast
+    for wherever you happen to be, which they are not. So the wheel shows the
+    number and, if you hover a tick, the traditional name as a name, not a claim
+    about your weather. What actually happens on that day, where you are, is
+    worth finding out and writing down yourself, which is what notes are for.</p>
+
+    <h3>Hemispheres</h3>
+    <p>South of the equator the wheel anchors on your own winter solstice in June,
+    and the seasonal festival names move with the season, as southern practice
+    generally does. The Chinese solar terms are tied to solar longitude itself,
+    so those stay fixed to the sky and do not flip.</p>
+
+    <h3>Frost</h3>
+    <p>First and last frost are the only things here that are not astronomy. They
+    depend on elevation, slope, water, soil and the particular hollow you are
+    standing in, far more than on latitude. The dates shown until you change them
+    are a coarse latitude-band estimate and are labelled as such. Type your own;
+    they are saved in this browser.</p>
+    <p>Either way it is a single guess, not a forecast, so the wheel shades it as a
+    fade rather than a hard line: light green for roughly a month either side of
+    each date, where frost is still plausible, deepening into a solid dark green
+    for the stretch safely between the two, the actual growing season. Nowhere
+    close to either latitude, the wheel doesn't expect frost at all, in which
+    case the whole ring is filled dark green as a year-round growing season.</p>
+
+    <h3>Your notes</h3>
+    <p>Open any day and there is a small pencil below the sun and moon figures.
+    Click it to write down what actually happened there: the morning the tomatoes
+    got hit, the first robin, when the corn went knee-high, when it got harvested,
+    whatever you'd otherwise trust to memory. Each note is tied to that exact
+    calendar date, and the wheel marks any day that has one with a small dot near
+    the frost band, so a year of noticing is visible at a glance.</p>
+    <p>Written the same date the year before, or the year before that, shows up
+    right alongside the box as you write, so "when did it actually last frost
+    here" stops being a guess after a season or two. Notes stay on this device,
+    in this browser, the same as your frost dates; there is no account and
+    nothing is sent anywhere.</p>
+
+    <h3>Accuracy</h3>
+    <p>Solar positions come from a truncated VSOP87 series and agree with reference
+    values to well under an arcsecond; solstice and equinox instants land within
+    about a minute. Lunar positions use the Meeus ch. 47 series, good to roughly ten
+    arcseconds. Rise and set times account for refraction at the standard horizon
+    (−0.833° for the Sun, and the Moon's own parallax) and assume a flat sea
+    horizon. Real hills and buildings will move them by minutes. All times are
+    shown in the selected place's own time zone, including its daylight-saving
+    shifts, so a spring-forward day is genuinely 23 hours long here.</p>
+
+    <h3>The Earth at the centre</h3>
+    <p>Zoom into a day and the small globe in the middle is a real orthographic
+    projection, the same kind used for maps of a hemisphere, not an illustration
+    standing in for one: it is genuinely centred on your place, so you sit at the
+    exact middle of the visible disc, with the gold line marking the actual
+    day/night terminator at that instant. On today it tracks the live moment
+    (the same one the radial "now" marker points to); on any other day it shows
+    local solar noon, since there is no "now" to anchor to.</p>
+
+    <h3>Credits</h3>
+    <p>Algorithms after Jean Meeus, <em>Astronomical Algorithms</em>, and the VSOP87
+    theory of Bretagnon &amp; Francou. Everything runs in your browser; the page makes
+    no network requests and stores only your place and frost dates, locally.</p>
+    <p class="meta">Built with Claude. From <a href="../" style="color:inherit">DreamWave Journal</a>.</p>
+  </div>
+</div>
+
+<div class="modal" id="compare" hidden>
+  <div class="modal-card compare-card" role="dialog" aria-modal="true" aria-labelledby="compare-h">
+    <button class="close" id="compare-close" aria-label="Close">×</button>
+    <h2 id="compare-h">How high the sun climbs</h2>
+    <p>The sun's height above the horizon, hour by hour, on each of the four
+    cardinal days of this cycle. Same clock, four very different arcs.</p>
+    <svg id="compare-svg" viewBox="0 0 640 300" role="img"
+         aria-label="Sun altitude across the day, compared across the four cardinal days"></svg>
+    <ul class="compare-legend" id="compare-legend"></ul>
+  </div>
+</div>
+
+<script src="js/astro.js"></script>
+<script src="js/astro-sun.js"></script>
+<script src="js/astro-moon.js"></script>
+<script src="js/astro-riseset.js"></script>
+<script src="js/timezone.js"></script>
+<script src="js/places.js"></script>
+<script src="js/cycle.js"></script>
+<script src="js/moon-glyph.js"></script>
+<script src="js/stars.js"></script>
+<script src="js/globe.js"></script>
+<script src="js/render-wheel.js"></script>
+<script src="js/render-day.js"></script>
+<script src="js/zoompan.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

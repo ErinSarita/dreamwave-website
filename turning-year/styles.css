@@ -1,0 +1,388 @@
+/* The Turning Year — night-sky first, with a parchment daylight theme. */
+
+:root {
+  --void: #05060d;
+  --bg: #080a15;
+  --bg-2: #0d1020;
+  --panel: rgba(13, 16, 32, .82);
+  --line: rgba(190, 200, 235, .14);
+  --line-soft: rgba(190, 200, 235, .07);
+  --ink: #e9ecf7;
+  --ink-2: #a8b0cc;
+  --ink-3: #6f7899;
+
+  --sun-bright: #ffd873;
+  --sun: #e8b84b;
+  --sun-deep: #b8791f;
+  --night: #1b2342;
+  --night-2: #26305a;
+  --twilight-1: #2b3565;   /* civil */
+  --twilight-2: #202a52;   /* nautical */
+  --twilight-3: #171e3d;   /* astronomical */
+
+  --moon: #cfd8ef;
+  --moon-dim: #59637f;
+  --grow: #6fbf8b;
+  --frost: #8fd3ff;
+  --solstice: #ff9d5c;
+  --equinox: #9db8ff;
+  --cross: #d98cff;
+  --today: #ff6b8a;
+  --sky-patch: #0a0e22;   /* the Dipper's own patch of night sky — stays dark in both themes */
+
+  --shadow: 0 18px 50px rgba(0,0,0,.55);
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+body[data-theme="day"] {
+  --void: #e6dcc6;
+  --bg: #f7f2e6;
+  --bg-2: #f1ead9;
+  --panel: rgba(253, 250, 244, .93);
+  --line: rgba(58, 46, 28, .28);
+  --line-soft: rgba(58, 46, 28, .13);
+  --ink: #1e180f;
+  --ink-2: #4a4133;
+  --ink-3: #786d5b;
+
+  --sun-bright: #f2a80f;
+  --sun: #dd8f10;
+  --sun-deep: #ad6704;
+  --night: #656d88;
+  --night-2: #566080;
+  --twilight-1: #a9aec2;
+  --twilight-2: #8f95ab;
+  --twilight-3: #787f97;
+
+  --moon: #454c6b;
+  --moon-dim: #a29a89;
+  --grow: #2f7d4e;
+  --frost: #1c6b98;
+  --solstice: #b04a12;
+  --equinox: #2c4c9c;
+  --cross: #7a2c9c;
+  --today: #b32744;
+  --shadow: 0 14px 40px rgba(90, 70, 40, .2);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--sans); font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.app { display: flex; height: 100dvh; }
+
+/* ------------------------------------------------------------------ panel */
+.panel {
+  width: 316px; flex: 0 0 316px; height: 100%; overflow-y: auto;
+  background: var(--panel); backdrop-filter: blur(14px);
+  border-right: 1px solid var(--line);
+  padding: 22px 20px 28px; z-index: 5;
+}
+.panel-head h1 {
+  font-family: var(--serif); font-weight: 500; font-size: 26px;
+  margin: 0 0 2px; letter-spacing: .01em;
+}
+.panel-head .sub { margin: 0 0 22px; color: var(--ink-3); font-size: 12.5px; }
+
+.field { margin-bottom: 22px; }
+.field > label {
+  display: block; font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 8px;
+}
+.meta { color: var(--ink-3); font-size: 12px; margin: 7px 0 0; }
+
+input[type="text"] {
+  width: 100%; padding: 9px 11px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink);
+  font: inherit; font-size: 14px;
+}
+input[type="text"]:focus { outline: none; border-color: var(--sun); }
+input[type="date"] {
+  padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg-2); color: var(--ink); font: inherit; font-size: 13px;
+  color-scheme: dark;
+}
+body[data-theme="day"] input[type="date"] { color-scheme: light; }
+input[type="date"]:focus { outline: none; border-color: var(--sun); }
+
+.goto-row { display: flex; gap: 8px; margin-top: 8px; }
+.goto-row input[type="date"] { flex: 1; min-width: 0; }
+.goto-row .ghost-btn { width: auto; flex: 0 0 auto; padding: 8px 16px; }
+
+.place-row { display: flex; gap: 8px; }
+.icon-btn {
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-2);
+  cursor: pointer; font-size: 16px; line-height: 1;
+}
+.icon-btn:hover { border-color: var(--sun); color: var(--sun); }
+
+.results {
+  list-style: none; margin: 6px 0 0; padding: 4px; max-height: 230px; overflow-y: auto;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--bg-2);
+}
+.results li { padding: 7px 9px; border-radius: 6px; cursor: pointer; font-size: 13.5px; }
+.results li:hover, .results li[aria-selected="true"] { background: rgba(232,184,75,.14); }
+.results li small { color: var(--ink-3); display: block; font-size: 11px; }
+
+.cycle-row { display: flex; align-items: center; gap: 8px; }
+.cycle-label { flex: 1; text-align: center; line-height: 1.25; }
+.cycle-label strong { font-family: var(--serif); font-size: 16px; font-weight: 500; }
+.cycle-label .meta { margin: 1px 0 0; }
+
+.ghost-btn {
+  width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: transparent; color: var(--ink-2);
+  font: inherit; font-size: 13px; cursor: pointer;
+}
+.ghost-btn:hover { border-color: var(--sun); color: var(--sun); }
+
+.toggles { display: grid; gap: 7px; }
+.tog { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; }
+.tog input { accent-color: var(--sun); width: 15px; height: 15px; }
+
+.frost-grid { display: grid; grid-template-columns: 1fr 92px; gap: 7px 10px; align-items: center; }
+.frost-tag { font-size: 12.5px; color: var(--ink-2); }
+.md-input { padding: 6px 8px !important; font-size: 13px !important; text-align: center; }
+
+.legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.legend li { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--ink-2); }
+.sw { width: 13px; height: 13px; border-radius: 3px; flex: 0 0 auto; }
+.sw-day { background: linear-gradient(0deg, var(--sun-deep), var(--sun-bright)); }
+.sw-night { background: var(--night-2); }
+.sw-moon { background: var(--moon); border-radius: 50%; }
+.sw-grow { background: var(--grow); }
+.sw-sol { background: var(--solstice); border-radius: 50%; }
+.sw-cq { background: var(--cross); transform: rotate(45deg); border-radius: 2px; }
+.sw-noted { background: var(--sun-bright); border-radius: 50%; width: 8px; height: 8px; }
+.sw-sky { background: none; border: 1px solid var(--ink-3); border-radius: 50%; position: relative; }
+.sw-sky::after { content: ''; position: absolute; inset: 3px; background: var(--ink-2); border-radius: 1px; transform: rotate(20deg); }
+.sw-twi { background: linear-gradient(0deg, var(--twilight-3), var(--twilight-1)); }
+.sw-sunline { width: 14px; height: 0; border-top: 2px solid var(--sun-bright); border-radius: 0; background: none; }
+.sw-moonline { width: 14px; height: 0; border-top: 2px dashed var(--moon); border-radius: 0; background: none; }
+.sw-fill { background: var(--sun); opacity: .35; }
+.sw-ring { background: none; border: 1.5px dashed var(--ink-3); border-radius: 50%; }
+.sw-earth {
+  background: linear-gradient(115deg, var(--sun) 45%, var(--night-2) 47%);
+  border-radius: 50%; border: 1px solid var(--line);
+}
+
+.panel-foot { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+
+/* ------------------------------------------------------------------ stage */
+.stage { position: relative; flex: 1; min-width: 0; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, var(--bg-2), var(--bg) 70%); }
+
+.crumbs {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; z-index: 4;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 12px; backdrop-filter: blur(10px);
+}
+.crumb {
+  border: 0; background: transparent; color: var(--ink-3); font: inherit; font-size: 12.5px;
+  cursor: pointer; padding: 3px 7px; border-radius: 999px;
+}
+.crumb:disabled { opacity: .35; cursor: default; }
+.crumb.is-on { color: var(--sun); }
+.crumb-sep { color: var(--ink-3); font-size: 11px; }
+
+/* Padding on the bottom carves out room for the summary card so the circle
+ * is centred in what's left, never behind it; the svg's own max-height (below)
+ * matches this reservation so the two can never overlap at any viewport size. */
+.scene { position: absolute; inset: 0; display: grid; place-items: center;
+  padding: 48px 12px calc(32dvh + 32px);
+  transition: opacity .45s ease, transform .45s ease; }
+.scene[hidden] { display: none; }
+.scene.fading { opacity: 0; transform: scale(.94); }
+
+#wheel-svg, #day-svg {
+  width: min(100%, calc(68dvh - 80px)); height: min(100%, calc(68dvh - 80px));
+  display: block; overflow: visible; touch-action: none;
+}
+.scene { overflow: hidden; }
+.moon-glyph { display: inline-block; vertical-align: middle; flex: 0 0 auto; }
+
+#wheel, #dayclock { transform-box: view-box; }
+#wheel, #hud { transform-origin: 500px 500px;
+  transition: transform 900ms cubic-bezier(.5,.05,.2,1); }
+
+/* Both the year/season readout and the day-clock panel live in a card below
+ * the wheel, never on top of it — the circle stays fully visible, and the
+ * text has a fixed, predictable home regardless of zoom level or screen size.
+ * Its own max-height (matched by the space .scene reserves below the circle,
+ * and by the svg's own max-height) is what keeps it from ever growing into
+ * the wheel above it — it scrolls internally instead. */
+.readout, .day-panel {
+  position: absolute; left: 50%; top: auto; bottom: 16px; transform: translateX(-50%);
+  text-align: center; pointer-events: none; width: min(300px, calc(100% - 32px));
+  max-height: 40dvh; overflow-y: auto; box-sizing: border-box;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 15px 20px; backdrop-filter: blur(10px); box-shadow: var(--shadow);
+}
+.readout .r-num { font-family: var(--serif); font-size: 34px; line-height: 1; color: var(--ink); }
+.readout .r-lab { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
+.readout .r-date { font-family: var(--serif); font-size: 15px; margin-top: 6px; color: var(--ink-2); }
+.readout .r-rows {
+  margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 2px 14px; font-size: 12px; color: var(--ink-2);
+}
+.readout .r-rows span { color: var(--ink-3); }
+.readout .r-station { margin-top: 9px; font-family: var(--serif); font-size: 14px; color: var(--sun-bright); }
+.readout .r-moon {
+  margin-top: 9px; display: flex; align-items: center; justify-content: center;
+  gap: 7px; font-size: 12px; color: var(--ink-2);
+}
+.readout .r-hint { margin-top: 12px; font-size: 11px; color: var(--ink-3); }
+
+/* -------------------------------------------------------------- day panel */
+.day-panel .d-num { font-family: var(--serif); font-size: 46px; line-height: .95; }
+.day-panel .d-of { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
+.day-panel .d-date { font-family: var(--serif); font-size: 17px; margin-top: 10px; }
+.day-panel .d-week { font-size: 12px; color: var(--ink-3); }
+.day-panel .d-station { margin-top: 10px; font-family: var(--serif); color: var(--sun-bright); font-size: 15px; }
+.day-panel .d-term { font-size: 12px; color: var(--ink-3); }
+.day-panel .d-split { margin-top: 13px; display: flex; justify-content: center; gap: 14px; font-size: 12px; }
+.day-panel .d-split b { display: block; font-family: var(--mono); font-size: 15px; font-weight: 500; }
+.day-panel .d-sun b { color: var(--sun); }
+.day-panel .d-dark b { color: var(--ink-2); }
+.day-panel .d-moon-row {
+  margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.day-panel .d-moon-text { text-align: left; font-size: 12px; color: var(--ink-2); }
+.day-panel .d-moon-text b { display: block; font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--moon); }
+
+/* ------------------------------------------------------------- day notes */
+.note-btn {
+  margin-top: 12px; width: 32px; height: 32px; border-radius: 9px; position: relative;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-3);
+  font-size: 14px; line-height: 1; cursor: pointer; pointer-events: auto;
+}
+.note-btn:hover { border-color: var(--sun); color: var(--sun); }
+.note-btn.has-note { border-color: var(--sun-bright); color: var(--sun-bright); background: rgba(232, 184, 75, .12); }
+.note-dot { position: absolute; top: -3px; right: -3px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--sun-bright); border: 1.5px solid var(--panel); }
+.note-box { margin-top: 10px; text-align: left; pointer-events: auto; }
+.note-box textarea {
+  width: 100%; min-height: 68px; resize: vertical; box-sizing: border-box;
+  border-radius: 9px; border: 1px solid var(--line); background: var(--bg-2); color: var(--ink);
+  font: inherit; font-size: 12.5px; line-height: 1.4; padding: 9px 10px;
+}
+.note-box textarea:focus { outline: none; border-color: var(--sun); }
+.note-history { margin-top: 8px; font-size: 11px; color: var(--ink-3); max-height: 90px; overflow-y: auto; }
+.note-history-label { text-transform: uppercase; letter-spacing: .1em; font-size: 9px; margin-bottom: 4px; color: var(--ink-3); }
+.note-history-item { margin-bottom: 3px; line-height: 1.35; }
+.note-history-item b { color: var(--ink-2); font-family: var(--mono); font-weight: 500; margin-right: 5px; }
+.note-done {
+  /* Stays reachable while the card scrolls (a long note plus its history can
+     push this well below the fold), pinned to the bottom of the scrollport
+     with its own background so scrolled content doesn't show through. */
+  position: sticky; bottom: -15px; z-index: 1;
+  margin: 12px -20px -15px; width: calc(100% + 40px); padding: 10px 20px 12px;
+  box-sizing: border-box; border: 0; border-top: 1px solid var(--line);
+  background: var(--panel); color: var(--sun);
+  font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; pointer-events: auto;
+}
+.note-done:hover { color: var(--sun-bright); }
+
+/* SVG text defaults */
+#wheel text, #dayclock text { font-family: var(--sans); fill: var(--ink-2); }
+.tick-label { font-size: 13px; fill: var(--ink-3); }
+.station-label { font-family: var(--serif); font-size: 15px; fill: var(--ink); }
+.station-sub { font-size: 10.5px; fill: var(--ink-3); }
+.month-label { font-size: 11px; fill: var(--ink-3); letter-spacing: .1em; }
+.term-label { font-size: 11px; fill: var(--ink-3); opacity: 0; transition: opacity .4s; }
+.term-sub { font-size: 7.5px; fill: var(--ink-3); opacity: 0; transition: opacity .4s; }
+#wheel-svg.zoomed .term-sub { opacity: .75; }
+#wheel-svg.zoomed .term-label { opacity: 1; }
+
+.rot { transition: transform .35s ease; }
+.rot.flip { transform: rotate(180deg); }
+.day-cell { cursor: pointer; }
+.hit { fill: transparent; cursor: pointer; }
+
+.loading {
+  position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 16px; font-size: 12.5px; color: var(--ink-2); display: flex; gap: 9px; align-items: center;
+}
+.loading[hidden] { display: none; }
+.spin { width: 12px; height: 12px; border: 2px solid var(--line); border-top-color: var(--sun);
+  border-radius: 50%; animation: sp .8s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+.panel-toggle {
+  position: absolute; top: 14px; left: 14px; z-index: 6; display: none;
+  width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink); font-size: 16px; cursor: pointer;
+}
+
+.zoom-controls {
+  position: absolute; right: 14px; bottom: 14px; z-index: 6;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 5px;
+  backdrop-filter: blur(10px);
+}
+.zoom-controls button {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid transparent;
+  background: transparent; color: var(--ink-2); font-size: 16px; line-height: 1; cursor: pointer;
+}
+.zoom-controls button:hover { border-color: var(--sun); color: var(--sun); background: var(--bg-2); }
+#zoom-reset { font-size: 14px; }
+
+.scene.is-zoomed #wheel-svg, .scene.is-zoomed #day-svg { cursor: grab; }
+.scene.is-zoomed #wheel-svg:active, .scene.is-zoomed #day-svg:active { cursor: grabbing; }
+
+/* ------------------------------------------------------------------ modal */
+.modal { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+  background: rgba(3,4,10,.72); padding: 20px; overflow-y: auto; }
+.modal[hidden] { display: none; }
+.modal-card {
+  position: relative; width: min(94vw, 620px); margin: auto;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 16px;
+  padding: 30px 32px; box-shadow: var(--shadow); box-sizing: border-box;
+}
+.modal-card h2 { font-family: var(--serif); font-weight: 500; margin: 0 0 14px; font-size: 24px; }
+.modal-card h3 { font-family: var(--serif); font-weight: 500; font-size: 15.5px; margin: 22px 0 6px; color: var(--sun-bright); }
+.modal-card p { margin: 0 0 10px; color: var(--ink-2); font-size: 14px; }
+.close { position: absolute; top: 12px; right: 14px; background: none; border: 0;
+  color: var(--ink-3); font-size: 26px; cursor: pointer; line-height: 1; }
+
+.compare-card { width: min(94vw, 700px); }
+#compare-svg { width: 100%; height: auto; margin-top: 10px; display: block; }
+.compare-legend {
+  list-style: none; margin: 14px 0 0; padding: 0; display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px;
+}
+.compare-legend li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); min-width: 0; }
+.compare-legend .swatch { width: 16px; height: 0; border-top-width: 2.5px; border-top-style: solid; flex: 0 0 auto; }
+.compare-legend .stat { color: var(--ink-3); margin-left: auto; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 480px) {
+  .compare-legend { grid-template-columns: 1fr; }
+}
+
+/* ----------------------------------------------------------------- mobile */
+@media (max-width: 900px) {
+  .panel { position: absolute; inset: 0 auto 0 0; width: min(320px, 88vw); flex-basis: auto;
+    transform: translateX(-100%); transition: transform .3s ease; box-shadow: var(--shadow); }
+  .app.panel-open .panel { transform: none; }
+  .panel-toggle { display: block; }
+  .crumbs { top: 15px; padding: 4px 10px; }
+  .crumb { font-size: 12px; }
+
+  .readout, .day-panel { left: 10px; right: 10px; bottom: 10px; transform: none; width: auto; }
+  .readout .r-num { font-size: 30px; }
+  .day-panel .d-num { font-size: 40px; }
+  .day-panel .d-date { margin-top: 6px; font-size: 15px; }
+  .day-panel .d-split { margin-top: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #wheel, .scene { transition: none; }
+}

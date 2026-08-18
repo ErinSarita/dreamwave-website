@@ -611,6 +611,14 @@ a, button { cursor: var(--droplet); }
 }
 .closing footer a:hover { color: var(--glow); }
 .footer-links { display: flex; gap: 1.4rem; }
+.rune {
+  display: inline-block;
+  margin-left: 0.5em;
+  opacity: 0.3;
+  text-decoration: none;
+  transition: opacity 0.6s, color 0.6s;
+}
+.rune:hover { opacity: 1; color: var(--glow); }
 
 /* ============ legal pages (Privacy / Terms) ============ */
 .legal-page {
