@@ -567,40 +567,48 @@
     else if (d.iso < cycle.days[0].iso) where = 'in the cycle before this one';
     else where = 'in the cycle after this one';
 
-    /* Face first, then what that face is called, then the date, then the
-     * numbers. Reading down the box is then reading the moon: what it looks
-     * like, what that is, when it is, and where it sits in both calendars. */
-    return '<div class="mr-face">' + MoonGlyph.svg(d.moonAge, 44) +
-        /* On the four turning points the phase carries the same words as the
-         * event, so it is drawn once, marked, rather than twice. On every
-         * other day the name stands plain. */
-        '<div class="mr-phase">' +
-          (d.moonEvent === d.moonPhaseName
-            ? '<span class="mr-event">' + esc(d.moonEvent) + '</span>'
-            : esc(d.moonPhaseName) +
-              (d.moonEvent ? ' <span class="mr-event">' + esc(d.moonEvent) + '</span>' : '')) +
-        '</div>' +
+    /* Face first, then what that face is called, then the day of the solar
+     * cycle set large, the way the day panel sets it, because that number is
+     * the anchor into the other calendar and was previously the smallest
+     * thing in the box. The standard date follows it, then the weekday, then
+     * where the day sits in the lunation. */
+    return '<div class="mr-facerow">' +
+        '<button class="mr-step" data-step="-1" aria-label="Previous day" title="Previous day">\u2039</button>' +
+        '<span class="mr-face">' + MoonGlyph.svg(d.moonAge, 40) + '</span>' +
+        '<button class="mr-step" data-step="1" aria-label="Next day" title="Next day">\u203A</button>' +
+      '</div>' +
+      /* On the four turning points the phase carries the same words as the
+       * event, so it is drawn once, marked, rather than twice. On every other
+       * day the name stands plain. */
+      '<div class="mr-phase">' +
+        (d.moonEvent === d.moonPhaseName
+          ? '<span class="mr-event">' + esc(d.moonEvent) + '</span>'
+          : esc(d.moonPhaseName) +
+            (d.moonEvent ? ' <span class="mr-event">' + esc(d.moonEvent) + '</span>' : '')) +
+      '</div>' +
+      '<div class="mr-solar">' +
+        '<span class="mr-lab">Day</span>' +
+        '<b>' + (solar ? solar.n : '\u2014') + '</b>' +
+        '<span class="mr-lab">' + (solar ? 'of ' + cycle.length : esc(where)) + '</span>' +
       '</div>' +
       '<div class="mr-date">' + esc(TZ.formatDate(tz, d.date)) + '</div>' +
       '<div class="mr-sub">' + esc(TZ.weekdayName(tz, d.date)) + '</div>' +
-      '<div class="mr-stats">' +
-        '<div class="mr-stat"><b>' + (solar ? solar.n : '\u2014') + '</b>' +
-          '<span>' + (solar ? 'of ' + cycle.length : where) + '</span></div>' +
-        '<div class="mr-stat"><b>' + d.dayInMonth + '</b>' +
-          '<span>of ' + monthDays + ' this lunation</span></div>' +
-        '<div class="mr-stat"><b>' + Math.round(d.moonIllumination * 100) + '%</b>' +
-          '<span>lit</span></div>' +
-      '</div>';
+      '<div class="mr-lun">Day ' + d.dayInMonth + ' of ' + monthDays +
+        ' of this lunation &#183; ' + Math.round(d.moonIllumination * 100) + '% lit</div>';
   }
 
-  function drawMoon() {
+  function drawMoon(focusISO) {
     if (!state.place) return;
     if (state.lunationK === null) state.lunationK = lunationKOfDay(state.day || todayNumber() || 1);
     var ctx = moonCtx();
     var m = Lunar.month(state.lunationK, ctx);
     var days = Lunar.daysOf(state.lunationK, ctx);
+    /* The ring marks whichever day the box is describing. Stepping with the
+     * day arrows is a deliberate move, so the mark follows it; hovering only
+     * changes the box, since the mark chasing the pointer would flicker. */
+    var focus = focusISO || selectedISO();
     $('moonwheel').innerHTML = MoonView.render(m, days, {
-      tz: ctx.tz, selectedISO: selectedISO(), todayISO: todayISO()
+      tz: ctx.tz, selectedISO: focus, todayISO: todayISO()
     });
     $('moon-head').innerHTML = moonHeadHTML(m, days);
     $('moon-prev').disabled = false;      // the chain has no ends
@@ -610,11 +618,44 @@
      * when the pointer leaves, so it is never blank. */
     var byISO = {};
     days.forEach(function (d) { byISO[d.iso] = d; });
+    /* The circle's arrows step a whole lunation; these step one day, and run
+     * off the ends into the neighbouring month rather than stopping, since
+     * the chain does not stop either. */
+    var shown = null;
     function showDay(iso) {
+      shown = iso;
       $('moon-readout').innerHTML = moonReadoutHTML(byISO[iso], days.length);
+      Array.prototype.forEach.call($('moon-readout').querySelectorAll('.mr-step'), function (b) {
+        b.addEventListener('click', function (e) {
+          e.stopPropagation();
+          stepDay(+b.getAttribute('data-step'));
+        });
+      });
+    }
+    function stepDay(delta) {
+      var i = -1;
+      for (var j = 0; j < days.length; j++) if (days[j].iso === shown) { i = j; break; }
+      if (i < 0) return;
+      var next = i + delta;
+      if (next >= 0 && next < days.length) {
+        var iso = days[next].iso;
+        if (cycle.dayByISO[iso]) state.day = cycle.dayByISO[iso].n;
+        drawMoon(iso);
+        syncCrumbs();
+        writeHash();
+        return;
+      }
+      // off the end: carry into the neighbouring lunation and redraw the circle
+      state.lunationK += delta;
+      var nd = Lunar.daysOf(state.lunationK, moonCtx());
+      var edge = delta > 0 ? nd[0] : nd[nd.length - 1];
+      if (cycle.dayByISO[edge.iso]) state.day = cycle.dayByISO[edge.iso].n;
+      drawMoon(edge.iso);
+      syncCrumbs();
+      writeHash();
     }
     function restDay() {
-      var sel = selectedISO(), tod = todayISO();
+      var sel = focusISO || selectedISO(), tod = todayISO();
       showDay(byISO[sel] ? sel : (byISO[tod] ? tod : days[0].iso));
     }
     restDay();

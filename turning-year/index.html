@@ -160,15 +160,17 @@
     </div>
 
     <div class="scene scene-moon" id="scene-moon" hidden>
-      <div class="moon-head" id="moon-head"></div>
-      <button class="moon-arrow moon-prev" id="moon-prev" aria-label="Previous lunar month"
-              title="Previous lunar month">‹</button>
+      <div class="moon-topbar">
+        <button class="moon-arrow moon-prev" id="moon-prev" aria-label="Previous lunation"
+                title="Previous lunation">‹</button>
+        <div class="moon-head" id="moon-head"></div>
+        <button class="moon-arrow moon-next" id="moon-next" aria-label="Next lunation"
+                title="Next lunation">›</button>
+      </div>
       <svg id="moon-svg" viewBox="-40 -40 1080 1080" role="img"
            aria-label="One lunar month, new moon to new moon">
         <g id="moonwheel"></g>
       </svg>
-      <button class="moon-arrow moon-next" id="moon-next" aria-label="Next lunar month"
-              title="Next lunar month">›</button>
       <div class="moon-readout" id="moon-readout" aria-live="polite"></div>
     </div>
 

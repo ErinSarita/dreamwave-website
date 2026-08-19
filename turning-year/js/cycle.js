@@ -498,6 +498,18 @@
         var d = cycle.days[k - 1];
         if (d && d.moonEvent === 'Full Moon') { L.fullMoon = d; break; }
       }
+      /* A wedge whose full moon falls outside this cycle still belongs to a
+       * lunation, just to the neighbouring year's count. Naming it from the
+       * continuous chain gives the reader something to aim at: the wedge was
+       * always clickable, but with no label it looked like empty ring. */
+      if (!L.fullMoon && global.Lunar && cycle.days[L.startDay - 1]) {
+        var lk = global.Lunar.kAt(A.jdFromDate(cycle.days[L.startDay - 1].end) - 1e-6);
+        var lm = global.Lunar.month(lk, { lat: cycle.lat, lon: cycle.lon,
+                                          tz: cycle.tz, anchorMode: cycle.anchorMode });
+        L.edgeNumber = lm.number;
+        L.edgeYear = lm.yearLabel;
+        L.edgeLabel = lm.shortLabel;
+      }
       if (L.fullMoon) {
         L.seasonName = L.fullMoon.fullMoonSeason;
         L.ordinal = L.fullMoon.fullMoonOrdinal;

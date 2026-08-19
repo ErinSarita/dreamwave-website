@@ -283,8 +283,25 @@
           // Two lines: the running year count leads, since that is the moon's
           // name for the whole turn, with its position inside the season as
           // the smaller supporting line beneath.
+          var arcDeg = ((a2 - a1) % 360 + 360) % 360;
+          /* A partial wedge at either end of the cycle belongs to the
+           * neighbouring year's count, and is often too narrow for the full
+           * two-line label. It gets a compact one instead, so there is
+           * something to aim at rather than a stretch of bare ring. */
+          if (!L.shortLabel && L.edgeNumber && arcDeg >= 6) {
+            var emid = a1 + arcDeg / 2;
+            var ep = polar(R.moonNumR, emid);
+            parts.push(rotLabel(emid, ep[0], ep[1],
+              '<text class="moon-num is-edge" x="' + fmt(ep[0]) + '" y="' + fmt(ep[1]) +
+              '" text-anchor="middle" dominant-baseline="middle">' +
+              L.edgeNumber + ' \u203A</text>'));
+            var eyp = polar(R.moonSeasonR, emid);
+            parts.push(rotLabel(emid, eyp[0], eyp[1],
+              '<text class="moon-season is-edge" x="' + fmt(eyp[0]) + '" y="' + fmt(eyp[1]) +
+              '" text-anchor="middle" dominant-baseline="middle">' + L.edgeYear + '</text>'));
+          }
           if (L.shortLabel) {
-            var mid = a1 + (((a2 - a1) % 360 + 360) % 360) / 2;
+            var mid = a1 + arcDeg / 2;
             var np = polar(R.moonNumR, mid);
             var sp2 = polar(R.moonSeasonR, mid);
             parts.push(rotLabel(mid, np[0], np[1],
@@ -297,9 +314,13 @@
           }
           pieHits.push('<path class="moon-hit" data-lunation="' + li + '" d="' +
                        sector(R.moonHitIn, R.moonPieOut, a1, a2) + '"><title>' +
-                       (L.shortLabel ? esc('Lunation ' + L.yearMoonNumber + ' of the year \u00B7 ' +
-                                       (L.longLabel || L.shortLabel))
-                                     : 'Lunar month') + '</title></path>');
+                       (L.shortLabel
+                          ? esc('Lunation ' + L.yearMoonNumber + ' of the year \u00B7 ' +
+                                (L.longLabel || L.shortLabel))
+                          : L.edgeNumber
+                            ? esc('Lunation ' + L.edgeNumber + ' of ' + L.edgeYear +
+                                  ' \u00B7 ' + L.edgeLabel + ', running through this solstice')
+                            : 'Lunar month') + '</title></path>');
         });
         // Closing divider at the very end of the last segment.
         var lastA = dayEdge(cycle, N) + step;
