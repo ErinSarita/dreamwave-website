@@ -356,7 +356,7 @@
     '<li><i class="sw sw-noted"></i> A day you\'ve written a note on</li>' +
     '<li><i class="sw sw-sky"></i> The Big Dipper facing north at nightfall</li>' +
     '<li><i class="sw sw-polaris"></i> Polaris, held still by the pointer stars\' dashed sightline</li>' +
-    '<li><i class="sw sw-dec"></i> Sun north / south of the celestial equator</li>';
+    '<li><i class="sw sw-dec"></i> The sun\u2019s declination, turning at &#177;23.4&#176;</li>';
 
   var DAY_LEGEND =
     '<li><i class="sw sw-day"></i> Sun above the horizon (gold ring)</li>' +

@@ -117,11 +117,25 @@
    * The half-filled circles that were here before meant "half light, half
    * dark", which is what an equinox is, but on a wheel carrying thirteen
    * months of real moon phases they simply read as moons. */
-  var ECLIPTIC_GLYPH = { 0: '\u2648', 90: '\u264B', 180: '\u264E', 270: '\u2651' };
-  function stationGlyph(s) {
-    var lon = Math.round(((s.longitude % 360) + 360) % 360 / 90) * 90 % 360;
-    if (Math.abs(A.norm180(s.longitude - lon)) < 1) return ECLIPTIC_GLYPH[lon] || '\u2726';
-    return '\u2726';
+  /* Drawn rather than typed. Characters for these were at the mercy of
+   * whatever font the reader has, and the zodiac signs in particular arrive
+   * as colour emoji on a good many systems, which is not the register of the
+   * rest of the wheel. Three shapes, each meaning what it looks like: a solid
+   * disc for a solstice, when the sun stands at its turn; an open ring for an
+   * equinox, when day and night balance; a small diamond for the midpoint
+   * between them. */
+  function stationMark(s, x, y, colour) {
+    var kind = s.kind;
+    if (kind === 'solstice') {
+      return '<circle cx="' + fmt(x) + '" cy="' + fmt(y) + '" r="5.5" fill="' + colour + '"/>';
+    }
+    if (kind === 'equinox') {
+      return '<circle cx="' + fmt(x) + '" cy="' + fmt(y) + '" r="4.8" fill="none" stroke="' +
+             colour + '" stroke-width="2.2"/>';
+    }
+    return '<path d="M' + fmt(x) + ' ' + fmt(y - 5.2) + 'L' + fmt(x + 5.2) + ' ' + fmt(y) +
+           'L' + fmt(x) + ' ' + fmt(y + 5.2) + 'L' + fmt(x - 5.2) + ' ' + fmt(y) +
+           'Z" fill="' + colour + '"/>';
   }
 
   function render(cycle, opts) {
@@ -254,25 +268,40 @@
       }
       var decCurve = decPts.join('') + 'Z';
       var zeroCircle = circlePath(R.decZero);
-      var COVER = 'M-2000 -2000H2600V2600H-2000Z';
 
-      parts.push('<defs>' +
-        '<clipPath id="dec-outside-zero"><path clip-rule="evenodd" d="' + COVER + zeroCircle + '"/></clipPath>' +
-        '<clipPath id="dec-outside-curve"><path clip-rule="evenodd" d="' + COVER + decCurve + '"/></clipPath>' +
-        '</defs>');
-      // North of the equator: the part of the curve reaching beyond zero.
-      parts.push('<path d="' + decCurve + '" fill="var(--sun)" opacity=".3" ' +
-                 'clip-path="url(#dec-outside-zero)"/>');
-      // South of it: the part of the zero disc the curve doesn't reach.
-      parts.push('<path d="' + zeroCircle + '" fill="var(--equinox)" opacity=".22" ' +
-                 'clip-path="url(#dec-outside-curve)"/>');
+      /* No fill either side of the equator any more. It was gold for north
+       * and blue for south, which is a real distinction, but gold and blue on
+       * a calendar read as day and night rather than as two sides of a line,
+       * and the curve's own position against the dashed circle already says
+       * which side the sun is on. One curve, three labelled circles. */
       parts.push('<path d="' + zeroCircle + '" fill="none" stroke="var(--ink-3)" ' +
                  'stroke-width="1" stroke-dasharray="3 4" opacity=".9"/>');
+      parts.push('<circle cx="500" cy="500" r="' + R.decOut + '" fill="none" ' +
+                 'stroke="var(--line-soft)" stroke-width=".7" stroke-dasharray="2 5"/>');
+      parts.push('<circle cx="500" cy="500" r="' + R.decIn + '" fill="none" ' +
+                 'stroke="var(--line-soft)" stroke-width=".7" stroke-dasharray="2 5"/>');
       parts.push('<path d="' + decCurve + '" fill="none" stroke="var(--sun-bright)" stroke-width="1.6"/>');
-      parts.push('<circle cx="500" cy="500" r="' + R.decOut + '" fill="none" stroke="var(--line-soft)" stroke-width=".7"/>');
-      parts.push('<circle cx="500" cy="500" r="' + R.decIn + '" fill="none" stroke="var(--line-soft)" stroke-width=".7"/>');
       parts.push('<text x="500" y="' + (CY - R.decZero - 4) + '" text-anchor="middle" ' +
                  'font-size="9" fill="var(--ink-3)">celestial equator · 0°</text>');
+
+      /* The sun's reach north and south, written where it actually gets
+       * there rather than as a legend elsewhere. Zero is already marked on
+       * the equator; these are the two turns it makes around it. */
+      var hiD = cycle.days[0], loD = cycle.days[0];
+      cycle.days.forEach(function (d) {
+        if (d.sunDeclination > hiD.sunDeclination) hiD = d;
+        if (d.sunDeclination < loD.sunDeclination) loD = d;
+      });
+      [[hiD, 13], [loD, -13]].forEach(function (pr) {
+        var dd = pr[0], push = pr[1];
+        var aa = dayAngle(cycle, dd.n);
+        var q = polar(decR(dd.sunDeclination) + push, aa);
+        var sign = dd.sunDeclination >= 0 ? '+' : '\u2212';
+        parts.push(rotLabel(aa, q[0], q[1],
+          '<text class="dec-mark" x="' + fmt(q[0]) + '" y="' + fmt(q[1]) +
+          '" text-anchor="middle" dominant-baseline="middle">' + sign +
+          Math.abs(dd.sunDeclination).toFixed(1) + '\u00B0</text>'));
+      });
     }
 
     /* -- moon ring: real phase shapes, on an orbit that breathes ----------
@@ -546,9 +575,7 @@
                  '" stroke="' + colour + '" stroke-width="1" opacity="' + (s.offset % 90 === 0 ? '.35' : '.18') +
                  '" stroke-dasharray="3 4"/>');
       var g = polar(R.stationGlyph, ang);
-      parts.push('<text x="' + fmt(g[0]) + '" y="' + fmt(g[1]) + '" text-anchor="middle" ' +
-                 'dominant-baseline="central" font-size="15" fill="' + colour + '">' +
-                 stationGlyph(s) + '</text>');
+      parts.push(stationMark(s, g[0], g[1], colour));
 
       /* The wording sits in its own wedge, running from this station to the
        * next, the way a month's name sits inside its month. So the eight

@@ -174,8 +174,10 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .sw-sky { background: none; border: 1px solid var(--ink-3); border-radius: 50%; position: relative; }
 .sw-sky::after { content: ''; position: absolute; inset: 3px; background: var(--ink-2); border-radius: 1px; transform: rotate(20deg); }
 .sw-dec {
-  background: linear-gradient(180deg, var(--sun) 0 48%, var(--ink-3) 48% 52%, var(--equinox) 52% 100%);
-  border-radius: 50%; opacity: .8;
+  /* The two-tone swatch described a fill that no longer exists. It is the
+     curve now: a line crossing its own equator. */
+  background: linear-gradient(to bottom,
+    transparent 0 42%, var(--sun-bright) 42% 58%, transparent 58% 100%);
 }
 /* Backed by the same dark sky patch the real glyphs sit on, so a white star
    stays visible in the daylight theme too. */
@@ -842,6 +844,8 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
  * same angle rather than crossed by it. The day is the strongest thing in the
  * column, being the one exact fact among the names. */
 .station-day { font-size: 15px; font-weight: 600; letter-spacing: .01em; }
+/* The sun's furthest north and south, written on the curve itself. */
+.dec-mark { font-size: 9.5px; font-family: var(--mono); fill: var(--sun-bright); }
 
 .season-band { stroke: var(--night-2); opacity: .85; }
 .season-tick { stroke-width: 2.4; opacity: 1; }
