@@ -13,16 +13,24 @@
  */
 (function (global) {
   'use strict';
-  var MoonGlyph = global.MoonGlyph, TZ = global.TZ;
+  var MoonGlyph = global.MoonGlyph, TZ = global.TZ, A = global.Astro;
   var CX = 500, CY = 500;
   var R = {
     hitOut: 486, hitIn: 210,
-    dateLabel: 464, dayNum: 430,
-    glyph: 390, glyphR: 17,
+    calOut: 486, calIn: 448, dateLabel: 467,   // the calendar ring
+    dayNum: 428,                                // lunar day numbers
+    glyph: 388, glyphR: 17,
     illumOut: 352, illumIn: 268,
     eventTick: 262, eventLabel: 246,
     hub: 214
   };
+  /* How far the glyph is allowed to swell and shrink with distance. The real
+   * change in the moon's apparent width between perigee and apogee is about
+   * 14 per cent, which at this size is a pixel and a half and invisible, so
+   * it is drawn at roughly four times that. Stated in the About, because an
+   * exaggerated scale that is not declared is just a wrong one. */
+  var GLYPH_MIN = 13, GLYPH_MAX = 22;
+  var PERIGEE = 356500, APOGEE = 406700;
 
   function polar(r, a) {
     var t = (a - 90) * Math.PI / 180;
@@ -63,8 +71,18 @@
     var tz = opts.tz, N = days.length;
     if (!N) return '';
     var parts = [];
-    var step = 360 / N;
-    function angleOf(i) { return (i + 0.5) * step; }   // centre of the i-th day
+
+    /* Angle carries elapsed time, not elongation. A lunar day is always the
+     * same twelve degrees of the moon's travel, but it takes anywhere from 20
+     * to 27 hours to cross them, because the moon runs faster when it is
+     * nearer the Earth. Drawing the segments equal hid that entirely. Drawn
+     * to their real durations, a short lunar day is visibly pinched and a
+     * long one broad, and the ring becomes a clock of the whole lunation. */
+    var t0 = days[0].startJD, span = days[N - 1].endJD - t0;
+    function angAt(jd) { return 360 * (jd - t0) / span; }
+    function edgeIn(i)  { return angAt(days[i].startJD); }
+    function edgeOut(i) { return angAt(days[i].endJD); }
+    function angleOf(i) { return (edgeIn(i) + edgeOut(i)) / 2; }
 
     /* -- ground ---------------------------------------------------------- */
     /* Coloured from CSS rather than inline, because the relationship has to
@@ -95,6 +113,57 @@
     parts.push('<path class="mb-line" d="' + wave.join('') + 'Z" fill="none" ' +
                'stroke-width="1.4" stroke-linejoin="round"/>');
 
+    /* -- the calendar ring, laid against the lunar one ---------------------
+     * The whole point of the view is that the two reckonings do not divide
+     * into one another, so both are drawn on the same clock face and left to
+     * disagree. This outer band is the ordinary calendar: a tick at every
+     * local midnight, with the date sitting in the middle of its own day.
+     * Because both rings are drawn to real elapsed time they line up exactly
+     * in the only way they can, by the clock, and the sliding is visible.
+     *
+     * A short lunar day that opens and closes without crossing a midnight is
+     * the kshaya case, and here you can see it happen. */
+    var mids = [];
+    (function () {
+      var p0 = TZ.civilParts(tz, A.dateFromJD(t0));
+      var cur = TZ.startOfDay(tz, p0.year, p0.month, p0.day);
+      var guard = 0;
+      while (A.jdFromDate(cur) < t0 && guard++ < 40) {
+        var cp = TZ.civilParts(tz, cur);
+        cur = TZ.startOfDay(tz, cp.year, cp.month, cp.day + 1);
+      }
+      guard = 0;
+      while (A.jdFromDate(cur) < t0 + span && guard++ < 40) {
+        mids.push(cur);
+        var c2 = TZ.civilParts(tz, cur);
+        cur = TZ.startOfDay(tz, c2.year, c2.month, c2.day + 1);
+      }
+    })();
+
+    parts.push('<path class="cal-ring" d="' + annulus(R.calIn, R.calOut) +
+               '" fill-rule="evenodd"/>');
+    mids.forEach(function (m) {
+      var a = angAt(A.jdFromDate(m));
+      var q1 = polar(R.calIn, a), q2 = polar(R.calOut, a);
+      parts.push('<path class="cal-tick" d="M' + f(q1[0]) + ' ' + f(q1[1]) +
+                 'L' + f(q2[0]) + ' ' + f(q2[1]) + '"/>');
+    });
+    // the date sits between its own two midnights
+    for (var mi = 0; mi <= mids.length; mi++) {
+      var from = mi === 0 ? 0 : angAt(A.jdFromDate(mids[mi - 1]));
+      var to = mi === mids.length ? 360 : angAt(A.jdFromDate(mids[mi]));
+      if (to - from < 4) continue;                 // no room to write in
+      var when = mi === 0 ? A.dateFromJD(t0) : mids[mi - 1];
+      var cp2 = TZ.civilParts(tz, when);
+      var txt = (mi === 0 || cp2.day === 1)
+        ? TZ.MONTHS_SHORT[cp2.month - 1] + ' ' + cp2.day : String(cp2.day);
+      var mid = (from + to) / 2;
+      var lp2 = polar(R.dateLabel, mid);
+      parts.push('<text class="cal-date" x="' + f(lp2[0]) + '" y="' + f(lp2[1]) +
+        '" text-anchor="middle" dominant-baseline="middle" transform="rotate(' +
+        f(tangent(mid)) + ' ' + f(lp2[0]) + ' ' + f(lp2[1]) + ')">' + esc(txt) + '</text>');
+    }
+
     /* -- one day at a time ------------------------------------------------ */
     days.forEach(function (d, i) {
       var a = angleOf(i);
@@ -105,38 +174,34 @@
        * centre as well would put a wash across the hub, where the big face
        * and its caption sit. */
       if (isSel || isToday) {
-        parts.push('<path d="' + sector(R.illumIn - 12, R.hitOut, a - step / 2, a + step / 2) +
+        parts.push('<path d="' + sector(R.illumIn - 12, R.hitOut, edgeIn(i), edgeOut(i)) +
                    '" fill="' + (isSel ? 'var(--sun)' : 'var(--today)') + '" opacity="' +
                    (isSel ? '.16' : '.10') + '"/>');
         var eR = isSel ? 'var(--sun-bright)' : 'var(--today)';
-        var b1 = polar(R.illumIn - 12, a - step / 2), b2 = polar(R.hitOut, a - step / 2);
-        var b3 = polar(R.illumIn - 12, a + step / 2), b4 = polar(R.hitOut, a + step / 2);
+        var b1 = polar(R.illumIn - 12, edgeIn(i)), b2 = polar(R.hitOut, edgeIn(i));
+        var b3 = polar(R.illumIn - 12, edgeOut(i)), b4 = polar(R.hitOut, edgeOut(i));
         parts.push('<path d="M' + f(b1[0]) + ' ' + f(b1[1]) + 'L' + f(b2[0]) + ' ' + f(b2[1]) +
                    'M' + f(b3[0]) + ' ' + f(b3[1]) + 'L' + f(b4[0]) + ' ' + f(b4[1]) +
                    '" stroke="' + eR + '" stroke-width="1" opacity=".5"/>');
       }
 
-      // the face itself
+      /* The face is drawn at a size that follows the moon's distance, near
+       * and large at perigee, far and small at apogee. It is the same
+       * quantity that makes this lunar day short or long, so cause and effect
+       * sit side by side: the widest segments carry the smallest faces. */
+      var near = Math.max(0, Math.min(1, (APOGEE - (d.moonDistanceKm || 384400)) / (APOGEE - PERIGEE)));
+      var gr = GLYPH_MIN + near * (GLYPH_MAX - GLYPH_MIN);
       var g = polar(R.glyph, a);
-      parts.push('<g transform="translate(' + f(g[0] - R.glyphR) + ' ' + f(g[1] - R.glyphR) + ')">' +
-        '<circle cx="' + R.glyphR + '" cy="' + R.glyphR + '" r="' + R.glyphR +
-          '" fill="var(--moon-shadow)"/>' +
-        '<path d="' + MoonGlyph.litPath(R.glyphR, R.glyphR, R.glyphR, d.moonAge) +
-          '" fill="var(--moon-lit)"/>' +
-        '<circle cx="' + R.glyphR + '" cy="' + R.glyphR + '" r="' + R.glyphR +
+      parts.push('<g transform="translate(' + f(g[0] - gr) + ' ' + f(g[1] - gr) + ')">' +
+        '<circle cx="' + f(gr) + '" cy="' + f(gr) + '" r="' + f(gr) + '" fill="var(--moon-shadow)"/>' +
+        '<path d="' + MoonGlyph.litPath(gr, gr, gr, d.moonAge) + '" fill="var(--moon-lit)"/>' +
+        '<circle cx="' + f(gr) + '" cy="' + f(gr) + '" r="' + f(gr) +
           '" fill="none" stroke="var(--line)" stroke-width="1"/></g>');
 
-      // calendar date, with the month named only where it turns over
-      var cp = TZ.civilParts(tz, d.date);
-      var dateTxt = (i === 0 || cp.day === 1)
-        ? TZ.MONTHS_SHORT[cp.month - 1] + ' ' + cp.day : String(cp.day);
-      var dp = polar(R.dateLabel, a);
-      parts.push('<text x="' + f(dp[0]) + '" y="' + f(dp[1]) + '" text-anchor="middle" ' +
-        'dominant-baseline="middle" font-size="12" fill="var(--ink-' + (isSel ? '1' : '2') + ')" ' +
-        'transform="rotate(' + f(tangent(a)) + ' ' + f(dp[0]) + ' ' + f(dp[1]) + ')">' +
-        esc(dateTxt) + '</text>');
-
-      // where this day sits inside the month
+      /* The date is no longer written per lunar day: it lives on the calendar
+       * ring outside, at its own real position, which is the whole point of
+       * drawing the two against each other. */
+      // where this lunar day sits in the lunation
       var np = polar(R.dayNum, a);
       parts.push('<text x="' + f(np[0]) + '" y="' + f(np[1]) + '" text-anchor="middle" ' +
         'dominant-baseline="middle" font-size="10.5" fill="var(--ink-3)" ' +
@@ -182,7 +247,7 @@
     days.forEach(function (d, i) {
       var a = angleOf(i);
       parts.push('<path class="moon-day-hit" data-iso="' + d.iso + '" d="' +
-                 sector(R.hitIn, R.hitOut, a - step / 2, a + step / 2) +
+                 sector(R.hitIn, R.hitOut, edgeIn(i), edgeOut(i)) +
                  '" fill="transparent" style="cursor:pointer"><title>' +
                  'Lunar day ' + d.dayInMonth + ' of ' + N + ' (tithi) · opens ' +
                  esc(TZ.formatDate(tz, d.date)) + ' · ' +

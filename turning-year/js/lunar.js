@@ -248,6 +248,11 @@
         hours: (s1 - s0) * 24,
         iso: TZ.formatDate(ctx.tz, startDate, 'iso'),
         moonIllumination: ph.illumination, moonAge: ph.age,
+        /* Distance is what makes the lengths uneven in the first place: the
+         * moon runs faster when it is nearer, so a lunar day passes quicker
+         * there. Carried through so the ring can show the cause beside the
+         * effect. */
+        moonDistanceKm: ph.distanceKm,
         moonPhaseName: ph.name, moonEvent: TITHI_EVENT[n] || null
       });
     }

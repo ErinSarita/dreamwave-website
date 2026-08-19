@@ -638,11 +638,17 @@
       '<div class="mr-date">' +
         (solar ? 'Solar day ' + solar.n + ' of ' + cycle.length
                : esc(where.charAt(0).toUpperCase() + where.slice(1))) + '</div>' +
-      '<div class="mr-sub">' + esc(TZ.weekdayName(tz, d.date)) +
-        (d.startJD ? ' &#183; opens ' + Clock.time(cycle, d.start, state.useDST, state.hour12) +
-                     ' &#183; runs ' + d.hours.toFixed(1) + ' h' : '') + '</div>' +
+      /* Said in full rather than as two bare verbs. "Opens 07:50, runs 26.0 h"
+       * left it unclear what was opening and on which date; this names the
+       * lunar day as the thing, and the date it begins on sits below. */
+      (d.startJD
+        ? '<div class="mr-sub">begins ' +
+            Clock.time(cycle, d.start, state.useDST, state.hour12) +
+            ' and lasts ' + d.hours.toFixed(1) + ' hours</div>'
+        : '') +
       '<div class="mr-refs">' +
         '<div class="mr-ref mr-ref-date"><b>' + esc(TZ.formatDate(tz, d.date)) + '</b>' +
+          '<em>' + esc(TZ.weekdayName(tz, d.date)) + '</em>' +
           '<span>standard date</span></div>' +
       '</div>';
   }
