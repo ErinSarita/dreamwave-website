@@ -804,9 +804,11 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 /* The chips sit in an inner wrapper, so the layout belongs on that: putting
  * it on the outer box left them stacking one per line inside an unstyled
  * child. Two by two, because four will not fit the panel's width in a row. */
-.phase-filter {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
-}
+/* Eight faces on one line. Eight names would not fit the panel and a face
+ * reads faster anyway: the chip is the moon at that phase, and switching it
+ * off dims and drains it rather than moving it. */
+.phase-filter { display: flex; gap: 4px; }
+.phase-filter .pf-opt { flex: 1 1 0; min-width: 0; }
 .pf-opt { position: relative; cursor: pointer; }
 .pf-opt input { position: absolute; opacity: 0; pointer-events: none; }
 .pf-opt span {
