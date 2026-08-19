@@ -26,6 +26,7 @@
     useDST: true,       // off = the zone's winter offset all year; see clock.js
     panelMin: false,    // day panel collapsed to a single line
     moonMin: false,     // lunation readout collapsed to a single line
+    readoutMin: false,  // year readout collapsed to a single line
     moonPhases: { 'New Moon': true, 'Waxing Crescent': true, 'First Quarter': true,
                   'Waxing Gibbous': true, 'Full Moon': true, 'Waning Gibbous': true,
                   'Last Quarter': true, 'Waning Crescent': true }
@@ -41,6 +42,7 @@
         place: state.place, layers: state.layers, frost: state.frost,
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
         panelMin: state.panelMin, moonMin: state.moonMin,
+        readoutMin: state.readoutMin,
         moonPhases: state.moonPhases
       }));
     } catch (e) { /* private mode; the site still works, it just forgets */ }
@@ -60,6 +62,7 @@
       if (typeof o.useDST === 'boolean') state.useDST = o.useDST;
       if (typeof o.panelMin === 'boolean') state.panelMin = o.panelMin;
       if (typeof o.moonMin === 'boolean') state.moonMin = o.moonMin;
+      if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
         if (typeof o.moonPhases[k] === 'boolean') state.moonPhases[k] = o.moonPhases[k];
       });
@@ -424,7 +427,14 @@
       ? 'Click to open this season'
       : state.level === 'season' ? 'Click a day for its 24 hours' : '';
 
+    $('readout').className = 'readout' + (state.readoutMin ? ' min' : '');
     $('readout').innerHTML =
+      '<button class="panel-min" id="readout-min" aria-label="' +
+        (state.readoutMin ? 'Expand day details' : 'Minimise day details') +
+        '" title="' + (state.readoutMin ? 'Expand' : 'Minimise') + '">' +
+        (state.readoutMin ? '\u25B4' : '\u25BE') + '</button>' +
+      '<div class="r-mini">Day ' + d.n + ' &middot; ' +
+        TZ.formatDate(cycle.tz, d.date, 'short') + '</div>' +
       '<div class="r-lab">Day</div>' +
       '<div class="r-num">' + d.n + '</div>' +
       '<div class="r-lab">of ' + cycle.length + '</div>' +
@@ -435,8 +445,41 @@
         '<span>' + Math.round(d.moonIllumination * 100) + '% lit · ' + d.moonPhaseName + '</span></div>' +
       (d.lunation ? '<div class="r-lunation">' + lunationLabel(d) + '</div>' : '') +
       (hint ? '<div class="r-hint">' + hint + '</div>' : '');
+
+    /* Rebuilt on every hover, so the listener goes on with it. Stopping the
+     * click here keeps it off the wheel behind, which would otherwise read it
+     * as a click on whatever day the box happens to be covering. */
+    $('readout-min').addEventListener('click', function (e) {
+      e.stopPropagation();
+      state.readoutMin = !state.readoutMin;
+      save(); updateReadout(d.n);
+    });
   }
   function row(k, v) { return '<div><span>' + k + '</span> · ' + v + '</div>'; }
+
+  /* Open across redraws, not remembered between visits: it is read once. */
+  var dayInfoOpen = false;
+
+  /* What the clock face is doing, for someone meeting it cold. Two things
+   * about it are not guessable: the radius carries height rather than being
+   * decoration, and peak sun is a position in the sky, not a time of day. */
+  function dayInfoHTML() {
+    return '<div class="mr-info-panel">' +
+      '<p>Round the circle is <b>the day</b>, midnight at the top, clockwise ' +
+      'through noon at the foot and back. Distance from the horizon ring is ' +
+      '<b>height in the sky</b>: the sun\u2019s line rides outside the ring ' +
+      'while it is up and inside it while it is down, so the gold is exactly ' +
+      'the part of the day the sun spends above the horizon.</p>' +
+      '<p><b>Peak sun</b> is the moment the sun stands highest, given as its ' +
+      'angle above the horizon and the time it reaches it. It is not noon. ' +
+      'Clock noon belongs to the timezone; the sun keeps its own schedule and ' +
+      'drifts either side of the hour across the year.</p>' +
+      '<p>Every time here follows the <b>daylight saving</b> switch in the ' +
+      'panel. With it off the day is bounded by standard midnights, so it ' +
+      'runs a plain 24 hours on the two days a year that otherwise do not.</p>' +
+      '<button class="mr-info-more" id="day-info-more">Read more under About</button>' +
+      '</div>';
+  }
 
   function drawDay() {
     var d = cycle.days[state.day - 1];
@@ -454,14 +497,19 @@
       (cycle.frost.isEstimate ? ' (estimate)' : '') + '</div>';
     if (d.moonEvent) stationHTML += '<div class="d-term">' + d.moonEvent + '</div>';
 
-    $('day-panel').className = 'day-panel' + (state.panelMin ? ' min' : '');
+    $('day-panel').className = 'day-panel' + (state.panelMin ? ' min' : '') +
+      (dayInfoOpen ? ' info' : '');
     $('day-panel').innerHTML =
+      '<button class="mr-info" id="day-info" aria-expanded="' + dayInfoOpen +
+        '" aria-label="What this clock is showing" ' +
+        'title="What this clock is showing">i</button>' +
       '<button class="panel-min" id="panel-min" aria-label="' +
         (state.panelMin ? 'Expand day details' : 'Minimise day details') +
         '" title="' + (state.panelMin ? 'Expand' : 'Minimise') + '">' +
         (state.panelMin ? '▴' : '▾') + '</button>' +
       '<div class="d-mini">Day ' + d.n + ' &middot; ' +
         TZ.formatDate(cycle.tz, d.date, 'short') + '</div>' +
+      (dayInfoOpen ? dayInfoHTML() : '') +
       '<div class="d-of">Day</div>' +
       '<div class="d-num">' + d.n + '</div>' +
       '<div class="d-of">of ' + cycle.length + '</div>' +
@@ -485,6 +533,22 @@
       state.panelMin = !state.panelMin;
       save(); drawDay();
     });
+    $('day-info').addEventListener('click', function (e) {
+      e.stopPropagation();
+      dayInfoOpen = !dayInfoOpen;
+      drawDay();
+    });
+    if (dayInfoOpen) {
+      $('day-info-more').addEventListener('click', function (e) {
+        e.stopPropagation();
+        $('about').hidden = false;
+        var all = $('about').querySelectorAll('h3'), h = all[0];
+        for (var i = 0; i < all.length; i++) {
+          if (/accuracy/i.test(all[i].textContent)) { h = all[i]; break; }
+        }
+        h.scrollIntoView({ block: 'start' });
+      });
+    }
     wireNote(d.iso);
   }
 

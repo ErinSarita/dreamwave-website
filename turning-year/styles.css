@@ -593,6 +593,19 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .panel-min:hover { color: var(--sun); border-color: var(--sun); }
 .panel-min:focus-visible { outline: 2px solid var(--sun); outline-offset: 1px; }
 
+/* The year readout collapses too. It stands over the foot of the wheel, and
+ * on a short screen that is the part of the ring nearest the reader. Its
+ * button has to carry its own pointer-events: the box itself takes none, so
+ * that hovering it does not steal the hover from the wheel underneath. */
+.readout .r-mini { display: none; }
+.readout.min .r-mini {
+  display: block; font-family: var(--serif); font-size: 15px;
+  color: var(--ink-2); padding-right: 24px;
+}
+.readout.min > *:not(.r-mini):not(.panel-min) { display: none; }
+.readout.min { max-height: none; overflow: visible; padding: 10px 16px; }
+.readout .panel-min { pointer-events: auto; }
+
 .day-panel .d-mini { display: none; }
 .day-panel.min .d-mini {
   display: block; font-family: var(--serif); font-size: 15px;
@@ -685,6 +698,12 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   background: none; border: 0; padding: 0; cursor: pointer;
   color: var(--sun); font: inherit; font-size: 11.5px; text-decoration: underline;
 }
+
+/* The day panel takes the same info corner. A clock face with peak sun on it
+ * is worth a sentence, and the panel is where the reader already is. */
+.day-panel.info { max-height: min(76dvh, 640px); }
+.day-panel .mr-info-panel b { color: var(--sun-bright); }
+.day-panel .mr-info-panel { margin: 26px 0 12px; }
 
 .moon-readout .mr-mini { display: none; }
 .moon-readout.min .mr-mini {
@@ -804,11 +823,12 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 /* The chips sit in an inner wrapper, so the layout belongs on that: putting
  * it on the outer box left them stacking one per line inside an unstyled
  * child. Two by two, because four will not fit the panel's width in a row. */
-/* Eight faces on one line. Eight names would not fit the panel and a face
- * reads faster anyway: the chip is the moon at that phase, and switching it
- * off dims and drains it rather than moving it. */
-.phase-filter { display: flex; gap: 4px; }
-.phase-filter .pf-opt { flex: 1 1 0; min-width: 0; }
+/* Eight faces, four across and two down. Eight names would not fit the panel
+ * and a face reads faster anyway: the chip is the moon at that phase, and
+ * switching it off dims and drains it rather than moving it. Four to a row
+ * splits the cycle at the full moon, so waxing sits above waning. */
+.phase-filter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.phase-filter .pf-opt { min-width: 0; }
 .pf-opt { position: relative; cursor: pointer; }
 .pf-opt input { position: absolute; opacity: 0; pointer-events: none; }
 .pf-opt span {
