@@ -373,6 +373,8 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .moon-season { font-size: 8px; fill: var(--ink-3); }
 .moon-num.is-blue { fill: var(--frost); font-weight: 500; }
 .moon-hit { fill: transparent; cursor: pointer; }
+/* The moon band answers for itself, so it should look like it does. */
+.moon-hit:hover { fill: var(--moon); fill-opacity: .12; }
 .term-label { font-size: 11px; fill: var(--ink-3); opacity: 0; transition: opacity .4s; }
 .term-sub { font-size: 7.5px; fill: var(--ink-3); opacity: 0; transition: opacity .4s; }
 #wheel-svg.zoomed .term-label { opacity: 1; }

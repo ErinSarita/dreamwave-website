@@ -14,6 +14,13 @@
     bandOut: 418, bandIn: 262,
     moonRing: 240, moonR: 1.95, moonSwing: 11,
     moonPieIn: 224, moonPieOut: 257, moonNumR: 217, moonSeasonR: 205,
+    /* The moon band's reach for a tap, which has to be wider than the band it
+     * draws. Its two labels hang below the wedge, "Moon 1" centred at 217 and
+     * the seasonal line at 205, so between them they occupy about 201 to 223:
+     * entirely outside the drawn wedge, and therefore over the day sector,
+     * which was catching every tap aimed at a moon's own name. Reaching down
+     * to 199 covers both while staying clear of the solar-term labels at 197. */
+    moonHitIn: 199,
     decOut: 138, decZero: 100, decIn: 62,
     termOut: 192, termIn: 183, termLabel: 197,
     frostOut: 175, frostIn: 165,
@@ -289,7 +296,9 @@
               '" text-anchor="middle" dominant-baseline="middle">' + esc(L.shortLabel) + '</text>'));
           }
           pieHits.push('<path class="moon-hit" data-lunation="' + li + '" d="' +
-                       sector(R.moonPieIn, R.moonPieOut, a1, a2) + '"/>');
+                       sector(R.moonHitIn, R.moonPieOut, a1, a2) + '"><title>' +
+                       (L.shortLabel ? esc('Moon ' + L.yearMoonNumber + ' \u00B7 ' + L.shortLabel)
+                                     : 'Lunar month') + '</title></path>');
         });
         // Closing divider at the very end of the last segment.
         var lastA = dayEdge(cycle, N) + step;
