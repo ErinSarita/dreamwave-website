@@ -603,7 +603,12 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   color: var(--ink-2); padding-right: 24px;
 }
 .readout.min > *:not(.r-mini):not(.panel-min) { display: none; }
-.readout.min { max-height: none; overflow: visible; padding: 10px 16px; }
+.readout.min { max-height: none; overflow: visible; padding: 10px 16px;
+  /* Same as the day panel: the narrow-screen rule pins the expanded box to
+   * both edges, which would leave the collapsed line stretched across the
+   * whole foot of the screen instead of sitting as a bar under the wheel. */
+  width: min(300px, calc(100% - 32px));
+  left: 50%; right: auto; transform: translateX(-50%); }
 .readout .panel-min { pointer-events: auto; }
 
 .day-panel .d-mini { display: none; }
