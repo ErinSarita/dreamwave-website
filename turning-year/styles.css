@@ -669,6 +669,8 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft);
 }
 .moon-readout .mr-ref { min-width: 74px; }
+/* With one reference left the row is a single centred cell. */
+.moon-readout .mr-refs:has(> .mr-ref:only-child) { gap: 0; }
 /* The date is prose, not a figure, so it keeps the serif and room to sit on
  * one line. */
 .moon-readout .mr-ref-date b { font-family: var(--serif); font-size: 15px; white-space: nowrap; }

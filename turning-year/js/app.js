@@ -545,9 +545,13 @@
     var sub = [m.shortLabel];
     if (m.isBlue) sub.push('blue moon');
     sub.push(spanLabel(tz, days[0].date, days[days.length - 1].date));
-    sub.push(days.length + ' days');
+    /* Counted in the moon's own unit. Every lunation is thirty tithis, which
+     * is what makes it a whole cycle; the day span above already says how
+     * many calendar days that came to. */
+    sub.push('30 lunar days');
     var line3 = sel
-      ? 'Day ' + sel.dayInMonth + ' of ' + days.length + ' &#183; ' + TZ.formatDate(tz, sel.date)
+      ? 'Lunar day ' + sel.dayInMonth + ' of ' + days.length +
+        ' &#183; ' + TZ.formatDate(tz, sel.date)
       : 'Pick a day to open its twenty-four hours';
     return '<div class="mh-name">Lunation ' + m.number + ' of ' + m.count +
              ' <span class="mh-year">' + m.yearLabel + '</span></div>' +
@@ -560,11 +564,12 @@
    * cycle. A month either side of a solstice reaches into the neighbouring
    * cycle, and those days have no number in the one on screen, so they say
    * which side they fell out on rather than showing a wrong one. */
-  /* A tithi is the time the moon takes to gain twelve degrees of elongation
-   * from the sun: thirty to a lunation, but 19 to 26 hours each, so they do
-   * not line up with days. The number shown is the tithi running at the start
-   * of that day. Explained in full under About. */
-  var DAY_WORD = { lab: 'Tithi', of: 'of 30' };
+  /* The two calendars each get a day, named for whose day it is. The lunar
+   * day is the tithi: twelve degrees of the moon's elongation from the sun,
+   * thirty to a lunation, 19 to 26 hours each. "Tithi" is kept as the
+   * technical name in the tooltip and in the About; the label itself says
+   * what it is, so a reader meeting it for the first time is not stopped. */
+  var DAY_WORD = { lab: 'Lunar day', of: 'of 30' };
 
   function moonReadoutHTML(d, monthDays) {
     if (!d) return '';
@@ -597,8 +602,8 @@
       /* This is the lunation's view, so the lunation's own day is what gets
        * set large. The solar day follows underneath as the tie back to the
        * 365, and the standard date under that. */
-      '<div class="mr-solar" title="A tithi is 12 degrees of the moon\u2019s ' +
-          'elongation from the sun: thirty to a lunation, 19 to 26 hours each">' +
+      '<div class="mr-solar" title="A lunar day, or tithi, is 12 degrees of the ' +
+          'moon\u2019s elongation from the sun: thirty to a lunation, 19 to 26 hours each">' +
         '<span class="mr-lab">' + DAY_WORD.lab + '</span>' +
         '<b>' + d.tithi + '</b>' +
         '<span class="mr-lab">' + DAY_WORD.of + '</span>' +
@@ -609,12 +614,12 @@
        * on days, so the other two stay and each is labelled for what it
        * counts. */
       '<div class="mr-date">' +
-        (solar ? 'Day ' + solar.n + ' of ' + cycle.length
+        (solar ? 'Solar day ' + solar.n + ' of ' + cycle.length
                : esc(where.charAt(0).toUpperCase() + where.slice(1))) + '</div>' +
-      '<div class="mr-sub">' + esc(TZ.weekdayName(tz, d.date)) + '</div>' +
+      '<div class="mr-sub">' + esc(TZ.weekdayName(tz, d.date)) +
+        (d.startJD ? ' &#183; opens ' + Clock.time(cycle, d.start, state.useDST, state.hour12) +
+                     ' &#183; runs ' + d.hours.toFixed(1) + ' h' : '') + '</div>' +
       '<div class="mr-refs">' +
-        '<div class="mr-ref"><b>' + d.dayInMonth + ' / ' + monthDays + '</b>' +
-          '<span>day of lunation</span></div>' +
         '<div class="mr-ref mr-ref-date"><b>' + esc(TZ.formatDate(tz, d.date)) + '</b>' +
           '<span>standard date</span></div>' +
       '</div>';
@@ -625,7 +630,10 @@
     if (state.lunationK === null) state.lunationK = lunationKOfDay(state.day || todayNumber() || 1);
     var ctx = moonCtx();
     var m = Lunar.month(state.lunationK, ctx);
-    var days = Lunar.daysOf(state.lunationK, ctx);
+    /* Thirty tithis, not 29 or 30 days: a lunation counted in the moon's own
+     * unit is a whole cycle every time. The wheel's angle is the elongation,
+     * so each segment is exactly the twelve degrees a tithi is defined as. */
+    var days = Lunar.tithisOf(state.lunationK, ctx);
     /* The ring marks whichever day the box is describing. Stepping with the
      * day arrows is a deliberate move, so the mark follows it; hovering only
      * changes the box, since the mark chasing the pointer would flicker. */
@@ -655,7 +663,7 @@
           (state.moonMin ? 'Expand' : 'Minimise') + '">' +
           (state.moonMin ? '\u25B4' : '\u25BE') + '</button>' +
         '<div class="mr-mini">' + (d0 ? esc(TZ.formatDate(state.place.tz, d0.date, 'short')) +
-          ' &#183; ' + DAY_WORD.lab.toLowerCase() + ' ' + d0.tithi : '') + '</div>' +
+          ' &#183; ' + DAY_WORD.lab.toLowerCase() + ' ' + d0.n : '') + '</div>' +
         moonReadoutHTML(d0, days.length);
       $('moon-min').addEventListener('click', function (e) {
         e.stopPropagation();
@@ -684,7 +692,7 @@
       }
       // off the end: carry into the neighbouring lunation and redraw the circle
       state.lunationK += delta;
-      var nd = Lunar.daysOf(state.lunationK, moonCtx());
+      var nd = Lunar.tithisOf(state.lunationK, moonCtx());
       var edge = delta > 0 ? nd[0] : nd[nd.length - 1];
       if (cycle.dayByISO[edge.iso]) state.day = cycle.dayByISO[edge.iso].n;
       drawMoon(edge.iso);

@@ -176,7 +176,7 @@
       'fill="var(--ink-2)">' + esc(focus.moonPhaseName) + '</text>');
     parts.push('<text x="500" y="' + (CY + 98) + '" text-anchor="middle" font-size="12" ' +
       'fill="var(--ink-3)">' + esc(TZ.formatDate(tz, focus.date, 'short')) +
-      ' &#183; day ' + focus.dayInMonth + ' of ' + N + '</text>');
+      ' &#183; lunar day ' + focus.dayInMonth + ' of ' + N + '</text>');
 
     /* -- doors back to the day view ---------------------------------------- */
     days.forEach(function (d, i) {
@@ -184,6 +184,7 @@
       parts.push('<path class="moon-day-hit" data-iso="' + d.iso + '" d="' +
                  sector(R.hitIn, R.hitOut, a - step / 2, a + step / 2) +
                  '" fill="transparent" style="cursor:pointer"><title>' +
+                 'Lunar day ' + d.dayInMonth + ' of ' + N + ' (tithi) · opens ' +
                  esc(TZ.formatDate(tz, d.date)) + ' · ' +
                  Math.round(d.moonIllumination * 100) + '% lit</title></path>');
     });

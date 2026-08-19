@@ -211,9 +211,53 @@
     return out;
   }
 
+  /* ------------------------------------------------------------- tithis
+   * Thirty to a lunation, always, because a tithi is defined as twelve
+   * degrees of the moon's elongation from the sun and thirty twelves make the
+   * full circle. They are not equal in time: the orbit is an ellipse, so one
+   * runs from about 19 to 26 hours. Counting the month in tithis rather than
+   * in days is what makes it a whole cycle every time, with no remainder to
+   * explain away.
+   *
+   * Because the wheel's angle is the elongation, tithi n occupies exactly the
+   * arc from (n-1)*12 to n*12 degrees. The turning points fall where the
+   * definition puts them: the new moon opens tithi 1, the full moon opens
+   * tithi 16, and the two quarters sit exactly at the midpoints of tithi 8
+   * and tithi 23. */
+  function tithiStartJD(k, n) {
+    if (n <= 1) return newMoonJD(k);
+    if (n > 30) return newMoonJD(k + 1);
+    return A.jdFromJDE(elongationAt(K0 + SYNODIC * (k + (n - 1) / 30), (n - 1) * 12));
+  }
+
+  var TITHI_EVENT = { 1: 'New Moon', 8: 'First Quarter', 16: 'Full Moon', 23: 'Last Quarter' };
+
+  function tithisOf(k, ctx) {
+    var out = [];
+    for (var n = 1; n <= 30; n++) {
+      var s0 = tithiStartJD(k, n), s1 = tithiStartJD(k, n + 1);
+      var ph = A.moonPhase(A.jdeFromJD((s0 + s1) / 2));
+      var startDate = A.dateFromJD(s0);
+      out.push({
+        n: n, tithi: n,
+        /* `date` and `dayInMonth` alias the start and the number so the ring
+         * renderer can draw a tithi wherever it drew a day. */
+        date: startDate, dayInMonth: n,
+        startJD: s0, endJD: s1,
+        start: startDate, end: A.dateFromJD(s1),
+        hours: (s1 - s0) * 24,
+        iso: TZ.formatDate(ctx.tz, startDate, 'iso'),
+        moonIllumination: ph.illumination, moonAge: ph.age,
+        moonPhaseName: ph.name, moonEvent: TITHI_EVENT[n] || null
+      });
+    }
+    return out;
+  }
+
   global.Lunar = {
     SYNODIC: SYNODIC, newMoonJD: newMoonJD, fullMoonJD: fullMoonJD,
     kAt: kAt, month: month, cycleOf: cycleOf, daysOf: daysOf, quarterJD: quarterJD,
+    tithisOf: tithisOf, tithiStartJD: tithiStartJD,
     anchorLongitudeFor: anchorLongitudeFor, SEASONS: SEASONS
   };
 })(typeof window !== 'undefined' ? window : globalThis);
