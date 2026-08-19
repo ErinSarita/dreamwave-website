@@ -320,36 +320,75 @@
     for one another.</p>
 
     <h3>The lunar day, or tithi</h3>
-    <p>Inside a lunation the count is in <strong>lunar days</strong>, which is
-    the unit Hindu calendars call the <strong>tithi</strong>, and it is worth
-    knowing that a lunar day is not a calendar day. It is the time the moon
-    takes to gain <strong>12 degrees</strong> of
-    elongation from the sun. Thirty of those twelve-degree steps make the full
-    360, so there are always exactly <strong>30 tithis in a lunation</strong>,
-    where there are 29 or 30 civil days.</p>
-    <p>They are not of equal length. The moon's orbit is an ellipse, so it
-    moves faster near perigee and slower near apogee, and a tithi runs
-    anywhere from about <strong>19 to 26 hours</strong>. Thirty unequal tithis
-    laid against 29 or 30 equal days means the two cannot keep step: now and
-    then a tithi begins and ends inside a single day, so no day is named for
-    it, and now and then one spans two daybreaks and names both. Hindu
-    calendars call these <em>kshaya</em> and <em>adhika</em> tithis. Seeing a
-    number repeat or skip here is that, not a fault.</p>
-    <p>The number shown is the tithi running at the <strong>middle of the
-    local day</strong>, which is where this wheel samples every other phase,
-    so the number always agrees with the face drawn beside it. The traditional
-    rule reads it at sunrise instead. Tithi 1 opens at the new moon and tithi
-    16 at the full, so the first fifteen are the waxing half and the second
-    fifteen the waning, the division Hindu calendars call <em>shukla</em> and
-    <em>krishna paksha</em>.</p>
-    <p>One consequence is worth expecting. A lunation here begins on the day
-    that <em>holds</em> the new moon, but that day opens before the conjunction
-    does, so when the new moon falls in the afternoon the first day is still
-    running the old month's <strong>tithi 30</strong> at midday. It happens
-    about half the time. Nothing is wrong: it is the same mismatch that led
-    Hindu calendars to start their month on the following day instead, from
-    the first sunrise with tithi 1 already running. The two reckonings are
-    independent, which is the whole reason both are shown.</p>
+    <p>Inside a lunation the count is in <strong>lunar days</strong>, the unit
+    Hindu calendars call the <strong>tithi</strong>. A lunar day is not a
+    calendar day. It is the time the moon takes to gain <strong>12 degrees</strong>
+    of elongation from the sun, which is the angle between the moon and the sun
+    as seen from here, and the same quantity that decides how much of the moon
+    is lit.</p>
+
+    <h3>Why there are always thirty</h3>
+    <p>A lunation is one full circuit of that angle: 360 degrees, new moon back
+    to new moon. Thirty steps of twelve degrees make 360. So a lunation holds
+    <strong>exactly thirty lunar days, always</strong>, the way a foot holds
+    twelve inches. It is a definition rather than a measurement, and no
+    arrangement of the sky can make it come out twenty-nine.</p>
+    <p>The twenty-nine you may be thinking of is the <em>calendar</em> day
+    count, which is a different thing and does wobble. A calendar day is a
+    rigid 24 hours and a lunation is 29.53 of them, which will not divide
+    evenly, so a lunation lands across <strong>29 or 30 dates</strong> depending
+    on where it starts. That number is still on the wheel, as the date span in
+    the heading.</p>
+
+    <h3>Is the lunar day the accurate one?</h3>
+    <p>For the moon, yes. But two different things get called accuracy here,
+    and the lunar day wins one and loses the other.</p>
+    <p>It is exact in <strong>angle</strong>. Every tithi is precisely twelve
+    degrees, and thirty of them close the circle with nothing left over: no
+    rounding, no leap day, no remainder. It is not constant in <strong>time</strong>.
+    The moon's orbit is an ellipse, so it runs faster near perigee and slower
+    near apogee, and one tithi lasts anywhere from about <strong>20 to 27
+    hours</strong>. If what you want is something to set a clock by, the tithi
+    is the worse of the two.</p>
+    <table class="about-table">
+      <thead><tr><th></th><th>Divides the moon's cycle</th><th>Constant length</th></tr></thead>
+      <tbody>
+        <tr><th>Lunar day</th><td>exactly, thirty every time</td><td>no, 20 to 27 hours</td></tr>
+        <tr><th>Calendar day</th><td>no, 29.53 will not fit</td><td>yes, 24 hours by definition</td></tr>
+      </tbody>
+    </table>
+    <p>Each is exact for its own cycle and awkward for the other, which is not
+    a fault in either. The moon's phase cycle and the Earth's rotation are
+    unrelated motions, so no unit can be clean in both. It is the same
+    incommensurability that runs through the whole wheel: 12.37 lunations to a
+    year, so no lunar calendar closes on a solar one; 365.2422 days to a year,
+    hence leap years; 29.53 days to a lunation, hence months of 29 or 30. Only
+    the thirty comes out whole, and it manages that by being defined in angle
+    instead of in time.</p>
+    <p>There is a mean tithi as well as a true one, exactly parallel to the
+    mean and apparent solar time behind daylight saving. The mean tithi is the
+    synodic month divided by thirty, a flat 23 hours 37 minutes, used where
+    simplicity matters more than precision. The true tithi is twelve real
+    degrees of the real moon. <strong>This wheel computes the true one</strong>,
+    which is why the lengths you see vary, and it is the same choice made for
+    the sun.</p>
+
+    <h3>What that looks like on the ring</h3>
+    <p>Because the wheel's angle <em>is</em> the elongation, each of the thirty
+    segments is exactly the twelve degrees a lunar day is defined as. The
+    turning points therefore land where the definition puts them: the new moon
+    opens lunar day 1 and the full moon opens lunar day 16, so the first
+    fifteen are the waxing half and the second fifteen the waning, the division
+    Hindu calendars call <em>shukla</em> and <em>krishna paksha</em>. The two
+    quarters sit at the exact midpoints of lunar days 8 and 23, which is why
+    the centre reads exactly 50 per cent there.</p>
+    <p>The dates written around the outside are the calendar day each lunar day
+    opens on, and they will sometimes repeat and sometimes skip. That is the
+    two units failing to keep step, not an error: a lunar day of 26 hours can
+    open and close inside one date, and a short one can open on the same date
+    as its neighbour. Hindu calendars call these <em>adhika</em> and
+    <em>kshaya</em> tithis, and it is why the standard date stays in the panel
+    as the anchor that never moves.</p>
 
     <h3>How many full moons a season holds</h3>
     <p>A season averages 91.3 days and a lunar month 29.53, so 3.09 months fit

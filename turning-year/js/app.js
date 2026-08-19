@@ -571,6 +571,28 @@
    * what it is, so a reader meeting it for the first time is not stopped. */
   var DAY_WORD = { lab: 'Lunar day', of: 'of 30' };
 
+  /* Open across redraws, since the readout is rebuilt on every hover. Not
+   * remembered between visits: it is a thing you read once. */
+  var moonInfoOpen = false;
+
+  /* The short version, for someone meeting two kinds of day at once. The long
+   * version is under About, one click away. */
+  function moonInfoHTML() {
+    return '<div class="mr-info-panel">' +
+      '<p><b>Lunar day</b> is the moon\u2019s own unit, the <i>tithi</i>: twelve ' +
+      'degrees of its angle from the sun. Thirty of them make the full circle, ' +
+      'so a lunation always holds exactly thirty, never twenty-nine.</p>' +
+      '<p>They are not equal in length. The moon runs faster when it is nearer ' +
+      'the Earth, so one lasts anywhere from 20 to 27 hours. Exact in angle, ' +
+      'uneven in time.</p>' +
+      '<p><b>Solar day</b> is the ordinary 24-hour day, numbered 1 to ' +
+      (cycle ? cycle.length : 365) + ' from the winter solstice. The two units ' +
+      'belong to unrelated motions and will never divide into one another, ' +
+      'which is why the standard date is kept below as the anchor.</p>' +
+      '<button class="mr-info-more" id="moon-info-more">Read more under About</button>' +
+      '</div>';
+  }
+
   function moonReadoutHTML(d, monthDays) {
     if (!d) return '';
     var tz = state.place.tz;
@@ -656,15 +678,36 @@
     function showDay(iso) {
       shown = iso;
       var d0 = byISO[iso];
-      $('moon-readout').className = 'moon-readout' + (state.moonMin ? ' min' : '');
+      $('moon-readout').className = 'moon-readout' + (state.moonMin ? ' min' : '') +
+        (moonInfoOpen ? ' info' : '');
       $('moon-readout').innerHTML =
+        '<button class="mr-info" id="moon-info" aria-expanded="' + moonInfoOpen +
+          '" aria-label="What a lunar day is" title="What a lunar day is">i</button>' +
         '<button class="panel-min" id="moon-min" aria-label="' +
           (state.moonMin ? 'Expand day details' : 'Minimise day details') + '" title="' +
           (state.moonMin ? 'Expand' : 'Minimise') + '">' +
           (state.moonMin ? '\u25B4' : '\u25BE') + '</button>' +
         '<div class="mr-mini">' + (d0 ? esc(TZ.formatDate(state.place.tz, d0.date, 'short')) +
           ' &#183; ' + DAY_WORD.lab.toLowerCase() + ' ' + d0.n : '') + '</div>' +
+        (moonInfoOpen ? moonInfoHTML() : '') +
         moonReadoutHTML(d0, days.length);
+      $('moon-info').addEventListener('click', function (e) {
+        e.stopPropagation();
+        moonInfoOpen = !moonInfoOpen;
+        showDay(shown);
+      });
+      if (moonInfoOpen) {
+        $('moon-info-more').addEventListener('click', function (e) {
+          e.stopPropagation();
+          $('about').hidden = false;
+          var h = $('about').querySelector('h3');
+          var all = $('about').querySelectorAll('h3');
+          for (var i = 0; i < all.length; i++) {
+            if (/lunar day/i.test(all[i].textContent)) { h = all[i]; break; }
+          }
+          h.scrollIntoView({ block: 'start' });
+        });
+      }
       $('moon-min').addEventListener('click', function (e) {
         e.stopPropagation();
         state.moonMin = !state.moonMin;

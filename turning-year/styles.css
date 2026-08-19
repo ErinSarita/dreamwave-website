@@ -616,6 +616,35 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
  * Height is the constraint, not width. On a phone this box and the circle
  * share one short screen, so every size here has a smaller counterpart below
  * and the circle is guaranteed the larger share. */
+/* The info control, mirroring the collapse control on the other corner. Two
+ * kinds of day in one box is a fair thing to want explained on the spot. */
+.mr-info {
+  position: absolute; top: 6px; left: 7px; z-index: 3;
+  width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line); color: var(--ink-2);
+  font-family: var(--serif); font-size: 15px; font-style: italic; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.mr-info:hover { color: var(--sun); border-color: var(--sun); }
+.mr-info[aria-expanded="true"] { color: var(--sun); border-color: var(--sun); }
+.mr-info:focus-visible { outline: 2px solid var(--sun); outline-offset: 1px; }
+.moon-readout.min .mr-info { display: none; }
+
+/* Open, the note roughly doubles the box. On a tall screen it simply scrolls
+ * inside itself rather than growing past its share. */
+.moon-readout.info { max-height: 62dvh; overflow-y: auto; overscroll-behavior: contain; }
+.mr-info-panel {
+  text-align: left; margin: 26px 0 10px; padding: 10px 12px;
+  border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line-soft);
+}
+.mr-info-panel p { margin: 0 0 7px; font-size: 11.5px; line-height: 1.5; color: var(--ink-2); }
+.mr-info-panel p:last-of-type { margin-bottom: 9px; }
+.mr-info-panel b { color: var(--moon); font-weight: 500; }
+.mr-info-more {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--sun); font: inherit; font-size: 11.5px; text-decoration: underline;
+}
+
 .moon-readout .mr-mini { display: none; }
 .moon-readout.min .mr-mini {
   display: block; font-family: var(--serif); font-size: 15px; color: var(--ink-2);
@@ -689,6 +718,13 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   .moon-readout .mr-date { font-size: 13.5px; margin-top: 5px; }
   .moon-readout .mr-phase { font-size: 11.5px; margin-top: 3px; }
   .moon-readout .mr-sub, .moon-readout .mr-lun { font-size: 10.5px; }
+  /* On a short screen there is no room for the circle and a paragraph at
+   * once: growing the box to fit the note left the ring at 88 pixels. The
+   * note takes the box over instead, so the circle keeps very nearly the
+   * height it had and comes straight back when the note is closed. */
+  .moon-readout.info > *:not(.mr-info-panel):not(.mr-info):not(.panel-min) { display: none; }
+  .moon-readout.info { max-height: 260px; }
+  .moon-readout.info .mr-info-panel { margin-top: 30px; }
   .moon-readout .mr-refs { gap: 10px; margin-top: 6px; padding-top: 6px; }
   .moon-readout .mr-ref { min-width: 66px; }
   .moon-readout .mr-ref b { font-size: 13px; }
@@ -753,3 +789,16 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 body[data-theme="day"] .mb-bg { opacity: .5; }
 body[data-theme="day"] .mb-fill { opacity: .92; }
 body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
+
+/* A comparison in the About that is genuinely tabular. */
+.about-table {
+  width: 100%; border-collapse: collapse; margin: 12px 0 14px; font-size: 12.5px;
+}
+.about-table th, .about-table td {
+  text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+}
+.about-table thead th { color: var(--ink-3); font-weight: 500; font-size: 11px;
+  letter-spacing: .06em; text-transform: uppercase; }
+.about-table tbody th { color: var(--moon); font-weight: 500; white-space: nowrap; }
+.about-table td { color: var(--ink-2); }
