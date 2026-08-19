@@ -8,10 +8,13 @@
 
   var CX = 500, CY = 500;
   var R = {
-    stationLabel: 476, subDy: 15, subDy2: 27, stationGlyph: 456, stationTick0: 422, stationTick1: 444,
+    stationLabel: 492, subDy: 15, subDy2: 27, stationGlyph: 456, stationTick0: 422, stationTick1: 444,
     skyClock: 600, skyClockR: 68,
     monthOut: 446, monthIn: 424, monthLabel: 435,
-    seasonOut: 469, seasonIn: 449, seasonLabel: 459,
+    /* Tall enough for its own wording to sit comfortably rather than being
+     * squeezed between two rims. The station names move out to 492 to make
+     * the room, which still clears the Dipper glyphs at 532. */
+    seasonOut: 480, seasonIn: 448, seasonLabel: 464,
     bandOut: 418, bandIn: 262,
     moonRing: 240, moonR: 1.95, moonSwing: 11,
     moonPieIn: 224, moonPieOut: 257, moonNumR: 217, moonSeasonR: 205,
