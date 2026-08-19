@@ -785,19 +785,29 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
  * way in both themes: the swell always lighter than the ring behind it.
  * Reading the fill from --moon failed that in daylight, where --moon is a
  * dark navy and the fullest part of the month came out as the darkest. */
-/* The solar reckoning, outermost, cut into a wedge per day. Alternate wedges
- * carry a wash so the divisions read at a glance rather than needing the eye
- * to follow a tick. */
-.cal-ring { fill: var(--night); opacity: .16; }
-.cal-wedge { fill: var(--night); opacity: .16; }
-.cal-tick { stroke: var(--ink-3); stroke-width: 1; opacity: .45; }
-.cal-solar { font-size: 12px; fill: var(--ink-2); }
-.cal-date { font-size: 10px; fill: var(--ink-3); }
-body[data-theme="day"] .cal-ring, body[data-theme="day"] .cal-wedge { opacity: .11; }
+/* Three reckonings, three bands, one flat colour each so a band can be told
+ * from its neighbour at a glance. Gold for the sun's counting, neutral for
+ * the ordinary calendar, blue for the moon's. */
+.solar-band { fill: var(--sun); opacity: .10; }
+.solar-tick { stroke: var(--sun); stroke-width: 1; opacity: .45; }
+.cal-solar { font-size: 12px; fill: var(--sun); }
 
-/* The lunar reckoning inside it. */
-.lun-tick { stroke: var(--moon); stroke-width: 1; opacity: .3; }
+.date-band { fill: var(--ink-3); opacity: .09; }
+.date-tick { stroke: var(--ink-3); stroke-width: 1; opacity: .4; }
+.cal-date { font-size: 10.5px; fill: var(--ink-2); }
+
+.lun-tick { stroke: var(--moon); stroke-width: 1; opacity: .35; }
+
+/* The moon's nearest and furthest points. Warm for near, cool for far, since
+ * the face beside them is already large or small to match. */
+.apsis-tick { stroke: var(--moon); stroke-width: 1.4; stroke-dasharray: 3 3; opacity: .75; }
+.apsis-tick.is-near { stroke: var(--sun-bright); opacity: .9; }
+.apsis-label { font-size: 8.5px; fill: var(--moon); letter-spacing: .04em; }
+.apsis-label.is-near { fill: var(--sun-bright); }
 .lun-hours { font-size: 8.5px; fill: var(--ink-3); opacity: .85; }
+
+body[data-theme="day"] .solar-band { opacity: .14; }
+body[data-theme="day"] .date-band { opacity: .07; }
 
 .mb-bg { fill: var(--night); opacity: .32; }
 .mb-base { stroke: var(--line); stroke-width: 1; opacity: .55; }
@@ -820,3 +830,14 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
   letter-spacing: .06em; text-transform: uppercase; }
 .about-table tbody th { color: var(--moon); font-weight: 500; white-space: nowrap; }
 .about-table td { color: var(--ink-2); }
+
+/* The season ring on the year wheel: four quarters cut at the solstices and
+ * equinoxes, each halved again at its cross-quarter midpoint. The cardinal
+ * cuts are drawn stronger than the midpoints, since one opens a season and
+ * the other only divides it. */
+.season-band { stroke: var(--night); opacity: .5; }
+.season-tick { stroke: var(--ink-3); stroke-width: 1.2; opacity: .6; }
+.season-tick.is-cardinal { stroke: var(--sun); stroke-width: 2.2; opacity: .95; }
+.season-label {
+  font-size: 11px; letter-spacing: .28em; fill: var(--ink-2); font-weight: 500;
+}

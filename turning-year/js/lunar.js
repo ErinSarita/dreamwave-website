@@ -259,10 +259,51 @@
     return out;
   }
 
+  /* ------------------------------------------------------- perigee, apogee
+   * The moon's distance runs on its own clock again: the anomalistic month,
+   * perigee to perigee, is 27.55 days against the synodic month's 29.53. The
+   * two do not match, so the nearest and furthest points drift steadily
+   * through the lunation rather than sitting at a fixed phase, and a perigee
+   * that lands on a full moon this year will not next year. That drift is the
+   * whole reason a supermoon is an event rather than a monthly occurrence.
+   *
+   * Found by sampling the distance across the window and refining each turning
+   * point by golden section. A lunation is longer than an anomalistic month,
+   * so it always holds at least one of each. */
+  function distanceKmAt(jd) { return A.moonPhase(A.jdeFromJD(jd)).distanceKm; }
+
+  function refineApsis(lo, hi, wantMin) {
+    var phi = 0.6180339887;
+    var c = hi - phi * (hi - lo), d = lo + phi * (hi - lo);
+    for (var i = 0; i < 60 && hi - lo > 1e-5; i++) {
+      var fc = distanceKmAt(c), fd = distanceKmAt(d);
+      if (wantMin ? fc < fd : fc > fd) hi = d; else lo = c;
+      c = hi - phi * (hi - lo); d = lo + phi * (hi - lo);
+    }
+    return (lo + hi) / 2;
+  }
+
+  function apsidesIn(startJD, endJD) {
+    var STEP = 0.25, xs = [], ys = [];
+    for (var jd = startJD; jd <= endJD + STEP; jd += STEP) {
+      xs.push(jd); ys.push(distanceKmAt(jd));
+    }
+    var out = [];
+    for (var i = 1; i < xs.length - 1; i++) {
+      var isMin = ys[i] < ys[i - 1] && ys[i] <= ys[i + 1];
+      var isMax = ys[i] > ys[i - 1] && ys[i] >= ys[i + 1];
+      if (!isMin && !isMax) continue;
+      var at = refineApsis(xs[i - 1], xs[i + 1], isMin);
+      if (at < startJD || at >= endJD) continue;
+      out.push({ kind: isMin ? 'perigee' : 'apogee', jd: at, km: distanceKmAt(at) });
+    }
+    return out;
+  }
+
   global.Lunar = {
     SYNODIC: SYNODIC, newMoonJD: newMoonJD, fullMoonJD: fullMoonJD,
     kAt: kAt, month: month, cycleOf: cycleOf, daysOf: daysOf, quarterJD: quarterJD,
-    tithisOf: tithisOf, tithiStartJD: tithiStartJD,
+    tithisOf: tithisOf, tithiStartJD: tithiStartJD, apsidesIn: apsidesIn,
     anchorLongitudeFor: anchorLongitudeFor, SEASONS: SEASONS
   };
 })(typeof window !== 'undefined' ? window : globalThis);

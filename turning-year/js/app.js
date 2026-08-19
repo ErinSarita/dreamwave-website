@@ -19,7 +19,7 @@
     day: null,
     hover: null,
     noteOpen: false,
-    layers: { moon: true, terms: false, frost: true, months: true, traditional: false, skyClock: true, declination: true },
+    layers: { moon: true, terms: false, frost: true, months: true, seasons: true, traditional: false, skyClock: true, declination: true },
     frost: { last: null, first: null },
     theme: 'night',
     hour12: false,
@@ -668,6 +668,7 @@
     var focus = focusISO || selectedISO();
     $('moonwheel').innerHTML = MoonView.render(m, days, {
       tz: ctx.tz, selectedISO: focus, todayISO: todayISO(),
+      apsides: Lunar.apsidesIn(days[0].startJD, days[days.length - 1].endJD),
       /* The outer ring needs the day of the solar cycle for each date it
        * draws, and a lunation reaching past a solstice will contain dates the
        * cycle on screen does not hold, which simply go unnumbered. */
@@ -1195,7 +1196,8 @@
     $('goto-date').addEventListener('keydown', function (e) { if (e.key === 'Enter') goToDate(); });
 
     [['lay-moon', 'moon'], ['lay-terms', 'terms'], ['lay-frost', 'frost'],
-     ['lay-months', 'months'], ['lay-trad', 'traditional'], ['lay-sky', 'skyClock'],
+     ['lay-months', 'months'], ['lay-seasons', 'seasons'],
+     ['lay-trad', 'traditional'], ['lay-sky', 'skyClock'],
      ['lay-dec', 'declination']].forEach(function (pair) {
       var el = $(pair[0]);
       el.checked = state.layers[pair[1]];

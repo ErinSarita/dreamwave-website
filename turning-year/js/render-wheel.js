@@ -11,6 +11,7 @@
     stationLabel: 476, subDy: 15, subDy2: 27, stationGlyph: 456, stationTick0: 422, stationTick1: 444,
     skyClock: 600, skyClockR: 68,
     monthOut: 446, monthIn: 424, monthLabel: 435,
+    seasonOut: 469, seasonIn: 449, seasonLabel: 459,
     bandOut: 418, bandIn: 262,
     moonRing: 240, moonR: 1.95, moonSwing: 11,
     moonPieIn: 224, moonPieOut: 257, moonNumR: 217, moonSeasonR: 205,
@@ -417,6 +418,44 @@
           '<text class="month-label" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1]) +
           '" text-anchor="middle" dominant-baseline="middle">' +
           TZ.MONTHS_SHORT[run.month - 1].toUpperCase() + '</text>'));
+      });
+    }
+
+    /* -- the seasons, and the midpoint inside each -------------------------
+     * A ring above the months dividing the year the way the sky does rather
+     * than the way the calendar does: at the four solstices and equinoxes,
+     * and again halfway between each pair. Those midpoints are the
+     * cross-quarter days, the oldest festival dates in the northern year, and
+     * they fall where they fall rather than on any month's edge, which is
+     * exactly why they want a layer of their own to be seen against. */
+    if (opts.layers.seasons) {
+      parts.push('<circle cx="500" cy="500" r="' + ((R.seasonIn + R.seasonOut) / 2) +
+                 '" fill="none" class="season-band" stroke-width="' +
+                 (R.seasonOut - R.seasonIn) + '"/>');
+      cycle.stations.forEach(function (st) {
+        if (!st.dayNumber) return;
+        var a = dayEdge(cycle, st.dayNumber);
+        var cardinal = st.kind === 'solstice' || st.kind === 'equinox';
+        var p1 = polar(R.seasonIn, a), p2 = polar(R.seasonOut, a);
+        parts.push('<path class="season-tick' + (cardinal ? ' is-cardinal' : '') +
+                   '" d="M' + fmt(p1[0]) + ' ' + fmt(p1[1]) +
+                   'L' + fmt(p2[0]) + ' ' + fmt(p2[1]) + '"/>');
+      });
+      // the season's own name sits across its quarter, between two cardinals
+      var cards = cycle.stations.filter(function (st) {
+        return st.dayNumber && (st.kind === 'solstice' || st.kind === 'equinox');
+      });
+      cards.forEach(function (st, i) {
+        var a1 = dayEdge(cycle, st.dayNumber);
+        var nxt = cards[(i + 1) % cards.length];
+        var a2 = (i + 1 < cards.length) ? dayEdge(cycle, nxt.dayNumber) : a1 + 90;
+        var sweep = ((a2 - a1) % 360 + 360) % 360;
+        var mid = a1 + sweep / 2;
+        var lp = polar(R.seasonLabel, mid);
+        parts.push(rotLabel(mid, lp[0], lp[1],
+          '<text class="season-label" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1]) +
+          '" text-anchor="middle" dominant-baseline="middle">' +
+          esc((st.name.split(' ')[0] || '').toUpperCase()) + '</text>'));
       });
     }
 

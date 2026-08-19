@@ -19,7 +19,8 @@
     /* Outermost is the solar reckoning, since it is the frame the rest is
      * being compared against: the day of the year on the rim, the ordinary
      * date beneath it, in one banded ring divided at every local midnight. */
-    calOut: 500, solarNum: 488, dateLabel: 466, calIn: 450,
+    solarOut: 500, solarNum: 487, solarIn: 475,
+    dateOut: 473, dateLabel: 461, dateIn: 449,
     /* Then the lunar reckoning: its number, and how long that lunar day runs. */
     lunNum: 436, lunHours: 418,
     hitOut: 448, hitIn: 196,
@@ -146,22 +147,27 @@
       }
     })();
 
-    parts.push('<path class="cal-ring" d="' + annulus(R.calIn, R.calOut) +
+    /* Two bands, each one flat colour with its own dividers, rather than one
+     * band with alternating wedges: a wash that changes every segment reads as
+     * data when it is only striping. The solar day and the ordinary date do
+     * always fall on the same midnights, being the same civil day counted two
+     * ways, so their dividers coincide exactly. Drawing them as separate rings
+     * shows that agreement rather than assuming it, and leaves the lunar band
+     * below as the only one that slides. */
+    parts.push('<path class="solar-band" d="' + annulus(R.solarIn, R.solarOut) +
                '" fill-rule="evenodd"/>');
-    // one wedge per solar day, cut at its own midnights
+    parts.push('<path class="date-band" d="' + annulus(R.dateIn, R.dateOut) +
+               '" fill-rule="evenodd"/>');
+
     for (var mi = 0; mi <= mids.length; mi++) {
       var from = mi === 0 ? 0 : angAt(A.jdFromDate(mids[mi - 1]));
       var to = mi === mids.length ? 360 : angAt(A.jdFromDate(mids[mi]));
-      if (mi % 2) {
-        parts.push('<path class="cal-wedge" d="' + sector(R.calIn, R.calOut, from, to) + '"/>');
-      }
       if (to - from < 4) continue;                 // no room to write in
       var when = mi === 0 ? A.dateFromJD(t0) : mids[mi - 1];
       var cp2 = TZ.civilParts(tz, when);
       var iso2 = TZ.formatDate(tz, when, 'iso');
       var mid = (from + to) / 2;
 
-      // the day of the solar cycle, on the rim
       var sn = opts.solarDayFor ? opts.solarDayFor(iso2) : null;
       if (sn) {
         var sp3 = polar(R.solarNum, mid);
@@ -169,7 +175,6 @@
           '" text-anchor="middle" dominant-baseline="middle" transform="rotate(' +
           f(tangent(mid)) + ' ' + f(sp3[0]) + ' ' + f(sp3[1]) + ')">' + sn + '</text>');
       }
-      // and the ordinary date beneath it
       var txt = (mi === 0 || cp2.day === 1)
         ? TZ.MONTHS_SHORT[cp2.month - 1] + ' ' + cp2.day : String(cp2.day);
       var lp2 = polar(R.dateLabel, mid);
@@ -177,12 +182,15 @@
         '" text-anchor="middle" dominant-baseline="middle" transform="rotate(' +
         f(tangent(mid)) + ' ' + f(lp2[0]) + ' ' + f(lp2[1]) + ')">' + esc(txt) + '</text>');
     }
-    // the dividers ride on top of the wedges
+    // each band keeps its own dividers, drawn in its own colour
     mids.forEach(function (m) {
       var a = angAt(A.jdFromDate(m));
-      var q1 = polar(R.calIn, a), q2 = polar(R.calOut, a);
-      parts.push('<path class="cal-tick" d="M' + f(q1[0]) + ' ' + f(q1[1]) +
-                 'L' + f(q2[0]) + ' ' + f(q2[1]) + '"/>');
+      var s1 = polar(R.solarIn, a), s2 = polar(R.solarOut, a);
+      parts.push('<path class="solar-tick" d="M' + f(s1[0]) + ' ' + f(s1[1]) +
+                 'L' + f(s2[0]) + ' ' + f(s2[1]) + '"/>');
+      var d1 = polar(R.dateIn, a), d2 = polar(R.dateOut, a);
+      parts.push('<path class="date-tick" d="M' + f(d1[0]) + ' ' + f(d1[1]) +
+                 'L' + f(d2[0]) + ' ' + f(d2[1]) + '"/>');
     });
 
     /* -- one day at a time ------------------------------------------------ */
@@ -258,6 +266,27 @@
           'transform="rotate(' + f(tangent(a)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) + ')">' +
           esc(EVENT_SHORT[d.moonEvent] || d.moonEvent) + '</text>');
       }
+    });
+
+    /* -- nearest and furthest --------------------------------------------
+     * Marked on the face ring, because that ring is already carrying distance
+     * in its size and its orbit; these name the two turning points of it. They
+     * sit wherever they fall, which is not the same phase each month: the
+     * distance cycle is the anomalistic month of 27.55 days and the lunation
+     * is 29.53, so the pair walks backwards through the month. */
+    (opts.apsides || []).forEach(function (ap) {
+      var aa = angAt(ap.jd);
+      if (aa < 0 || aa > 360) return;
+      var near = ap.kind === 'perigee';
+      var r0 = R.glyphBase - R.glyphSwing - 22, r1 = R.glyphBase + R.glyphSwing + 22;
+      var m1 = polar(r0, aa), m2 = polar(r1, aa);
+      parts.push('<path class="apsis-tick' + (near ? ' is-near' : '') + '" d="M' +
+                 f(m1[0]) + ' ' + f(m1[1]) + 'L' + f(m2[0]) + ' ' + f(m2[1]) + '"/>');
+      var lp3 = polar(r0 - 12, aa);
+      parts.push('<text class="apsis-label' + (near ? ' is-near' : '') + '" x="' + f(lp3[0]) +
+        '" y="' + f(lp3[1]) + '" text-anchor="middle" dominant-baseline="middle" ' +
+        'transform="rotate(' + f(tangent(aa)) + ' ' + f(lp3[0]) + ' ' + f(lp3[1]) + ')">' +
+        ap.kind + ' ' + Math.round(ap.km).toLocaleString() + ' km</text>');
     });
 
     /* -- the middle: whichever day is in hand ------------------------------ */
