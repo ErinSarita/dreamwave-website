@@ -543,6 +543,14 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .ethos-card p { font-size: 14.5px; line-height: 1.72; margin: 0 0 14px; }
 .ethos-card p:last-of-type { margin-bottom: 0; }
 .ethos-card b { color: var(--sun-bright); font-weight: 500; }
+/* Reads as a phrase in the sentence, behaves as the button it is. This is the
+ * one place the writing sends the reader somewhere, so it goes there. */
+.inline-link {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; font-style: italic; color: var(--sun);
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.inline-link:hover { color: var(--sun-bright); }
 #compare-svg { width: 100%; height: auto; margin-top: 10px; display: block; }
 .compare-legend {
   list-style: none; margin: 14px 0 0; padding: 0; display: grid;

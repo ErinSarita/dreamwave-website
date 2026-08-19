@@ -1353,6 +1353,12 @@
       if (e.target === $('ethos')) $('ethos').hidden = true;
     });
 
+    /* Hands off to the spiral rather than rebuilding it: one door, one key. */
+    $('ethos-spiral').addEventListener('click', function () {
+      $('ethos').hidden = true;
+      $('spiral-btn').click();
+    });
+
     $('about-btn').addEventListener('click', function () { $('about').hidden = false; });
     $('about-close').addEventListener('click', function () { $('about').hidden = true; });
     $('about').addEventListener('click', function (e) {
