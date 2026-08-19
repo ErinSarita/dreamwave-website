@@ -26,8 +26,9 @@
     useDST: true,       // off = the zone's winter offset all year; see clock.js
     panelMin: false,    // day panel collapsed to a single line
     moonMin: false,     // lunation readout collapsed to a single line
-    moonPhases: { 'New Moon': true, 'First Quarter': true,
-                  'Full Moon': true, 'Last Quarter': true }
+    moonPhases: { 'New Moon': true, 'Waxing Crescent': true, 'First Quarter': true,
+                  'Waxing Gibbous': true, 'Full Moon': true, 'Waning Gibbous': true,
+                  'Last Quarter': true, 'Waning Crescent': true }
   };
   var cycle = null;
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
@@ -670,6 +671,7 @@
     $('moonwheel').innerHTML = MoonView.render(m, days, {
       tz: ctx.tz, selectedISO: focus, todayISO: todayISO(),
       apsides: Lunar.apsidesIn(days[0].startJD, days[days.length - 1].endJD),
+      phaseMarks: Lunar.phaseMarksOf(state.lunationK),
       /* The outer ring needs the day of the solar cycle for each date it
        * draws, and a lunation reaching past a solstice will contain dates the
        * cycle on screen does not hold, which simply go unnumbered. */
@@ -843,8 +845,13 @@
       });
   }
 
-  var PHASE_FILTERS = [['New Moon', 'New'], ['First Quarter', 'First qtr'],
-                       ['Full Moon', 'Full'], ['Last Quarter', 'Last qtr']];
+  /* All eight, in the order the moon walks them. */
+  var PHASE_FILTERS = [
+    ['New Moon', 'New'], ['Waxing Crescent', 'Waxing crescent'],
+    ['First Quarter', 'First quarter'], ['Waxing Gibbous', 'Waxing gibbous'],
+    ['Full Moon', 'Full'], ['Waning Gibbous', 'Waning gibbous'],
+    ['Last Quarter', 'Last quarter'], ['Waning Crescent', 'Waning crescent']
+  ];
   function phaseFilterHTML() {
     return '<div class="phase-filter" role="group" aria-label="Which phases to list">' +
       PHASE_FILTERS.map(function (p) {

@@ -255,17 +255,26 @@
         'transform="rotate(' + f(tangent(a)) + ' ' + f(np[0]) + ' ' + f(np[1]) + ')">' +
         d.dayInMonth + '</text>');
 
-      // the four turning points of the month
-      if (d.moonEvent) {
-        var t1 = polar(R.eventTick, a), t2 = polar(R.eventTick + 16, a);
-        parts.push('<path d="M' + f(t1[0]) + ' ' + f(t1[1]) + 'L' + f(t2[0]) + ' ' + f(t2[1]) +
-                   '" stroke="var(--sun-bright)" stroke-width="1.6"/>');
-        var lp = polar(R.eventLabel, a);
-        parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
-          'dominant-baseline="middle" font-size="10.5" fill="var(--sun-bright)" ' +
-          'transform="rotate(' + f(tangent(a)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) + ')">' +
-          esc(EVENT_SHORT[d.moonEvent] || d.moonEvent) + '</text>');
-      }
+    });
+
+    /* -- the eight phases -------------------------------------------------
+     * Four instants and four stretches. New, the two quarters and full are
+     * moments the moon passes through, and are marked where they truly fall
+     * rather than at the centre of whichever lunar day holds them, which for
+     * new and full was half a day out. The crescents and gibbous are not
+     * instants at all: each is marked at the middle of its own stretch, where
+     * the moon looks most like the thing it is named for. */
+    (opts.phaseMarks || []).forEach(function (pm) {
+      var pa = angAt(pm.jd);
+      if (pa < 0 || pa > 360) return;
+      var t1 = polar(R.eventTick, pa), t2 = polar(R.eventTick + (pm.turning ? 18 : 11), pa);
+      parts.push('<path class="ph-tick' + (pm.turning ? ' is-turn' : '') + '" d="M' +
+                 f(t1[0]) + ' ' + f(t1[1]) + 'L' + f(t2[0]) + ' ' + f(t2[1]) + '"/>');
+      var lp = polar(R.eventLabel, pa);
+      parts.push('<text class="ph-label' + (pm.turning ? ' is-turn' : '') + '" x="' + f(lp[0]) +
+        '" y="' + f(lp[1]) + '" text-anchor="middle" dominant-baseline="middle" ' +
+        'transform="rotate(' + f(tangent(pa)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) + ')">' +
+        esc(pm.label) + '</text>');
     });
 
     /* -- nearest and furthest --------------------------------------------

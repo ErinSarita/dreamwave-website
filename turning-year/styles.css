@@ -841,6 +841,14 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 
 /* The moon's nearest and furthest points. Warm for near, cool for far, since
  * the face beside them is already large or small to match. */
+/* The eight phases. The four turning points are instants and read stronger;
+ * the four stretches between them are named more quietly, since a crescent is
+ * a span the moon is in rather than a moment it passes. */
+.ph-tick { stroke: var(--moon); stroke-width: 1.1; opacity: .6; }
+.ph-tick.is-turn { stroke: var(--sun-bright); stroke-width: 1.7; opacity: 1; }
+.ph-label { font-size: 8.5px; fill: var(--moon); opacity: .85; }
+.ph-label.is-turn { font-size: 10.5px; fill: var(--sun-bright); opacity: 1; }
+
 .apsis-tick { stroke: var(--moon); stroke-width: 1.4; stroke-dasharray: 3 3; opacity: .75; }
 .apsis-tick.is-near { stroke: var(--sun-bright); opacity: .9; }
 .apsis-label { font-size: 8.5px; fill: var(--moon); letter-spacing: .04em; }

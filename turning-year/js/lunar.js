@@ -300,10 +300,31 @@
     return out;
   }
 
+  /* ------------------------------------------------- the eight phase marks
+   * Four are instants the moon passes through: new, the two quarters, full.
+   * The other four are not instants at all but the stretches between them,
+   * and what is marked is the middle of each, where the moon is most plainly
+   * a crescent or most plainly gibbous. Every one is found from the real
+   * elongation, so they land where they belong on a ring drawn to time rather
+   * than at the centre of whichever lunar day happens to hold them. */
+  var RING_PHASES = [
+    [0, 'new'], [45, 'waxing crescent'], [90, 'first quarter'], [135, 'waxing gibbous'],
+    [180, 'full'], [225, 'waning gibbous'], [270, 'last quarter'], [315, 'waning crescent']
+  ];
+  function phaseMarksOf(k) {
+    return RING_PHASES.map(function (p) {
+      var jd = p[0] === 0 ? newMoonJD(k)
+             : p[0] === 180 ? fullMoonJD(k) : quarterJD(k, p[0]);
+      return { deg: p[0], label: p[1], jd: jd, turning: p[0] % 90 === 0,
+               date: A.dateFromJD(jd) };
+    });
+  }
+
   global.Lunar = {
     SYNODIC: SYNODIC, newMoonJD: newMoonJD, fullMoonJD: fullMoonJD,
     kAt: kAt, month: month, cycleOf: cycleOf, daysOf: daysOf, quarterJD: quarterJD,
     tithisOf: tithisOf, tithiStartJD: tithiStartJD, apsidesIn: apsidesIn,
+    phaseMarksOf: phaseMarksOf,
     anchorLongitudeFor: anchorLongitudeFor, SEASONS: SEASONS
   };
 })(typeof window !== 'undefined' ? window : globalThis);

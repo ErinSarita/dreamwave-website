@@ -329,8 +329,13 @@
   }
 
   function markMoonEvents(cycle) {
-    var days = cycle.days, targets = [0, 90, 180, 270];
-    var labels = ['New Moon', 'First Quarter', 'Full Moon', 'Last Quarter'];
+    /* Eight marks, not four. The quarters are instants the moon passes
+     * through; the crescents and gibbous are the stretches between them, and
+     * what is flagged here is the middle of each stretch, where the moon is
+     * most plainly a crescent or most plainly gibbous. */
+    var days = cycle.days, targets = [0, 45, 90, 135, 180, 225, 270, 315];
+    var labels = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous',
+                  'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
     if (!days.length) return;
 
     // the run of days, with one unowned probe day at each end
