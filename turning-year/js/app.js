@@ -407,9 +407,10 @@
     if (d.sunset) rows.push(row('Sunset', Clock.time(cycle, d.sunset, state.useDST, state.hour12)));
 
     var station = d.station ? '<div class="r-station">' + d.station.name +
-      (d.station.term ? ' · ' + d.station.term.hanzi + ' ' + d.station.term.pinyin : '') + '</div>' : '';
-    if (!d.station && d.term && state.layers.terms) {
-      station = '<div class="r-station">Solar term ' + d.term.number + ' of 24</div>';
+      '</div>' : '';
+    if (!d.station && d.inTerm && state.layers.terms) {
+      station = '<div class="r-station">Solar term ' + d.inTerm.number + ' of 24 &#183; day ' +
+        d.dayInTerm + ' of ' + d.inTerm.days + '</div>';
     }
     if (!d.station && d.frost) {
       station = '<div class="r-station" style="color:var(--frost)">' +
@@ -442,8 +443,8 @@
     var stationHTML = '';
     if (d.station) stationHTML += '<div class="d-station">' + d.station.name +
       (d.station.alt ? ' <span style="opacity:.6">/ ' + d.station.alt + '</span>' : '') + '</div>';
-    if (d.term) stationHTML += '<div class="d-term">Solar term ' + d.term.number + ' of 24' +
-      ' <span style="opacity:.6">(' + d.term.hanzi + ' ' + d.term.pinyin + ')</span></div>';
+    if (d.inTerm) stationHTML += '<div class="d-term">Solar term ' + d.inTerm.number +
+      ' of 24 &#183; day ' + d.dayInTerm + ' of ' + d.inTerm.days + '</div>';
     if (d.frost) stationHTML += '<div class="d-term" style="color:var(--frost)">' +
       (d.frost.kind === 'last-frost' ? 'Last spring frost' : 'First autumn frost') +
       (cycle.frost.isEstimate ? ' (estimate)' : '') + '</div>';
@@ -858,7 +859,7 @@
       return {
         n: s.dayNumber, name: s.name,
         date: TZ.formatDate(cycle.tz, d.date),
-        sub: s.alt + (s.term ? ' · ' + s.term.hanzi + ' ' + s.term.pinyin : ''),
+        sub: s.alt,
         glyph: '<i class="sw ' + (s.kind === 'cross-quarter' ? 'sw-cq' : 'sw-sol') + '"></i>'
       };
     });

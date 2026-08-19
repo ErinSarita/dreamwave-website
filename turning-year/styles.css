@@ -381,10 +381,14 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .moon-hit { fill: transparent; cursor: pointer; }
 /* The moon band answers for itself, so it should look like it does. */
 .moon-hit:hover { fill: var(--moon); fill-opacity: .12; }
-.term-label { font-size: 11px; fill: var(--ink-3); opacity: 0; transition: opacity .4s; }
-.term-sub { font-size: 7.5px; fill: var(--ink-3); opacity: 0; transition: opacity .4s; }
-#wheel-svg.zoomed .term-label { opacity: 1; }
-#wheel-svg.zoomed .term-sub { opacity: .75; }
+.term-band { stroke: var(--night); opacity: .28; }
+.term-cut { stroke: var(--equinox); stroke-width: 1.1; opacity: .65; }
+.term-label { font-size: 8.5px; fill: var(--ink-2); }
+.frost-label { font-size: 9px; }
+.term-sub { font-size: 7.5px; fill: var(--ink-3); }
+/* The term labels used to be hidden until zoomed, back when they were a bare
+ * number crowded in among the frost marks. Now the layer has a ring of its
+ * own and is off by default, so turning it on should show it. */
 
 .rot { transition: transform .35s ease; }
 .rot.flip { transform: rotate(180deg); }

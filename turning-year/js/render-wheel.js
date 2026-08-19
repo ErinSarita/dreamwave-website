@@ -18,13 +18,22 @@
      * to 541, under the Dipper glyphs at 532. */
     stationDay: 488, stationLabel: 502, subDy: 13, stationGlyph: 458, stationTick0: 422, stationTick1: 444,
     skyClock: 600, skyClockR: 68,
-    monthOut: 446, monthIn: 424, monthLabel: 435,
+    /* The calendar months sit directly outside the lunar ones, so the two
+     * kinds of month can be read against each other: twelve of ours, ruled
+     * off at arbitrary lengths, against twelve or thirteen of the moon's,
+     * ruled off by the moon. Neither divides the year and they never agree.
+     *
+     * Further out, the twenty-four solar terms and then the eight seasons,
+     * which belong together because both cut the year by the sun's own
+     * longitude, one finer than the other. */
+    termOut: 446, termIn: 420, termNum: 437, termName: 427,
+    monthOut: 282, monthIn: 260, monthLabel: 271,
     /* Tall enough to hold the station marks as well as its own wording: the
      * glyph sits at 458 and the season name at 464, so the band has to span
      * roughly 449 to 472 before either touches a rim. The station names sit
      * outside at 492 and still clear the Dipper glyphs at 532. */
     seasonOut: 476, seasonIn: 447, seasonLabel: 463,
-    bandOut: 418, bandIn: 262,
+    bandOut: 418, bandIn: 284,
     moonRing: 240, moonR: 1.95, moonSwing: 11,
     moonPieIn: 224, moonPieOut: 257, moonNumR: 217, moonSeasonR: 205,
     /* The moon band's reach for a tap, which has to be wider than the band it
@@ -35,7 +44,6 @@
      * to 199 covers both while staying clear of the solar-term labels at 197. */
     moonHitIn: 199,
     decOut: 138, decZero: 100, decIn: 62,
-    termOut: 192, termIn: 183, termLabel: 197,
     frostOut: 175, frostIn: 165,
     noteMark: 157,
     hitIn: 150, hitOut: 462
@@ -241,8 +249,11 @@
           parts.push('<path d="M' + fmt(m1[0]) + ' ' + fmt(m1[1]) + 'L' + fmt(m2[0]) + ' ' + fmt(m2[1]) +
                      '" stroke="var(--frost)" stroke-width="1.4" opacity=".85"/>');
           var lp = polar(R.frostIn - 14, ang);
+          /* Its own class. It had been borrowing the solar terms' purely for
+           * the font, which quietly coupled the two: restyling the terms
+           * restyled the frost marks with them. */
           parts.push(rotLabel(ang, lp[0], lp[1],
-            '<text class="term-label" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1]) +
+            '<text class="frost-label" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1]) +
             '" text-anchor="middle" dominant-baseline="middle" fill="var(--frost)">' + f[1] +
             ' ±' + FROST_WINDOW_DAYS + 'd</text>'));
         });
@@ -438,20 +449,37 @@
      * only claims the division, not the weather. Hover a tick for the
      * traditional Chinese name, kept as a name rather than a forecast. ---- */
     if (opts.layers.terms) {
-      cycle.terms.forEach(function (t) {
-        if (!t.dayNumber) return;
-        var ang = dayAngle(cycle, t.dayNumber);
+      parts.push('<circle cx="500" cy="500" r="' + ((R.termIn + R.termOut) / 2) +
+                 '" fill="none" class="term-band" stroke-width="' + (R.termOut - R.termIn) + '"/>');
+      var termsSorted = cycle.terms.filter(function (t) { return t.dayNumber; });
+      termsSorted.forEach(function (t, ti) {
+        var ang = dayEdge(cycle, t.dayNumber);
         var t1 = polar(R.termIn, ang), t2 = polar(R.termOut, ang);
-        parts.push('<path d="M' + fmt(t1[0]) + ' ' + fmt(t1[1]) + 'L' + fmt(t2[0]) + ' ' + fmt(t2[1]) +
-                   '" stroke="var(--equinox)" stroke-width="1.2" opacity=".7"><title>' +
-                   t.number + ' · ' + t.hanzi + ' ' + t.pinyin + '</title></path>');
-        var lp = polar(R.termLabel, ang);
-        parts.push(rotLabel(ang, lp[0], lp[1],
-          '<text class="term-label" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1]) +
-          '" text-anchor="middle" dominant-baseline="middle">' + t.number +
-          '<title>' + t.hanzi + ' ' + t.pinyin + '</title></text>' +
-          '<text class="term-sub" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1] + 11) +
-          '" text-anchor="middle" dominant-baseline="middle">Day ' + t.dayNumber + '</text>'));
+        parts.push('<path class="term-cut" d="M' + fmt(t1[0]) + ' ' + fmt(t1[1]) +
+                   'L' + fmt(t2[0]) + ' ' + fmt(t2[1]) + '"/>');
+
+        /* Named in its own span, the way a month is: the cut opens the term
+         * and the wording belongs to the stretch that follows it. */
+        var nxt = termsSorted[(ti + 1) % termsSorted.length];
+        var a2 = (ti + 1 < termsSorted.length) ? dayEdge(cycle, nxt.dayNumber) : 360;
+        var sweep = ((a2 - ang) % 360 + 360) % 360;
+        if (sweep < 1) sweep = 15;
+        var mid = ang + sweep / 2;
+
+        var np = polar(R.termNum, mid);
+        parts.push(rotLabel(mid, np[0], np[1],
+          '<text class="term-label" x="' + fmt(np[0]) + '" y="' + fmt(np[1]) +
+          '" text-anchor="middle" dominant-baseline="middle">Solar term ' + t.number +
+          '<title>' + esc('Solar term ' + t.number + ' of 24, ' + t.days + ' days') +
+          '</title></text>'));
+        /* How long this term runs, since the ring is drawn to real time and
+         * the widths differ: fourteen days near perihelion, sixteen near
+         * aphelion. The traditional names are left off, here and everywhere
+         * else on the wheel; they describe one region's weather, not yours. */
+        var sp = polar(R.termName, mid);
+        parts.push(rotLabel(mid, sp[0], sp[1],
+          '<text class="term-sub" x="' + fmt(sp[0]) + '" y="' + fmt(sp[1]) +
+          '" text-anchor="middle" dominant-baseline="middle">' + t.days + ' days</text>'));
       });
     }
 
@@ -591,7 +619,7 @@
        * sits above it on the same angle: centred on the line rather than
        * crossed by it. A station is a day, and this is that day's own column,
        * read outward from the mark. */
-      var subNames = s.alt + (s.term ? ' · ' + s.term.hanzi + ' ' + s.term.pinyin : '');
+      var subNames = s.alt;
       var lines = [
         { r: R.stationDay, cls: 'station-day', txt: String(s.dayNumber), colour: colour },
         { r: R.stationLabel, cls: 'station-label', txt: s.name },

@@ -548,6 +548,30 @@
       cycle.terms.push(entry);
       if (entry.dayNumber) cycle.days[entry.dayNumber - 1].term = entry;
     }
+
+    /* Every day carries the term it is inside, and how far into it. A term is
+     * fifteen degrees of the sun's longitude and so runs fourteen to sixteen
+     * days, longer around the winter solstice where the Earth is near
+     * perihelion and the sun appears to move quickest through the sky.
+     *
+     * The count runs from the term's own opening day, so day one of a term is
+     * the day the sun crosses into it. Term one opens at the winter solstice,
+     * which is where this whole cycle is anchored. */
+    var started = cycle.terms.filter(function (t) { return t.dayNumber; })
+                             .sort(function (a, b) { return a.dayNumber - b.dayNumber; });
+    if (!started.length) return;
+    started.forEach(function (t, i) {
+      var last = (i + 1 < started.length) ? started[i + 1].dayNumber - 1 : cycle.length;
+      t.days = last - t.dayNumber + 1;
+      for (var k = t.dayNumber; k <= last; k++) {
+        var d = cycle.days[k - 1];
+        if (!d) continue;
+        d.inTerm = t;
+        d.dayInTerm = k - t.dayNumber + 1;
+      }
+    });
+    /* Days before the first term's opening belong to the term still running
+     * from the previous cycle; they are left uncounted rather than guessed. */
   }
 
   /* Attach frost markers.  `custom` is {last: [m,d]|null, first: [m,d]|null};
