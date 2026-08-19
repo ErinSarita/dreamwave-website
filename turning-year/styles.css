@@ -835,9 +835,11 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
  * equinoxes, each halved again at its cross-quarter midpoint. The cardinal
  * cuts are drawn stronger than the midpoints, since one opens a season and
  * the other only divides it. */
-.season-band { stroke: var(--night); opacity: .5; }
-.season-tick { stroke: var(--ink-3); stroke-width: 1.2; opacity: .6; }
-.season-tick.is-cardinal { stroke: var(--sun); stroke-width: 2.2; opacity: .95; }
+/* Brighter than the months below it, and set apart from them: the months are
+ * a soft neutral, this is the sky's own division and reads warmer. */
+.season-band { stroke: var(--night-2); opacity: .85; }
+.season-tick { stroke-width: 1.6; opacity: .75; }
+.season-tick.is-cardinal { stroke-width: 2.6; opacity: 1; }
 .season-label {
   font-size: 13px; letter-spacing: .3em; fill: var(--ink-2); font-weight: 500;
 }

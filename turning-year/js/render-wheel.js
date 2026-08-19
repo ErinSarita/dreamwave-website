@@ -8,13 +8,14 @@
 
   var CX = 500, CY = 500;
   var R = {
-    stationLabel: 492, subDy: 15, subDy2: 27, stationGlyph: 456, stationTick0: 422, stationTick1: 444,
+    stationLabel: 492, subDy: 15, subDy2: 27, stationGlyph: 458, stationTick0: 422, stationTick1: 444,
     skyClock: 600, skyClockR: 68,
     monthOut: 446, monthIn: 424, monthLabel: 435,
-    /* Tall enough for its own wording to sit comfortably rather than being
-     * squeezed between two rims. The station names move out to 492 to make
-     * the room, which still clears the Dipper glyphs at 532. */
-    seasonOut: 480, seasonIn: 448, seasonLabel: 464,
+    /* Tall enough to hold the station marks as well as its own wording: the
+     * glyph sits at 458 and the season name at 464, so the band has to span
+     * roughly 449 to 472 before either touches a rim. The station names sit
+     * outside at 492 and still clear the Dipper glyphs at 532. */
+    seasonOut: 481, seasonIn: 447, seasonLabel: 464,
     bandOut: 418, bandIn: 262,
     moonRing: 240, moonR: 1.95, moonSwing: 11,
     moonPieIn: 224, moonPieOut: 257, moonNumR: 217, moonSeasonR: 205,
@@ -438,10 +439,14 @@
       cycle.stations.forEach(function (st) {
         if (!st.dayNumber) return;
         var a = dayEdge(cycle, st.dayNumber);
+        /* Coloured by what the cut is: the same three colours the stations
+         * themselves use, so a divider and its mark read as one thing. */
         var cardinal = st.kind === 'solstice' || st.kind === 'equinox';
+        var tc = st.kind === 'solstice' ? 'var(--solstice)'
+               : st.kind === 'equinox' ? 'var(--equinox)' : 'var(--cross)';
         var p1 = polar(R.seasonIn, a), p2 = polar(R.seasonOut, a);
         parts.push('<path class="season-tick' + (cardinal ? ' is-cardinal' : '') +
-                   '" d="M' + fmt(p1[0]) + ' ' + fmt(p1[1]) +
+                   '" stroke="' + tc + '" d="M' + fmt(p1[0]) + ' ' + fmt(p1[1]) +
                    'L' + fmt(p2[0]) + ' ' + fmt(p2[1]) + '"/>');
       });
       // the season's own name sits across its quarter, between two cardinals
@@ -522,16 +527,22 @@
                  'dominant-baseline="central" font-size="15" fill="' + colour + '">' +
                  (STATION_GLYPH[s.key] || '✦') + '</text>');
 
-      var lp = polar(R.stationLabel, ang);
+      /* Each line gets its own radius rather than a y-offset from the first.
+       * Offsetting in y and then rotating sends the offset inward on half the
+       * wheel, which was driving the day numbers down to radius 460, well
+       * inside the season band. Placed radially they can only ever go out. */
       var subNames = s.alt + (s.term ? ' · ' + s.term.hanzi + ' ' + s.term.pinyin : '');
-      var subDay = 'Day ' + s.dayNumber;
-      parts.push(rotLabel(ang, lp[0], lp[1],
-        '<text class="station-label" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1]) +
-        '" text-anchor="middle" dominant-baseline="middle">' + esc(s.name) + '</text>' +
-        '<text class="station-sub" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1] + R.subDy) +
-        '" text-anchor="middle" dominant-baseline="middle">' + esc(subNames) + '</text>' +
-        '<text class="station-sub" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1] + R.subDy2) +
-        '" text-anchor="middle" dominant-baseline="middle">' + esc(subDay) + '</text>'));
+      var lines = [
+        { r: R.stationLabel, cls: 'station-label', txt: s.name },
+        { r: R.stationLabel + R.subDy, cls: 'station-sub', txt: subNames },
+        { r: R.stationLabel + R.subDy2, cls: 'station-sub', txt: 'Day ' + s.dayNumber }
+      ];
+      lines.forEach(function (ln) {
+        var q = polar(ln.r, ang);
+        parts.push(rotLabel(ang, q[0], q[1],
+          '<text class="' + ln.cls + '" x="' + fmt(q[0]) + '" y="' + fmt(q[1]) +
+          '" text-anchor="middle" dominant-baseline="middle">' + esc(ln.txt) + '</text>'));
+      });
 
       if (opts.layers.traditional && s.traditional) {
         var ta = dayAngle(cycle, s.traditional.dayNumber);
