@@ -551,6 +551,22 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   text-decoration: underline; text-underline-offset: 2px;
 }
 .inline-link:hover { color: var(--sun-bright); }
+.inline-link:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
+
+/* The creed. Five tenets, each opening with the thing it commits to, set off
+ * from the passage above by a rule down the side rather than by more colour:
+ * the leads are already gold and that is enough weight in one place. */
+.ethos-card .creed-lead { margin-bottom: 4px; }
+.ethos-card .creed {
+  margin: 0 0 18px; padding-left: 16px;
+  border-left: 2px solid var(--line);
+}
+.ethos-card .creed p:last-child { margin-bottom: 0; }
+.ethos-card .creed b { display: block; margin-bottom: 2px; }
+.ethos-card .creed-close {
+  margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line-soft);
+  font-family: var(--serif); font-size: 16px; color: var(--ink);
+}
 #compare-svg { width: 100%; height: auto; margin-top: 10px; display: block; }
 .compare-legend {
   list-style: none; margin: 14px 0 0; padding: 0; display: grid;

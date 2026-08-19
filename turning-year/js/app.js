@@ -1349,14 +1349,28 @@
 
     $('ethos-btn').addEventListener('click', function () { $('ethos').hidden = false; });
     $('ethos-close').addEventListener('click', function () { $('ethos').hidden = true; });
+    /* The backdrop closes it, and the links inside it hand off to the view
+     * they name rather than rebuilding anything: one door, one key. */
     $('ethos').addEventListener('click', function (e) {
-      if (e.target === $('ethos')) $('ethos').hidden = true;
-    });
-
-    /* Hands off to the spiral rather than rebuilding it: one door, one key. */
-    $('ethos-spiral').addEventListener('click', function () {
+      if (e.target === $('ethos')) { $('ethos').hidden = true; return; }
+      var go = e.target.getAttribute && e.target.getAttribute('data-go');
+      if (!go) return;
+      var i = go.indexOf(':'), kind = go.slice(0, i), arg = go.slice(i + 1);
       $('ethos').hidden = true;
-      $('spiral-btn').click();
+      if (kind === 'modal') { $(arg + '-btn').click(); return; }
+      if (kind === 'level') {
+        var crumb = document.querySelector('.crumbs [data-level="' + arg + '"]');
+        if (crumb) crumb.click();
+        return;
+      }
+      if (kind === 'about') {
+        $('about').hidden = false;
+        var all = $('about').querySelectorAll('h3'), h = all[0];
+        for (var j = 0; j < all.length; j++) {
+          if (all[j].textContent.toLowerCase().indexOf(arg) >= 0) { h = all[j]; break; }
+        }
+        h.scrollIntoView({ block: 'start' });
+      }
     });
 
     $('about-btn').addEventListener('click', function () { $('about').hidden = false; });
