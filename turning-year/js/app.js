@@ -603,19 +603,20 @@
         '<b>' + d.tithi + '</b>' +
         '<span class="mr-lab">' + DAY_WORD.of + '</span>' +
       '</div>' +
-      '<div class="mr-date">' + esc(TZ.formatDate(tz, d.date)) + '</div>' +
+      /* Three reckonings, in the order they matter here: the tithi above,
+       * then the day of the solar cycle, then the standard date. The tithi
+       * cannot anchor anything by itself, since it does not land one to one
+       * on days, so the other two stay and each is labelled for what it
+       * counts. */
+      '<div class="mr-date">' +
+        (solar ? 'Day ' + solar.n + ' of ' + cycle.length
+               : esc(where.charAt(0).toUpperCase() + where.slice(1))) + '</div>' +
       '<div class="mr-sub">' + esc(TZ.weekdayName(tz, d.date)) + '</div>' +
-      /* The tithi is the moon's own reckoning and does not land one to one on
-       * days, so it cannot anchor anything by itself. The two counts that can
-       * are kept beside it and kept apart: the day of this lunation, and the
-       * day of the solar cycle, each labelled for what it counts. */
       '<div class="mr-refs">' +
         '<div class="mr-ref"><b>' + d.dayInMonth + ' / ' + monthDays + '</b>' +
           '<span>day of lunation</span></div>' +
-        '<div class="mr-ref"><b>' + (solar ? solar.n + ' / ' + cycle.length : '\u2014') + '</b>' +
-          '<span>' + (solar ? 'day of solar cycle' : esc(where)) + '</span></div>' +
-        '<div class="mr-ref"><b>' + Math.round(d.moonIllumination * 100) + '%</b>' +
-          '<span>lit</span></div>' +
+        '<div class="mr-ref mr-ref-date"><b>' + esc(TZ.formatDate(tz, d.date)) + '</b>' +
+          '<span>standard date</span></div>' +
       '</div>';
   }
 

@@ -669,6 +669,9 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft);
 }
 .moon-readout .mr-ref { min-width: 74px; }
+/* The date is prose, not a figure, so it keeps the serif and room to sit on
+ * one line. */
+.moon-readout .mr-ref-date b { font-family: var(--serif); font-size: 15px; white-space: nowrap; }
 .moon-readout .mr-ref b {
   display: block; font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--moon);
 }
@@ -687,6 +690,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   .moon-readout .mr-refs { gap: 10px; margin-top: 6px; padding-top: 6px; }
   .moon-readout .mr-ref { min-width: 66px; }
   .moon-readout .mr-ref b { font-size: 13px; }
+  .moon-readout .mr-ref-date b { font-size: 13.5px; }
   .moon-head .mh-name { font-size: 19px; }
   .moon-head .mh-sub, .moon-head .mh-day { font-size: 11px; }
   .moon-head { padding-bottom: 4px; }
