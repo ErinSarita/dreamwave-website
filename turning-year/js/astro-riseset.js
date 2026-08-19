@@ -150,6 +150,7 @@
   }
 
   A.darkBracket = darkBracket;
+
   A.greenwichSiderealTime = greenwichSiderealTime;
   A.altitudeOf = altitudeOf;
   A.azimuthOf = azimuthOf;

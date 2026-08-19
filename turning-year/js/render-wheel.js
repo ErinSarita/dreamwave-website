@@ -400,6 +400,28 @@
       });
     }
 
+    /* -- the two days the clocks step -------------------------------------
+     * A tick across the daylight band on each changeover date, with the
+     * direction written beside it. These are the only two marks on the wheel
+     * that record something people did rather than something the sky did, so
+     * they are drawn in the crossing colour and vanish with the setting that
+     * causes them. Most zones have none at all. */
+    if (opts.useDST && cycle.shiftsClocks) {
+      cycle.days.forEach(function (d) {
+        if (!d.clockShiftMinutes) return;
+        var ang = dayAngle(cycle, d.n);
+        var m1 = polar(R.bandIn, ang), m2 = polar(R.bandOut, ang);
+        parts.push('<path d="M' + fmt(m1[0]) + ' ' + fmt(m1[1]) + 'L' + fmt(m2[0]) + ' ' + fmt(m2[1]) +
+                   '" stroke="var(--cross)" stroke-width="1.6" stroke-dasharray="3 3" opacity=".9"/>');
+        var lp = polar(R.bandOut + 13, ang);
+        parts.push(rotLabel(ang, lp[0], lp[1],
+          '<text class="clock-step" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1]) + '" ' +
+          'text-anchor="middle" dominant-baseline="middle" font-size="9" ' +
+          'fill="var(--cross)">clocks ' +
+          (d.clockShiftMinutes > 0 ? 'forward' : 'back') + '</text>'));
+      });
+    }
+
     /* -- the eight stations ------------------------------------------------ */
     cycle.stations.forEach(function (s) {
       if (!s.dayNumber) return;

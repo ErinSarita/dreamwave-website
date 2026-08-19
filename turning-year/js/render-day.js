@@ -5,7 +5,7 @@
  */
 (function (global) {
   'use strict';
-  var A = global.Astro, TZ = global.TZ, Globe = global.Globe;
+  var A = global.Astro, TZ = global.TZ, Globe = global.Globe, Clock = global.Clock;
   var CX = 500, CY = 500;
   var R = {
     eventLabel: 486, hourNum: 462, tickOut: 454, tickIn: 444,
@@ -48,8 +48,25 @@
   }
 
   /* Sample the sky across the day: altitudes every ~2 minutes. */
-  function sample(cycle, day) {
-    var start = day.date.getTime(), end = day.end.getTime();
+  /* The span of time the dial covers.
+   *
+   * With daylight saving on that is the calendar date as the wall clock draws
+   * it, midnight to midnight, which twice a year runs 23 or 25 hours.
+   *
+   * With it off the date is bounded by standard midnights instead, so every
+   * day of the year is exactly 24 hours and the hour ring is even. Keeping
+   * the shifted clock's boundaries here would leave the autumn date running
+   * from 23 round to 23 again, which is the wall clock's oddity showing
+   * through a setting whose whole purpose is to remove it. */
+  function dayWindow(cycle, day, useDST) {
+    if (useDST) return { start: day.date, end: day.end };
+    var p = TZ.civilParts(cycle.tz, day.date);
+    var start = new Date(Date.UTC(p.year, p.month - 1, p.day) - cycle.standardOffsetMin * 60000);
+    return { start: start, end: new Date(start.getTime() + 86400000) };
+  }
+
+  function sample(cycle, day, win) {
+    var start = win.start.getTime(), end = win.end.getTime();
     var span = end - start;
     var steps = 720, out = [];
     for (var i = 0; i <= steps; i++) {
@@ -82,12 +99,14 @@
   }
 
   function render(cycle, day, opts) {
-    var s = sample(cycle, day);
+    var useDST = opts.useDST !== false;
+    var win = dayWindow(cycle, day, useDST);
+    var s = sample(cycle, day, win);
     var parts = [];
     var angleOf = function (date) {
       if (!date) return null;
-      var span = day.end.getTime() - day.date.getTime();
-      return 360 * (date.getTime() - day.date.getTime()) / span;
+      var span = win.end.getTime() - win.start.getTime();
+      return 360 * (date.getTime() - win.start.getTime()) / span;
     };
 
     parts.push('<defs>' +
@@ -147,10 +166,23 @@
     parts.push('<text x="500" y="' + f(CY - horizonR - 4) + '" text-anchor="middle" font-size="10" ' +
                'fill="var(--ink-3)">horizon</text>');
 
-    /* ---- hour ticks and numerals ------------------------------------------ */
-    for (var h = 0; h < 24; h++) {
-      var inst = TZ.instantFromCivil(cycle.tz, day.year, day.month, day.day, h, 0, 0);
-      if (inst < day.date || inst >= day.end) continue;          // skipped by a DST jump
+    /* ---- hour ticks and numerals ------------------------------------------
+     * Walk the day's real elapsed span in one-hour steps and label each mark
+     * with whatever the chosen clock reads there. Asking instead for "hour 0
+     * through 23" by name breaks on the changeover days: the vanished hour
+     * resolves back onto its neighbour and gets drawn twice in one spot, and
+     * the repeated hour is drawn only once.
+     *
+     * Stepping through real time draws what the clock actually did. With
+     * daylight saving on, a spring-forward date has no mark where the lost
+     * hour would be and an autumn date carries the repeated hour twice. With
+     * it off the ring is even the whole year round. */
+    var HOUR_MS = 3600000;
+    for (var tms = win.start.getTime(); tms < win.end.getTime(); tms += HOUR_MS) {
+      var inst = new Date(tms);
+      var hv = Clock.hoursOf(cycle, inst, useDST);
+      if (Math.abs(hv - Math.round(hv)) > 1 / 120) continue;   // half-hour zones
+      var h = Math.round(hv) % 24;
       var a = angleOf(inst);
       var major = h % 6 === 0;
       var p1 = polar(major ? R.tickIn - 6 : R.tickIn, a), p2 = polar(R.tickOut, a);
@@ -163,6 +195,80 @@
                  f(np[1]) + ')">' + (opts.hour12 ? hour12(h) : (h === 0 ? 24 : h)) + '</text>');
     }
 
+    /* ---- the clock changeover, when there is one ---------------------------
+     * Only the wall clock jumps. With daylight saving off nothing happens at
+     * this instant at all, so the mark would claim an event the dial does
+     * not have. */
+    if (useDST && day.clockShiftMinutes && day.clockShiftAt) {
+      var ca = angleOf(day.clockShiftAt);
+      if (ca !== null && ca >= 0 && ca <= 360) {
+        var c1 = polar(R.sunIn - 8, ca), c2 = polar(R.sunOut + 10, ca);
+        parts.push('<path d="M' + f(c1[0]) + ' ' + f(c1[1]) + 'L' + f(c2[0]) + ' ' + f(c2[1]) +
+                   '" stroke="var(--cross)" stroke-width="2" stroke-dasharray="4 3"/>');
+        var cl = polar(R.eventLabel, ca);
+        parts.push('<text x="' + f(cl[0]) + '" y="' + f(cl[1]) + '" text-anchor="middle" ' +
+                   'dominant-baseline="middle" font-size="11" fill="var(--cross)" transform="rotate(' +
+                   f(tangent(ca)) + ' ' + f(cl[0]) + ' ' + f(cl[1]) + ')">clocks ' +
+                   (day.clockShiftMinutes > 0 ? 'forward' : 'back') + '</text>');
+      }
+    }
+
+    /* ---- which instants belong to this dial --------------------------------
+     * Each mark is looked up across yesterday, today and tomorrow and kept if
+     * it lands inside the window. With daylight saving on the window is the
+     * calendar date and this changes nothing. With it off the window sits an
+     * hour away from that date through the summer, and a peak darkness just
+     * after civil midnight then belongs to the neighbouring date: taking the
+     * marks from the date alone would drop it off the dial entirely. Exactly
+     * one of each kind falls in any 24-hour span, so gathering three days
+     * cannot produce a duplicate. */
+    var neighbours = [cycle.days[day.n - 2], day, cycle.days[day.n]];
+    function markFor(key, altKey) {
+      for (var i = 0; i < neighbours.length; i++) {
+        var nd = neighbours[i];
+        if (!nd || !nd[key]) continue;
+        if (nd[key] < win.start || nd[key] >= win.end) continue;
+        return { t: nd[key], alt: altKey ? nd[altKey] : null };
+      }
+      return null;
+    }
+
+    /* Where no date supplies a transit, take it from the window's own curve.
+     * The model keeps one transit per calendar date, which is right almost
+     * always but cannot describe a 25-hour date holding two lower transits:
+     * it records one and the other is lost, leaving a gap on the dial beside
+     * it. The sampled curve spans exactly this window, so its extreme is by
+     * construction the one wanted. An extreme sitting on the first or last
+     * sample means the real turning point lies outside, and there is then
+     * genuinely nothing here to mark. */
+    function transitFromCurve(wantMax) {
+      var bi = 0;
+      for (var i = 1; i < s.length; i++) {
+        if (wantMax ? s[i].sunAlt > s[bi].sunAlt : s[i].sunAlt < s[bi].sunAlt) bi = i;
+      }
+      if (bi === 0 || bi === s.length - 1) return null;
+      function alt(ms) {
+        var j = A.jdFromDate(new Date(ms)), sp = A.sunPosition(A.jdeFromJD(j));
+        return A.altitudeOf(sp.ra, sp.dec, j, cycle.lat, cycle.lon);
+      }
+      var phi = 0.6180339887, lo = s[bi - 1].t, hi = s[bi + 1].t;
+      var c = hi - phi * (hi - lo), e = lo + phi * (hi - lo);
+      for (var k = 0; k < 60 && hi - lo > 500; k++) {
+        var fc = wantMax ? alt(c) : -alt(c), fe = wantMax ? alt(e) : -alt(e);
+        if (fc > fe) hi = e; else lo = c;
+        c = hi - phi * (hi - lo); e = lo + phi * (hi - lo);
+      }
+      var mid = (lo + hi) / 2;
+      return { t: new Date(mid), alt: alt(mid) };
+    }
+
+    var marks = {
+      sunrise: markFor('sunrise'), sunset: markFor('sunset'),
+      solarNoon: markFor('solarNoon', 'maxSunAltitude') || transitFromCurve(true),
+      solarMidnight: markFor('solarMidnight', 'minSunAltitude') || transitFromCurve(false),
+      moonrise: markFor('moonrise'), moonset: markFor('moonset')
+    };
+
     /* ---- peaks: the sun's two meridian crossings ---------------------------
      * Peak sun is the upper transit, the moment it is highest; peak darkness
      * the lower transit, when it is furthest below. They are the maximum and
@@ -170,8 +276,8 @@
      * curve itself as well as round the rim. The middle of the dark is shown
      * too, as a second reading of the same idea: it sits within a minute of
      * the lower transit at most latitudes. */
-    var darkBracket = day.solarMidnight
-      ? A.darkBracket(A.jdFromDate(day.solarMidnight), cycle.lat, cycle.lon) : null;
+    var darkBracket = marks.solarMidnight
+      ? A.darkBracket(A.jdFromDate(marks.solarMidnight.t), cycle.lat, cycle.lon) : null;
     var darkMidpoint = darkBracket
       ? A.dateFromJD((darkBracket.set + darkBracket.rise) / 2) : null;
 
@@ -183,8 +289,8 @@
       parts.push('<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="' + r +
                  '" fill="' + colour + '" stroke="var(--bg)" stroke-width="1.2"/>');
     }
-    markOnCurve(day.solarNoon, 'var(--sun-bright)', 5);
-    markOnCurve(day.solarMidnight, 'var(--equinox)', 5);
+    markOnCurve(marks.solarNoon && marks.solarNoon.t, 'var(--sun-bright)', 5);
+    markOnCurve(marks.solarMidnight && marks.solarMidnight.t, 'var(--equinox)', 5);
 
     if (darkMidpoint) {
       var dm = angleOf(darkMidpoint);
@@ -195,14 +301,51 @@
       }
     }
 
+    /* ---- where the moon stands ---------------------------------------------
+     * The dial already samples the moon's altitude across the window, so its
+     * high point falls out of that curve; the compass bearing is worked out
+     * at the instant found. A high point sitting on the first or last sample
+     * means the moon was still climbing or already falling the whole way
+     * through, and this window holds no culmination. For today the present
+     * position is the more useful of the two, so both are handed back. */
+    function moonAt(when) {
+      var jd = A.jdFromDate(when), m = A.moonPosition(A.jdeFromJD(jd));
+      return { t: when,
+               alt: A.altitudeOf(m.ra, m.dec, jd, cycle.lat, cycle.lon),
+               az: A.azimuthOf(m.ra, m.dec, jd, cycle.lat, cycle.lon) };
+    }
+    var moonHigh = null, bm = 0;
+    for (var mi = 1; mi < s.length; mi++) if (s[mi].moonAlt > s[bm].moonAlt) bm = mi;
+    if (bm > 0 && bm < s.length - 1) moonHigh = moonAt(new Date(s[bm].t));
+    var moonNow = (opts.now && opts.now >= win.start && opts.now < win.end)
+      ? moonAt(opts.now) : null;
+
     /* ---- event markers ----------------------------------------------------- */
+    var SPECS = [
+      ['sunrise',       'Sunrise',       'var(--sun-bright)', 'sun'],
+      ['sunset',        'Sunset',        'var(--sun-bright)', 'sun'],
+      ['solarNoon',     'Peak sun',      'var(--sun-bright)', 'sun'],
+      ['solarMidnight', 'Peak darkness', 'var(--equinox)',    'sun'],
+      ['moonrise',      'Moonrise',      'var(--moon)',       'moon'],
+      ['moonset',       'Moonset',       'var(--moon)',       'moon']
+    ];
     var events = [];
-    if (day.sunrise) events.push({ t: day.sunrise, label: 'Sunrise', colour: 'var(--sun-bright)', group: 'sun', r1: R.sunIn - 8, r2: R.sunOut + 10 });
-    if (day.sunset)  events.push({ t: day.sunset,  label: 'Sunset',  colour: 'var(--sun-bright)', group: 'sun', r1: R.sunIn - 8, r2: R.sunOut + 10 });
-    if (day.solarNoon) events.push({ t: day.solarNoon, label: 'Peak sun', colour: 'var(--sun-bright)', group: 'sun', r1: R.sunIn - 8, r2: R.sunOut + 10 });
-    if (day.solarMidnight) events.push({ t: day.solarMidnight, label: 'Peak darkness', colour: 'var(--equinox)', group: 'sun', r1: R.sunIn - 8, r2: R.sunOut + 10 });
-    if (day.moonrise) events.push({ t: day.moonrise, label: 'Moonrise', colour: 'var(--moon)', group: 'moon', r1: R.moonIn - 8, r2: R.moonOut + 8 });
-    if (day.moonset)  events.push({ t: day.moonset,  label: 'Moonset',  colour: 'var(--moon)', group: 'moon', r1: R.moonIn - 8, r2: R.moonOut + 8 });
+    SPECS.forEach(function (sp) {
+      var m = marks[sp[0]];
+      if (!m) return;
+      var moon = sp[3] === 'moon';
+      events.push({ t: m.t, label: sp[1], colour: sp[2], group: sp[3],
+                    r1: moon ? R.moonIn - 8 : R.sunIn - 8,
+                    r2: moon ? R.moonOut + 8 : R.sunOut + 10 });
+    });
+    /* The present moment, when the day on screen is today. It carries a time
+     * like every other mark, and reads by whichever clock is set, so toggling
+     * daylight saving moves the number here along with all the rest. It joins
+     * the sun family so the tiering keeps it clear of sunrise and peak sun. */
+    if (opts.now && opts.now >= win.start && opts.now < win.end) {
+      events.push({ t: opts.now, label: 'Now', colour: 'var(--today)', group: 'sun',
+                    r1: R.hub, r2: R.sunOut + 16 });
+    }
 
     /* Sun labels ride the outer rim; moon labels sit down on the moon band
      * itself, on a dark pill so they stay readable over either half of it.
@@ -235,7 +378,7 @@
       parts.push('<circle cx="' + f(dot[0]) + '" cy="' + f(dot[1]) + '" r="3.4" fill="' + e.colour + '"/>');
 
       var lp = polar(e.labelR, e.a);
-      var txt = e.label + ' ' + TZ.formatTime(cycle.tz, e.t, opts.hour12);
+      var txt = e.label + ' ' + Clock.time(cycle, e.t, useDST, opts.hour12);
       var rot = 'rotate(' + f(tangent(e.a)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) + ')';
       if (e.group === 'moon') {
         var w = txt.length * 5.7 + 12;
@@ -253,7 +396,7 @@
 
     /* ---- earth, centred on this place, at this moment ------------------------ */
     if (Globe && opts.globe !== false) {
-      var globeInstant = (opts.now && opts.now >= day.date && opts.now < day.end) ? opts.now : day.solarNoon;
+      var globeInstant = (opts.now && opts.now >= win.start && opts.now < win.end) ? opts.now : day.solarNoon;
       if (globeInstant) {
         var gjd = A.jdFromDate(globeInstant), gjde = A.jdeFromJD(gjd);
         parts.push('<g transform="translate(500 500)">' +
@@ -261,17 +404,9 @@
       }
     }
 
-    /* ---- now ---------------------------------------------------------------- */
-    if (opts.now && opts.now >= day.date && opts.now < day.end) {
-      var na = angleOf(opts.now);
-      var n1 = polar(R.hub, na), n2 = polar(R.sunOut + 16, na);
-      parts.push('<path d="M' + f(n1[0]) + ' ' + f(n1[1]) + 'L' + f(n2[0]) + ' ' + f(n2[1]) +
-                 '" stroke="var(--today)" stroke-width="1.6"/>');
-      var np2 = polar(R.sunOut + 16, na);
-      parts.push('<circle cx="' + f(np2[0]) + '" cy="' + f(np2[1]) + '" r="4" fill="var(--today)"/>');
-    }
-
-    return { svg: parts.join(''), samples: s, anyMoon: anyMoon, darkMidpoint: darkMidpoint };
+    return { svg: parts.join(''), samples: s, anyMoon: anyMoon,
+             darkMidpoint: darkMidpoint, marks: marks,
+             moonHigh: moonHigh, moonNow: moonNow };
   }
 
   function hour12(h) {

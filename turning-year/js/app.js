@@ -2,7 +2,8 @@
 (function (global) {
   'use strict';
   var A = global.Astro, TZ = global.TZ, Places = global.Places,
-      CycleModel = global.Cycle, WheelView = global.WheelView, DayView = global.DayView;
+      CycleModel = global.Cycle, WheelView = global.WheelView, DayView = global.DayView,
+      Clock = global.Clock;
 
   var STORE = 'turning-year:v1';
   var NOTES_STORE = 'turning-year:notes';
@@ -21,7 +22,8 @@
     layers: { moon: true, terms: false, frost: true, months: true, traditional: false, skyClock: true, declination: true },
     frost: { last: null, first: null },
     theme: 'night',
-    hour12: false
+    hour12: false,
+    useDST: true        // off = the zone's winter offset all year; see clock.js
   };
   var cycle = null;
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
@@ -32,7 +34,7 @@
     try {
       localStorage.setItem(STORE, JSON.stringify({
         place: state.place, layers: state.layers, frost: state.frost,
-        theme: state.theme, hour12: state.hour12
+        theme: state.theme, hour12: state.hour12, useDST: state.useDST
       }));
     } catch (e) { /* private mode; the site still works, it just forgets */ }
   }
@@ -48,6 +50,7 @@
       if (o.frost) state.frost = o.frost;
       if (o.theme) state.theme = o.theme;
       if (typeof o.hour12 === 'boolean') state.hour12 = o.hour12;
+      if (typeof o.useDST === 'boolean') state.useDST = o.useDST;
     } catch (e) { /* ignore corrupt state */ }
   }
 
@@ -214,7 +217,8 @@
   /* ----------------------------------------------------------------- render */
   function drawWheel() {
     var svg = $('wheel-svg');
-    var opts = { layers: state.layers, todayN: todayNumber(), notedDays: notes };
+    var opts = { layers: state.layers, todayN: todayNumber(), notedDays: notes,
+                 useDST: state.useDST };
     $('wheel').innerHTML = WheelView.render(cycle, opts);
     $('hud').innerHTML = WheelView.renderSky(cycle, opts);
     bindHits();
@@ -372,8 +376,8 @@
       : d.sunAlwaysDown ? 'none' : DayView.hm(d.daylightHours)));
     rows.push(row('Dark', d.sunAlwaysUp ? 'none'
       : d.sunAlwaysDown ? 'all day' : DayView.hm(d.nightHours)));
-    if (d.sunrise) rows.push(row('Sunrise', TZ.formatTime(cycle.tz, d.sunrise, state.hour12)));
-    if (d.sunset) rows.push(row('Sunset', TZ.formatTime(cycle.tz, d.sunset, state.hour12)));
+    if (d.sunrise) rows.push(row('Sunrise', Clock.time(cycle, d.sunrise, state.useDST, state.hour12)));
+    if (d.sunset) rows.push(row('Sunset', Clock.time(cycle, d.sunset, state.useDST, state.hour12)));
 
     var station = d.station ? '<div class="r-station">' + d.station.name +
       (d.station.term ? ' · ' + d.station.term.hanzi + ' ' + d.station.term.pinyin : '') + '</div>' : '';
@@ -405,18 +409,8 @@
   function drawDay() {
     var d = cycle.days[state.day - 1];
     if (!d) return;
-    var out = DayView.render(cycle, d, { hour12: state.hour12, now: new Date() });
+    var out = DayView.render(cycle, d, { hour12: state.hour12, useDST: state.useDST, now: new Date() });
     $('dayclock').innerHTML = out.svg;
-
-    var moonLine;
-    if (d.moonAlwaysUp) moonLine = 'above the horizon all day';
-    else if (d.moonAlwaysDown) moonLine = 'below the horizon all day';
-    else {
-      var bits = [];
-      if (d.moonrise) bits.push('rises ' + TZ.formatTime(cycle.tz, d.moonrise, state.hour12));
-      if (d.moonset) bits.push('sets ' + TZ.formatTime(cycle.tz, d.moonset, state.hour12));
-      moonLine = bits.join(' · ') || 'no rise or set today';
-    }
 
     var stationHTML = '';
     if (d.station) stationHTML += '<div class="d-station">' + d.station.name +
@@ -434,17 +428,22 @@
       '<div class="d-of">of ' + cycle.length + '</div>' +
       '<div class="d-date">' + TZ.formatDate(cycle.tz, d.date) + '</div>' +
       '<div class="d-week">' + TZ.weekdayName(cycle.tz, d.date) + '</div>' +
+      (d.n === todayNumber()
+        ? '<div class="d-now">Now ' + Clock.time(cycle, new Date(), state.useDST, state.hour12) +
+          (cycle.shiftsClocks && !state.useDST ? ' &middot; clocks here read ' +
+            Clock.time(cycle, new Date(), true, state.hour12) : '') + '</div>'
+        : '') +
       stationHTML +
       '<div class="d-split">' +
         '<div class="d-sun"><b>' + (d.sunAlwaysUp ? '24 h' : d.sunAlwaysDown ? '0 h' : DayView.hm(d.daylightHours)) + '</b>light</div>' +
         '<div class="d-dark"><b>' + (d.sunAlwaysDown ? '24 h' : d.sunAlwaysUp ? '0 h' : DayView.hm(d.nightHours)) + '</b>dark</div>' +
       '</div>' +
-      peaksMarkup(d, out.darkMidpoint) +
+      timesMarkup(d, out.darkMidpoint, out) +
+      clockShiftMarkup(d) +
       '<div class="d-moon-row">' + MoonGlyph.svg(d.moonAge, 30) +
         '<div class="d-moon-text"><b>' + Math.round(d.moonIllumination * 100) + '% lit</b>' +
         d.moonPhaseName + '</div></div>' +
       (d.lunation ? '<div class="d-term">' + lunationLabel(d) + '</div>' : '') +
-      '<div class="d-week" style="margin-top:6px">Moon ' + moonLine + '</div>' +
       noteMarkup(d.iso);
 
     wireNote(d.iso);
@@ -551,33 +550,94 @@
    * crossings. Altitudes are signed, so a negative peak-sun means the sun
    * never cleared the horizon and a positive peak-darkness means it never
    * set, both of which are worth saying outright rather than hiding. */
-  function peaksMarkup(d, darkMidpoint) {
-    if (!d.solarNoon && !d.solarMidnight) return '';
-    function deg(v) { return (v >= 0 ? '+' : '') + Math.round(v) + '\u00B0'; }
+  /* Eight of the compass. Azimuth runs clockwise from due north, so dividing
+   * by 45 and rounding names the nearest point. */
+  function compass(az) {
+    var names = ['north', 'northeast', 'east', 'southeast',
+                 'south', 'southwest', 'west', 'northwest'];
+    return names[Math.round((((az % 360) + 360) % 360) / 45) % 8];
+  }
+  function height(v) {
+    return Math.round(Math.abs(v)) + '° ' + (v >= 0 ? 'above' : 'below');
+  }
+
+  /* Every time the day holds, in one block: the sun's four moments, then the
+   * moon's, and where the moon actually stands. `marks` comes back from the
+   * dial, resolved against its window rather than against the calendar date,
+   * so the panel and the dial cannot disagree. */
+  function timesMarkup(d, darkMidpoint, out) {
+    var marks = out.marks;
+    function row(dot, name, value, at) {
+      return '<div class="d-peak"><i class="pk pk-' + dot + '"></i>' +
+        '<span class="pk-name">' + name + '</span>' +
+        '<b>' + value + '</b>' +
+        '<span class="pk-at">' + (at || '') + '</span></div>';
+    }
+    function t(m) { return Clock.time(cycle, m.t, state.useDST, state.hour12); }
+
     var rows = '';
-    if (d.solarNoon) {
-      rows += '<div class="d-peak"><i class="pk pk-sun"></i>' +
-        '<span class="pk-name">Peak sun</span>' +
-        '<b>' + TZ.formatTime(cycle.tz, d.solarNoon, state.hour12) + '</b>' +
-        '<span class="pk-alt">' + deg(d.maxSunAltitude) + '</span></div>';
+    if (marks.sunrise) rows += row('sun', 'Sunrise', t(marks.sunrise), '');
+    if (marks.sunset) rows += row('sun', 'Sunset', t(marks.sunset), '');
+    if (marks.solarNoon) rows += row('sun', 'Peak sun', height(marks.solarNoon.alt), t(marks.solarNoon));
+    if (marks.solarMidnight) rows += row('dark', 'Peak darkness', height(marks.solarMidnight.alt), t(marks.solarMidnight));
+
+    var moonRows = '';
+    if (d.moonAlwaysUp) moonRows += row('moon', 'Moon', 'up all day', '');
+    else if (d.moonAlwaysDown) moonRows += row('moon', 'Moon', 'down all day', '');
+    if (marks.moonrise) moonRows += row('moon', 'Moonrise', t(marks.moonrise), '');
+    if (marks.moonset) moonRows += row('moon', 'Moonset', t(marks.moonset), '');
+    if (!marks.moonrise && !marks.moonset && !d.moonAlwaysUp && !d.moonAlwaysDown) {
+      moonRows += row('moon', 'Moon', 'no rise or set', '');
     }
-    if (d.solarMidnight) {
-      rows += '<div class="d-peak"><i class="pk pk-dark"></i>' +
-        '<span class="pk-name">Peak darkness</span>' +
-        '<b>' + TZ.formatTime(cycle.tz, d.solarMidnight, state.hour12) + '</b>' +
-        '<span class="pk-alt">' + deg(d.minSunAltitude) + '</span></div>';
+    if (out.moonHigh) {
+      moonRows += row('moon', 'Highest',
+        height(out.moonHigh.alt) + ', ' + compass(out.moonHigh.az), t(out.moonHigh));
     }
+    if (out.moonNow) {
+      moonRows += row('now', 'Right now',
+        height(out.moonNow.alt) + ', ' + compass(out.moonNow.az), '');
+    }
+
     var note = '';
     if (d.sunAlwaysUp) note = 'The sun stays up all day; even its low point is above the horizon.';
     else if (d.sunAlwaysDown) note = 'The sun stays down all day; even its high point is below the horizon.';
-    else if (darkMidpoint && d.solarMidnight) {
-      var mins = Math.abs(darkMidpoint.getTime() - d.solarMidnight.getTime()) / 60000;
-      note = 'Middle of the dark: ' + TZ.formatTime(cycle.tz, darkMidpoint, state.hour12) +
+    else if (!marks.solarMidnight) note = 'No peak darkness inside this date. The sun’s low point ' +
+      'sits within a minute of midnight here, so it falls at the close of yesterday ' +
+      'and again at the open of tomorrow.';
+    else if (darkMidpoint) {
+      var mins = Math.abs(darkMidpoint.getTime() - marks.solarMidnight.t.getTime()) / 60000;
+      note = 'Middle of the dark: ' + Clock.time(cycle, darkMidpoint, state.useDST, state.hour12) +
              (mins < 1 ? ', under a minute off.' : ', ' + Math.round(mins) + ' min off.');
     }
+
+    if (!rows && !moonRows) return '';
     return '<div class="d-peaks">' + rows +
+           (moonRows ? '<div class="d-moonblock">' + moonRows + '</div>' : '') +
            (note ? '<div class="d-peak-note">' + note + '</div>' : '') + '</div>';
   }
+
+  /* The two days a year the wall clock jumps. Worth saying out loud, because
+   * the dial looks wrong on both of them and the reason is not astronomical:
+   * nothing happens in the sky at 02:00 on either date. Which sentence is
+   * right depends on the clock being read, since standard and sun time run
+   * straight through the jump and only the calendar date is clipped. */
+  function clockShiftMarkup(d) {
+    if (!d.clockShiftMinutes || !d.clockShiftAt) return '';
+    var fwd = d.clockShiftMinutes > 0;
+    var at = d.clockShiftFrom, to = d.clockShiftTo;
+    var txt;
+    if (state.useDST) {
+      txt = fwd
+        ? 'Clocks went forward at ' + at + ', straight to ' + to + '. That hour has no marks on this dial because it did not happen here.'
+        : 'Clocks went back at ' + at + ', to ' + to + '. The hour between is marked twice because it was lived through twice.';
+    } else {
+      txt = 'Local clocks ' + (fwd ? 'went forward' : 'went back') + ' an hour at ' + at +
+            ' today. This dial ignores that, so the day runs its usual 24 hours.';
+    }
+    txt += ' The sun did nothing unusual: peak sun to peak sun was its ordinary length.';
+    return '<div class="d-shift">' + txt + '</div>';
+  }
+
 
   /* A note is one free-text entry per calendar date: what actually happened
    * here, this year, whether that's the real last frost, first robin, or
@@ -627,6 +687,9 @@
 
   /* ---------------------------------------------------------------- chrome */
   function syncChrome() {
+    /* Whether the zone shifts its clocks is a property of the place, so the
+     * chooser's note has to be rewritten whenever the place does. */
+    syncDstMeta();
     var p = state.place;
     $('place-input').value = p.label || p.name;
     $('place-meta').textContent =
@@ -756,6 +819,18 @@
         save(); drawWheel();
       });
     });
+
+    (function () {
+      var el = $('use-dst');
+      el.checked = state.useDST;
+      el.addEventListener('change', function () {
+        state.useDST = el.checked;
+        save(); syncDstMeta(); drawWheel(); syncChrome();
+        if (state.level === 'day') drawDay();
+        updateReadout(state.hover || state.day || todayNumber() || 1);
+      });
+    })();
+    syncDstMeta();
 
     function frostChanged() {
       state.frost = { last: parseMonthDay($('frost-last').value),
@@ -893,6 +968,22 @@
       else if (state.level === 'season') setLevel('season');
       else setLevel('year');
     });
+  }
+
+  /* The line under the checkbox. What it should say depends on the place:
+   * most of the world keeps one offset all year, and there the setting has
+   * nothing to act on. */
+  function syncDstMeta() {
+    var el = $('dst-meta');
+    if (!el) return;
+    if (cycle && !cycle.shiftsClocks) {
+      el.textContent = 'This zone keeps one offset all year, so this setting changes nothing here.';
+    } else if (state.useDST) {
+      el.textContent = 'Times follow the wall clock, so they jump an hour twice a year. ' +
+                       'The sun is unaffected either way.';
+    } else {
+      el.textContent = 'Times keep the winter offset all year, so noon stays where the sun put it.';
+    }
   }
 
   function init() {

@@ -126,7 +126,11 @@
       day1: day1, nextDay1: nextDay1, length: length,
       isLong: length === 366,
       days: [], stations: [], terms: [], frost: null,
-      dayByISO: {}
+      dayByISO: {},
+      /* The zone's own winter offset, and whether it shifts at all. Read once
+       * here so every view can offer the year without its summer hour. */
+      standardOffsetMin: TZ.standardOffsetMinutes(tz, c0.year),
+      shiftsClocks: TZ.observesShift(tz, c0.year) || TZ.observesShift(tz, c1.year)
     };
 
     buildDays(cycle);
@@ -194,8 +198,56 @@
       cycle.dayByISO[day.iso] = day;
     }
     markMoonEvents(cycle);
+    markClockShifts(cycle);
     buildLunations(cycle);
     computeExtremes(cycle);
+  }
+
+  /* Daylight-saving bookkeeping, kept strictly apart from the astronomy.
+   *
+   * None of this touches the sky. Sunrise, the solstices and the moon are all
+   * computed as absolute instants and only translated into wall-clock time at
+   * the point of display, so a clock change cannot reach them. What it does
+   * change is real all the same: the civil day genuinely holds 23 or 25 hours
+   * on the two changeover days, and one hour of the local clock either never
+   * occurs or occurs twice. Recorded here so the day view can say so plainly
+   * rather than leaving a puzzling gap.
+   *
+   * Also records how far the wall clock has drifted from the sun, measured at
+   * the moment the sun is actually highest: if peak sun lands at 13:01, the
+   * clock is running 61 minutes ahead of the sky. */
+  function markClockShifts(cycle) {
+    cycle.days.forEach(function (d) {
+      d.clockShiftMinutes = 0;
+      d.clockAheadOfSunMin = null;
+
+      if (d.solarNoon) {
+        // Apparent solar time is 12:00 exactly at the sun's upper transit, so
+        // whatever the civil clock reads there is the whole offset.
+        d.clockAheadOfSunMin = Math.round((TZ.hoursIntoDay(cycle.tz, d.solarNoon) - 12) * 60);
+      }
+
+      if (Math.abs(d.spanHours - 24) < 0.01) return;
+      var offStart = TZ.offsetMinutes(cycle.tz, d.date);
+      var offEnd = TZ.offsetMinutes(cycle.tz, new Date(d.end.getTime() - 1000));
+      d.clockShiftMinutes = offEnd - offStart;
+
+      // Bisect for the instant the offset actually changes.
+      var lo = d.date.getTime(), hi = d.end.getTime();
+      for (var i = 0; i < 44; i++) {
+        var mid = Math.floor((lo + hi) / 2);
+        if (TZ.offsetMinutes(cycle.tz, new Date(mid)) === offStart) lo = mid; else hi = mid;
+      }
+      d.clockShiftAt = new Date(hi);
+      /* Both faces of the one instant. Reading the changeover moment at the
+       * outgoing offset gives the time the clocks left (02:00), and at the
+       * incoming offset the time they arrived at (03:00 going forward, 01:00
+       * coming back). Taking the "before" label from the instant just prior
+       * instead would read 01:59, which is the last minute of the old hour
+       * rather than the moment of the change. */
+      d.clockShiftFrom = TZ.formatAtOffset(offStart, d.clockShiftAt, false);
+      d.clockShiftTo = TZ.formatAtOffset(offEnd, d.clockShiftAt, false);
+    });
   }
 
   /* Lunations: new moon to new moon, the Moon's own cycle laid against the

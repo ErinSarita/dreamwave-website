@@ -245,6 +245,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   position: absolute; left: 50%; top: auto; bottom: 16px; transform: translateX(-50%);
   text-align: center; pointer-events: none; width: min(300px, calc(100% - 32px));
   max-height: 40dvh; overflow-y: auto; box-sizing: border-box; touch-action: pan-y;
+  overscroll-behavior: contain;
   background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
   padding: 15px 20px; backdrop-filter: blur(10px); box-shadow: var(--shadow);
 }
@@ -265,6 +266,12 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .readout .r-hint { margin-top: 12px; font-size: 11px; color: var(--ink-3); }
 
 /* -------------------------------------------------------------- day panel */
+/* The day panel carries far more than the readout does, so it is allowed to
+ * be taller, and it takes its own pointer events so the overflow can actually
+ * be scrolled. Without that the tail of it, the moon's rows, was clipped and
+ * out of reach. The readout keeps pointer-events: none, since the wheel
+ * underneath it still needs the hover. */
+.day-panel { max-height: min(62dvh, 560px); pointer-events: auto; }
 .day-panel .d-num { font-family: var(--serif); font-size: 46px; line-height: .95; }
 .day-panel .d-of { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
 .day-panel .d-date { font-family: var(--serif); font-size: 17px; margin-top: 10px; }
@@ -277,15 +284,24 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .day-panel .d-dark b { color: var(--ink-2); }
 .day-panel .d-peaks { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
 .day-panel .d-peak {
-  display: flex; align-items: center; gap: 7px; font-size: 12px;
-  color: var(--ink-2); margin-bottom: 3px;
+  display: flex; align-items: baseline; gap: 7px; font-size: 12px;
+  color: var(--ink-2); margin-bottom: 3px; text-align: left;
 }
-.day-panel .d-peak .pk { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.day-panel .d-peak .pk { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;
+  align-self: center; }
 .day-panel .d-peak .pk-sun { background: var(--sun-bright); }
 .day-panel .d-peak .pk-dark { background: var(--equinox); }
-.day-panel .d-peak .pk-name { flex: 1; text-align: left; }
-.day-panel .d-peak b { font-family: var(--mono); font-weight: 500; color: var(--ink); }
-.day-panel .d-peak .pk-alt { font-family: var(--mono); color: var(--ink-3); min-width: 34px; text-align: right; }
+.day-panel .d-peak .pk-moon { background: var(--moon); }
+.day-panel .d-peak .pk-now { background: var(--today); }
+.day-panel .d-moonblock { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line-soft); }
+.day-panel .d-moonblock::before {
+  content: 'Moon'; display: block; text-align: left; margin-bottom: 4px;
+  font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3);
+}
+.day-panel .d-peak .pk-name { flex: 1; text-align: left; white-space: nowrap; }
+.day-panel .d-peak b { font-family: var(--mono); font-weight: 500; color: var(--ink); white-space: nowrap; }
+.day-panel .d-peak .pk-at { font-family: var(--mono); color: var(--ink-3); min-width: 40px;
+  text-align: right; flex: 0 0 auto; }
 .day-panel .d-peak-note { font-size: 11px; color: var(--ink-3); margin-top: 5px; line-height: 1.35; }
 .day-panel .d-moon-row {
   margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -471,4 +487,18 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 }
 @media (prefers-reduced-motion: reduce) {
   #wheel, .scene { transition: none; }
+}
+
+
+
+.d-shift {
+  margin-top: 10px; padding: 8px 10px; border-radius: 7px;
+  border-left: 3px solid var(--cross);
+  background: var(--sky-patch); color: var(--ink-2);
+  font-size: 12px; line-height: 1.5;
+}
+
+.day-panel .d-now {
+  margin-top: 6px; font-family: var(--mono); font-size: 12px;
+  color: var(--today); letter-spacing: .02em;
 }

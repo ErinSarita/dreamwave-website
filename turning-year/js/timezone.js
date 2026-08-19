@@ -94,11 +94,48 @@
     return 'UTC' + sign + pad(Math.floor(o / 60)) + ':' + pad(o % 60);
   }
 
+  /* The zone's standard offset, in minutes. Daylight saving only ever adds
+   * time, so the standard offset is the least the zone takes across a year:
+   * a zone that never shifts returns its single offset, one that does returns
+   * its winter one. */
+  var stdCache = {};
+  function zoneOffsetRange(tz, year) {
+    var key = tz + ':' + year;
+    if (!stdCache[key]) {
+      var least = Infinity, most = -Infinity;
+      for (var m = 1; m <= 12; m++) {
+        var o = offsetMinutes(tz, instantFromCivil(tz, year, m, 15, 12, 0, 0));
+        if (o < least) least = o;
+        if (o > most) most = o;
+      }
+      stdCache[key] = { standard: least, summer: most, shifts: most !== least };
+    }
+    return stdCache[key];
+  }
+  function standardOffsetMinutes(tz, year) { return zoneOffsetRange(tz, year).standard; }
+  function observesShift(tz, year) { return zoneOffsetRange(tz, year).shifts; }
+
+  /* "HH:MM" for an instant read at a fixed offset from UTC. */
+  function formatAtOffset(offsetMin, date, hour12) {
+    var d = new Date(date.getTime() + offsetMin * 60000);
+    return formatHours(d.getUTCHours() + d.getUTCMinutes() / 60, hour12);
+  }
+
+  /* "HH:MM" from fractional hours. */
+  function formatHours(h, hour12) {
+    var mins = Math.round((((h % 24) + 24) % 24) * 60);
+    var hh = Math.floor(mins / 60) % 24, mm = mins % 60;
+    if (!hour12) return pad(hh) + ':' + pad(mm);
+    var t = hh % 12; if (t === 0) t = 12;
+    return t + ':' + pad(mm) + ' ' + (hh < 12 ? 'am' : 'pm');
+  }
+
   global.TZ = {
     civilParts: civilParts, offsetMinutes: offsetMinutes, instantFromCivil: instantFromCivil,
     startOfDay: startOfDay, formatTime: formatTime, formatDate: formatDate,
     weekdayName: weekdayName, hoursIntoDay: hoursIntoDay, localZone: localZone,
-    offsetLabel: offsetLabel, MONTHS: MONTHS, MONTHS_SHORT: MONTHS_SHORT, WEEKDAYS: WEEKDAYS,
+    offsetLabel: offsetLabel, standardOffsetMinutes: standardOffsetMinutes,
+    observesShift: observesShift, formatAtOffset: formatAtOffset, formatHours: formatHours, MONTHS: MONTHS, MONTHS_SHORT: MONTHS_SHORT, WEEKDAYS: WEEKDAYS,
     pad: pad
   };
 })(typeof window !== 'undefined' ? window : globalThis);
