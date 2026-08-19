@@ -137,7 +137,7 @@
       number: idx + 1, count: siblings.length,
       seasonName: SEASONS[seasonIdx],
       seasonRank: seasonRank, seasonOf: inSeason.length,
-      shortLabel: SEASONS[seasonIdx] + ' Moon ' + seasonRank,
+      shortLabel: SEASONS[seasonIdx] + ' Lunation ' + seasonRank,
       // the third of four full moons in one season, in the older sense
       isBlue: inSeason.length === 4 && seasonRank === 3
     };

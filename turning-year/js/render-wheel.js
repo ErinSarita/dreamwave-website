@@ -290,14 +290,14 @@
             parts.push(rotLabel(mid, np[0], np[1],
               '<text class="moon-num' + (L.isBlue ? ' is-blue' : '') + '" x="' + fmt(np[0]) +
               '" y="' + fmt(np[1]) + '" text-anchor="middle" dominant-baseline="middle">' +
-              'Moon ' + L.yearMoonNumber + (L.isBlue ? ' \u2022' : '') + '</text>'));
+              'Lunation ' + L.yearMoonNumber + (L.isBlue ? ' \u2022' : '') + '</text>'));
             parts.push(rotLabel(mid, sp2[0], sp2[1],
               '<text class="moon-season" x="' + fmt(sp2[0]) + '" y="' + fmt(sp2[1]) +
               '" text-anchor="middle" dominant-baseline="middle">' + esc(L.shortLabel) + '</text>'));
           }
           pieHits.push('<path class="moon-hit" data-lunation="' + li + '" d="' +
                        sector(R.moonHitIn, R.moonPieOut, a1, a2) + '"><title>' +
-                       (L.shortLabel ? esc('Moon ' + L.yearMoonNumber + ' \u00B7 ' + L.shortLabel)
+                       (L.shortLabel ? esc('Lunation ' + L.yearMoonNumber + ' \u00B7 ' + L.shortLabel)
                                      : 'Lunar month') + '</title></path>');
         });
         // Closing divider at the very end of the last segment.

@@ -453,12 +453,12 @@
      * winter solstice to the last one before the next, so it usually reaches
      * 12 and reaches 13 whenever some season carries four. Season position and
      * year position are both kept: "Spring Moon 2" says where in the season it
-     * falls, "Year Moon 5" where in the whole turn. */
+     * falls, "Lunation 5" where in the whole turn. */
     var yearMoon = 0;
     cycle.days.forEach(function (d) {
       if (d.moonEvent === 'Full Moon') {
         d.yearMoonNumber = ++yearMoon;
-        d.yearMoonLabel = 'Year Moon ' + d.yearMoonNumber;
+        d.yearMoonLabel = 'Lunation ' + d.yearMoonNumber;
       }
     });
     cycle.yearMoonCount = yearMoon;
@@ -476,8 +476,10 @@
           d[key + 'MoonOfSeason'] = list.length;
           d[key + 'MoonLabel'] = (ORDINALS[i + 1] || (i + 1) + 'th') + ' ' +
             (evt === 'Full Moon' ? 'full' : 'new') + ' moon of ' + MOON_SEASONS[si];
-          // Shorter form the wheel uses: "Spring Moon 2".
-          d[key + 'MoonSeasonLabel'] = MOON_SEASONS[si] + ' Moon ' + (i + 1);
+          /* Shorter form the wheel uses. "Lunation" rather than "moon": the
+           * moon is the body, a lunation is one turn of it, and this is
+           * counting turns. */
+          d[key + 'MoonSeasonLabel'] = MOON_SEASONS[si] + ' Lunation ' + (i + 1);
           // The third of four is the blue moon in the older seasonal sense.
           if (evt === 'Full Moon' && list.length === 4 && i === 2) d.isBlueMoon = true;
         });
@@ -499,7 +501,7 @@
         L.isBlue = !!L.fullMoon.isBlueMoon;
         L.yearMoonNumber = L.fullMoon.yearMoonNumber;
         L.shortLabel = L.fullMoon.fullMoonSeasonLabel;      // "Spring Moon 2"
-        L.yearLabel = 'Year Moon ' + L.yearMoonNumber;
+        L.yearLabel = 'Lunation ' + L.yearMoonNumber;
         L.longLabel = (ORDINALS[L.ordinal] || L.ordinal + 'th') +
                       ' full moon of ' + L.seasonName;
       }

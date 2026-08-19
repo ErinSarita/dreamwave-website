@@ -594,32 +594,47 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 
 /* The day under the cursor, read out below the circle. It follows the
  * pointer round the ring and falls back to the day in hand when the pointer
- * leaves, so there is always a day being described. */
+ * leaves, so there is always a day being described.
+ *
+ * It stacks rather than sitting in a row: the face on top, its name directly
+ * beneath it, then the date, then the two calendars and the lit fraction.
+ * Reading down the box is reading the moon. */
 .scene-moon .moon-readout {
   grid-column: 1 / -1; grid-row: 3; justify-self: center; margin-top: 10px;
-  width: min(560px, 100%); box-sizing: border-box;
-  display: flex; align-items: center; justify-content: center;
-  gap: 14px; flex-wrap: wrap;
-  padding: 10px 18px; border-radius: 14px;
+  width: min(420px, 100%); box-sizing: border-box;
+  display: block; text-align: center;
+  padding: 12px 18px 13px; border-radius: 14px;
   background: var(--panel); border: 1px solid var(--line);
   backdrop-filter: blur(10px); box-shadow: var(--shadow);
-  min-height: 58px;
 }
-.moon-readout .mr-glyph { flex: 0 0 auto; line-height: 0; }
-.moon-readout .mr-main { text-align: left; }
-.moon-readout .mr-date { font-family: var(--serif); font-size: 16px; color: var(--ink); }
-.moon-readout .mr-sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
-.moon-readout .mr-stat { text-align: center; font-family: var(--mono); }
-.moon-readout .mr-stat b { display: block; font-size: 15px; font-weight: 500; color: var(--moon); }
-.moon-readout .mr-stat span { font-size: 10.5px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--ink-3); font-family: var(--sans, inherit); }
+.moon-readout .mr-face { line-height: 0; }
+.moon-readout .mr-phase {
+  line-height: 1.3; margin-top: 6px; font-size: 13px; color: var(--moon);
+}
 .moon-readout .mr-event {
-  font-size: 11.5px; color: var(--sun-bright); border: 1px solid var(--sun-bright);
-  border-radius: 999px; padding: 2px 9px;
+  font-size: 10.5px; color: var(--sun-bright); border: 1px solid var(--sun-bright);
+  border-radius: 999px; padding: 1px 8px; margin-left: 4px; white-space: nowrap;
+}
+.moon-readout .mr-date {
+  font-family: var(--serif); font-size: 17px; color: var(--ink); margin-top: 7px;
+}
+.moon-readout .mr-sub { font-size: 12px; color: var(--ink-3); margin-top: 1px; }
+.moon-readout .mr-stats {
+  display: flex; justify-content: center; gap: 22px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft);
+}
+.moon-readout .mr-stat { min-width: 62px; }
+.moon-readout .mr-stat b {
+  display: block; font-family: var(--mono); font-size: 17px; font-weight: 500; color: var(--moon);
+}
+.moon-readout .mr-stat span {
+  display: block; font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); margin-top: 2px; line-height: 1.35;
 }
 @media (max-width: 560px) {
-  .scene-moon .moon-readout { gap: 10px; padding: 9px 12px; }
-  .moon-readout .mr-date { font-size: 14px; }
+  .scene-moon .moon-readout { padding: 10px 12px 11px; }
+  .moon-readout .mr-date { font-size: 15px; }
+  .moon-readout .mr-stats { gap: 14px; }
 }
 
 /* On a phone the arrows flanking the circle would eat a quarter of the width
@@ -641,3 +656,28 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   .moon-prev { margin-left: 4px; }
   .moon-next { margin-right: 4px; }
 }
+
+/* Which phases the moon list shows. All four on by default: the list used to
+ * carry new and full only, which left out half of what the moon does. */
+.tool-panel-filter {
+  padding: 8px 12px; border-bottom: 1px solid var(--line-soft);
+}
+/* The chips sit in an inner wrapper, so the layout belongs on that: putting
+ * it on the outer box left them stacking one per line inside an unstyled
+ * child. Two by two, because four will not fit the panel's width in a row. */
+.phase-filter {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
+}
+.pf-opt { position: relative; cursor: pointer; }
+.pf-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.pf-opt span {
+  display: block; padding: 4px 8px; border-radius: 999px; font-size: 11.5px;
+  text-align: center;
+  border: 1px solid var(--line); color: var(--ink-3);
+  transition: background .15s, color .15s, border-color .15s;
+}
+.pf-opt input:checked + span {
+  background: var(--moon); border-color: var(--moon); color: var(--bg); font-weight: 500;
+}
+.pf-opt input:focus-visible + span { outline: 2px solid var(--sun); outline-offset: 1px; }
+.pf-opt:hover input:not(:checked) + span { color: var(--ink-1); border-color: var(--ink-3); }

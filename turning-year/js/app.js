@@ -24,7 +24,9 @@
     theme: 'night',
     hour12: false,
     useDST: true,       // off = the zone's winter offset all year; see clock.js
-    panelMin: false     // day panel collapsed to a single line
+    panelMin: false,    // day panel collapsed to a single line
+    moonPhases: { 'New Moon': true, 'First Quarter': true,
+                  'Full Moon': true, 'Last Quarter': true }
   };
   var cycle = null;
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
@@ -36,7 +38,7 @@
       localStorage.setItem(STORE, JSON.stringify({
         place: state.place, layers: state.layers, frost: state.frost,
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
-        panelMin: state.panelMin
+        panelMin: state.panelMin, moonPhases: state.moonPhases
       }));
     } catch (e) { /* private mode; the site still works, it just forgets */ }
   }
@@ -54,6 +56,9 @@
       if (typeof o.hour12 === 'boolean') state.hour12 = o.hour12;
       if (typeof o.useDST === 'boolean') state.useDST = o.useDST;
       if (typeof o.panelMin === 'boolean') state.panelMin = o.panelMin;
+      if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
+        if (typeof o.moonPhases[k] === 'boolean') state.moonPhases[k] = o.moonPhases[k];
+      });
     } catch (e) { /* ignore corrupt state */ }
   }
 
@@ -382,9 +387,7 @@
     cD.disabled = !cycle;
     if (cycle && state.season !== null) cS.textContent = cycle.seasons[state.season].from.name;
     else cS.textContent = 'Season';
-    if (state.level === 'moon' && state.lunationK !== null && state.place) {
-      cM.textContent = 'Moon ' + Lunar.month(state.lunationK, moonCtx()).number;
-    } else cM.textContent = 'Moon';
+    cM.textContent = 'Lunation';
     cD.textContent = state.day ? 'Day ' + state.day : 'Day';
   }
 
@@ -489,7 +492,7 @@
                         : 'Lunar month running into next year';
       return edge + ' · day ' + d.dayInLunation + (L.complete ? ' of ' + L.days : '');
     }
-    return 'Year Moon ' + L.yearMoonNumber +
+    return 'Lunation ' + L.yearMoonNumber +
            (cycle.yearMoonCount ? ' of ' + cycle.yearMoonCount : '') +
            ' · ' + L.shortLabel + (L.isBlue ? ' · blue moon' : '') +
            ' · day ' + d.dayInLunation + (L.complete ? ' of ' + L.days : '');
@@ -522,19 +525,29 @@
     return d ? d.iso : null;
   }
 
+  /* The span, with its years shown. A lunation that opens in December and
+   * closes in January sits in two calendar years, and "Dec 8 to Jan 6" leaves
+   * the reader to guess which January. Both years are named when they differ,
+   * one when they do not. */
+  function spanLabel(tz, from, to) {
+    var y0 = TZ.civilParts(tz, from).year, y1 = TZ.civilParts(tz, to).year;
+    var a = TZ.formatDate(tz, from, 'short'), b = TZ.formatDate(tz, to, 'short');
+    return y0 === y1 ? a + ' to ' + b + ', ' + y0
+                     : a + ', ' + y0 + ' to ' + b + ', ' + y1;
+  }
+
   function moonHeadHTML(m, days) {
+    var tz = state.place.tz;
     var selISO = selectedISO(), sel = null;
     for (var i = 0; i < days.length; i++) if (days[i].iso === selISO) { sel = days[i]; break; }
     var sub = [m.shortLabel];
     if (m.isBlue) sub.push('blue moon');
-    sub.push(TZ.formatDate(state.place.tz, days[0].date, 'short') + ' to ' +
-             TZ.formatDate(state.place.tz, days[days.length - 1].date, 'short'));
+    sub.push(spanLabel(tz, days[0].date, days[days.length - 1].date));
     sub.push(days.length + ' days');
     var line3 = sel
-      ? 'Day ' + sel.dayInMonth + ' of ' + days.length + ' &#183; ' +
-        TZ.formatDate(state.place.tz, sel.date)
+      ? 'Day ' + sel.dayInMonth + ' of ' + days.length + ' &#183; ' + TZ.formatDate(tz, sel.date)
       : 'Pick a day to open its twenty-four hours';
-    return '<div class="mh-name">Moon ' + m.number + ' of ' + m.count +
+    return '<div class="mh-name">Lunation ' + m.number + ' of ' + m.count +
              ' <span class="mh-year">' + m.yearLabel + '</span></div>' +
            '<div class="mh-sub">' + sub.map(esc).join(' &#183; ') + '</div>' +
            '<div class="mh-day">' + line3 + '</div>';
@@ -554,22 +567,30 @@
     else if (d.iso < cycle.days[0].iso) where = 'in the cycle before this one';
     else where = 'in the cycle after this one';
 
-    return '<div class="mr-glyph">' + MoonGlyph.svg(d.moonAge, 34) + '</div>' +
-      '<div class="mr-main">' +
-        '<div class="mr-date">' + esc(TZ.formatDate(tz, d.date)) + '</div>' +
-        '<div class="mr-sub">' + esc(TZ.weekdayName(tz, d.date)) + ' &#183; ' + where + '</div>' +
+    /* Face first, then what that face is called, then the date, then the
+     * numbers. Reading down the box is then reading the moon: what it looks
+     * like, what that is, when it is, and where it sits in both calendars. */
+    return '<div class="mr-face">' + MoonGlyph.svg(d.moonAge, 44) +
+        /* On the four turning points the phase carries the same words as the
+         * event, so it is drawn once, marked, rather than twice. On every
+         * other day the name stands plain. */
+        '<div class="mr-phase">' +
+          (d.moonEvent === d.moonPhaseName
+            ? '<span class="mr-event">' + esc(d.moonEvent) + '</span>'
+            : esc(d.moonPhaseName) +
+              (d.moonEvent ? ' <span class="mr-event">' + esc(d.moonEvent) + '</span>' : '')) +
+        '</div>' +
       '</div>' +
-      '<div class="mr-stat"><b>' + d.dayInMonth + ' / ' + monthDays + '</b>' +
-        '<span>of this moon</span></div>' +
-      '<div class="mr-stat"><b>' + Math.round(d.moonIllumination * 100) + '%</b>' +
-        '<span>lit</span></div>' +
-      /* On the four turning points the phase is named by the event itself, so
-       * printing both says the same thing twice. The pill wins there: it marks
-       * that the exact moment falls on this day, which the name alone does not. */
-      (d.moonEvent === d.moonPhaseName ? ''
-        : '<div class="mr-main"><div class="mr-date" style="font-size:13px">' +
-          esc(d.moonPhaseName) + '</div></div>') +
-      (d.moonEvent ? '<div class="mr-event">' + esc(d.moonEvent) + '</div>' : '');
+      '<div class="mr-date">' + esc(TZ.formatDate(tz, d.date)) + '</div>' +
+      '<div class="mr-sub">' + esc(TZ.weekdayName(tz, d.date)) + '</div>' +
+      '<div class="mr-stats">' +
+        '<div class="mr-stat"><b>' + (solar ? solar.n : '\u2014') + '</b>' +
+          '<span>' + (solar ? 'of ' + cycle.length : where) + '</span></div>' +
+        '<div class="mr-stat"><b>' + d.dayInMonth + '</b>' +
+          '<span>of ' + monthDays + ' this lunation</span></div>' +
+        '<div class="mr-stat"><b>' + Math.round(d.moonIllumination * 100) + '%</b>' +
+          '<span>lit</span></div>' +
+      '</div>';
   }
 
   function drawMoon() {
@@ -652,22 +673,43 @@
    * row jumps straight to that day. */
   var toolOpen = null;
 
+  /* All four turning points of every lunation in the cycle, filtered by which
+   * kinds are switched on. Quarters were absent before, which made the list a
+   * list of two phases rather than of the moon's year. */
   function moonListItems() {
     return cycle.days
-      .filter(function (d) { return d.moonEvent === 'Full Moon' || d.moonEvent === 'New Moon'; })
+      .filter(function (d) { return d.moonEvent && state.moonPhases[d.moonEvent]; })
       .map(function (d) {
+        /* The seasonal label already carries the word, so pairing it with a
+         * running count read "Lunation 1 · Winter Lunation 1". Full and new
+         * now name the lunation once and say which of the two this is. */
+        var name;
+        if (d.moonEvent === 'Full Moon') {
+          name = (d.fullMoonSeasonLabel || 'Lunation') + ' \u00B7 full';
+        } else if (d.moonEvent === 'New Moon') {
+          name = (d.newMoonSeasonLabel || 'Lunation') + ' \u00B7 new';
+        } else {
+          name = d.moonEvent;
+        }
         return {
-          n: d.n,
-          name: d.moonEvent === 'Full Moon'
-            ? ('Year Moon ' + d.yearMoonNumber + ' · ' + d.fullMoonSeasonLabel)
-            : (d.newMoonSeasonLabel ? d.newMoonSeasonLabel + ' · new' : d.moonEvent),
+          n: d.n, name: name,
           date: TZ.formatDate(cycle.tz, d.date),
-          sub: (d.isBlueMoon ? 'blue moon · ' : '') +
-               Math.round(d.moonIllumination * 100) + '% lit · ' +
+          sub: (d.isBlueMoon ? 'blue moon \u00B7 ' : '') +
+               Math.round(d.moonIllumination * 100) + '% lit \u00B7 ' +
                Math.round(d.moonDistanceKm).toLocaleString() + ' km',
           glyph: MoonGlyph.svg(d.moonAge, 17)
         };
       });
+  }
+
+  var PHASE_FILTERS = [['New Moon', 'New'], ['First Quarter', 'First qtr'],
+                       ['Full Moon', 'Full'], ['Last Quarter', 'Last qtr']];
+  function phaseFilterHTML() {
+    return '<div class="phase-filter" role="group" aria-label="Which phases to list">' +
+      PHASE_FILTERS.map(function (p) {
+        return '<label class="pf-opt"><input type="checkbox" data-phase="' + p[0] + '"' +
+               (state.moonPhases[p[0]] ? ' checked' : '') + '><span>' + p[1] + '</span></label>';
+      }).join('') + '</div>';
   }
 
   function stationListItems() {
@@ -687,7 +729,9 @@
     var items = kind === 'moon' ? moonListItems() : stationListItems();
     var todayN = todayNumber();
     $('tool-panel-title').textContent = kind === 'moon'
-      ? 'Full and new moons' : 'Solstices, equinoxes and midseasons';
+      ? 'Phases of this cycle' : 'Solstices, equinoxes and midseasons';
+    $('tool-panel-filter').innerHTML = kind === 'moon' ? phaseFilterHTML() : '';
+    $('tool-panel-filter').hidden = kind !== 'moon';
     $('tool-panel-list').innerHTML = items.length
       ? items.map(function (it) {
           return '<li><button data-day="' + it.n + '"' +
@@ -699,7 +743,18 @@
             '<span class="ti-day">day ' + it.n + '</span>' +
             '</button></li>';
         }).join('')
-      : '<li class="tool-panel-empty">Nothing to list for this cycle.</li>';
+      : '<li class="tool-panel-empty">' + (kind === 'moon'
+          ? 'No phases selected.' : 'Nothing to list for this cycle.') + '</li>';
+
+    Array.prototype.forEach.call($('tool-panel-filter').querySelectorAll('input[data-phase]'),
+      function (el) {
+        el.addEventListener('change', function () {
+          state.moonPhases[el.getAttribute('data-phase')] = el.checked;
+          save();
+          toolOpen = null;        // so openTool redraws rather than closing
+          openTool('moon');
+        });
+      });
 
     Array.prototype.forEach.call($('tool-panel-list').querySelectorAll('button[data-day]'), function (b) {
       b.addEventListener('click', function () {
