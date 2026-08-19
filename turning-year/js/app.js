@@ -23,7 +23,8 @@
     frost: { last: null, first: null },
     theme: 'night',
     hour12: false,
-    useDST: true        // off = the zone's winter offset all year; see clock.js
+    useDST: true,       // off = the zone's winter offset all year; see clock.js
+    panelMin: false     // day panel collapsed to a single line
   };
   var cycle = null;
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
@@ -34,7 +35,8 @@
     try {
       localStorage.setItem(STORE, JSON.stringify({
         place: state.place, layers: state.layers, frost: state.frost,
-        theme: state.theme, hour12: state.hour12, useDST: state.useDST
+        theme: state.theme, hour12: state.hour12, useDST: state.useDST,
+        panelMin: state.panelMin
       }));
     } catch (e) { /* private mode; the site still works, it just forgets */ }
   }
@@ -51,6 +53,7 @@
       if (o.theme) state.theme = o.theme;
       if (typeof o.hour12 === 'boolean') state.hour12 = o.hour12;
       if (typeof o.useDST === 'boolean') state.useDST = o.useDST;
+      if (typeof o.panelMin === 'boolean') state.panelMin = o.panelMin;
     } catch (e) { /* ignore corrupt state */ }
   }
 
@@ -422,7 +425,14 @@
       (cycle.frost.isEstimate ? ' (estimate)' : '') + '</div>';
     if (d.moonEvent) stationHTML += '<div class="d-term">' + d.moonEvent + '</div>';
 
+    $('day-panel').className = 'day-panel' + (state.panelMin ? ' min' : '');
     $('day-panel').innerHTML =
+      '<button class="panel-min" id="panel-min" aria-label="' +
+        (state.panelMin ? 'Expand day details' : 'Minimise day details') +
+        '" title="' + (state.panelMin ? 'Expand' : 'Minimise') + '">' +
+        (state.panelMin ? '▴' : '▾') + '</button>' +
+      '<div class="d-mini">Day ' + d.n + ' &middot; ' +
+        TZ.formatDate(cycle.tz, d.date, 'short') + '</div>' +
       '<div class="d-of">Day</div>' +
       '<div class="d-num">' + d.n + '</div>' +
       '<div class="d-of">of ' + cycle.length + '</div>' +
@@ -440,12 +450,12 @@
       '</div>' +
       timesMarkup(d, out.darkMidpoint, out) +
       clockShiftMarkup(d) +
-      '<div class="d-moon-row">' + MoonGlyph.svg(d.moonAge, 30) +
-        '<div class="d-moon-text"><b>' + Math.round(d.moonIllumination * 100) + '% lit</b>' +
-        d.moonPhaseName + '</div></div>' +
-      (d.lunation ? '<div class="d-term">' + lunationLabel(d) + '</div>' : '') +
       noteMarkup(d.iso);
 
+    $('panel-min').addEventListener('click', function () {
+      state.panelMin = !state.panelMin;
+      save(); drawDay();
+    });
     wireNote(d.iso);
   }
 
@@ -581,6 +591,15 @@
     if (marks.solarNoon) rows += row('sun', 'Peak sun', height(marks.solarNoon.alt), t(marks.solarNoon));
     if (marks.solarMidnight) rows += row('dark', 'Peak darkness', height(marks.solarMidnight.alt), t(marks.solarMidnight));
 
+    /* The moon's own heading: its face, how much of it is lit, and what that
+     * phase is called, with the lunar month underneath. Everything the moon
+     * does that day then follows below it, so the block reads as one thing
+     * rather than a set of times in one place and a picture in another. */
+    var moonHead = '<div class="d-moon-row">' + MoonGlyph.svg(d.moonAge, 30) +
+      '<div class="d-moon-text"><b>' + Math.round(d.moonIllumination * 100) + '% lit</b>' +
+      d.moonPhaseName + '</div></div>' +
+      (d.lunation ? '<div class="d-moon-sub">' + lunationLabel(d) + '</div>' : '');
+
     var moonRows = '';
     if (d.moonAlwaysUp) moonRows += row('moon', 'Moon', 'up all day', '');
     else if (d.moonAlwaysDown) moonRows += row('moon', 'Moon', 'down all day', '');
@@ -611,8 +630,10 @@
     }
 
     if (!rows && !moonRows) return '';
-    return '<div class="d-peaks">' + rows +
-           (moonRows ? '<div class="d-moonblock">' + moonRows + '</div>' : '') +
+    return '<div class="d-peaks"><div class="d-cols">' +
+             '<div class="d-sunblock">' + rows + '</div>' +
+             '<div class="d-moonblock">' + moonHead + moonRows + '</div>' +
+           '</div>' +
            (note ? '<div class="d-peak-note">' + note + '</div>' : '') + '</div>';
   }
 

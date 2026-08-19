@@ -271,7 +271,10 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
  * be scrolled. Without that the tail of it, the moon's rows, was clipped and
  * out of reach. The readout keeps pointer-events: none, since the wheel
  * underneath it still needs the hover. */
-.day-panel { max-height: min(62dvh, 560px); pointer-events: auto; }
+/* Wider than the readout, because two columns of times stand half as tall as
+ * one, and the wheel behind matters more than the panel does. */
+.day-panel { max-height: min(58dvh, 520px); pointer-events: auto;
+  width: min(540px, calc(100% - 32px)); }
 .day-panel .d-num { font-family: var(--serif); font-size: 46px; line-height: .95; }
 .day-panel .d-of { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
 .day-panel .d-date { font-family: var(--serif); font-size: 17px; margin-top: 10px; }
@@ -293,16 +296,25 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .day-panel .d-peak .pk-dark { background: var(--equinox); }
 .day-panel .d-peak .pk-moon { background: var(--moon); }
 .day-panel .d-peak .pk-now { background: var(--today); }
-.day-panel .d-moonblock { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line-soft); }
-.day-panel .d-moonblock::before {
-  content: 'Moon'; display: block; text-align: left; margin-bottom: 4px;
-  font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3);
+.day-panel .d-cols { display: grid; grid-template-columns: 1fr; }
+.day-panel .d-moonblock { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+.day-panel .d-moon-sub { font-size: 11px; color: var(--ink-3); text-align: left; margin: -2px 0 6px; }
+
+@media (min-width: 700px) {
+  /* The moon's rows carry a bearing as well as a height, so they need the
+   * wider half; the sun's are short. */
+  .day-panel .d-cols { grid-template-columns: 0.82fr 1.18fr; gap: 16px; align-items: start; }
+  .day-panel .d-moonblock {
+    margin-top: 0; padding-top: 0; border-top: none;
+    border-left: 1px solid var(--line-soft); padding-left: 16px;
+  }
 }
 .day-panel .d-peak .pk-name { flex: 1; text-align: left; white-space: nowrap; }
 .day-panel .d-peak b { font-family: var(--mono); font-weight: 500; color: var(--ink); white-space: nowrap; }
 .day-panel .d-peak .pk-at { font-family: var(--mono); color: var(--ink-3); min-width: 40px;
   text-align: right; flex: 0 0 auto; }
 .day-panel .d-peak-note { font-size: 11px; color: var(--ink-3); margin-top: 5px; line-height: 1.35; }
+.day-panel .d-moonblock .d-moon-row { justify-content: flex-start; margin-top: 0; margin-bottom: 6px; }
 .day-panel .d-moon-row {
   margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
@@ -480,6 +492,12 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   .crumb { font-size: 12px; }
 
   .readout, .day-panel { left: 10px; right: 10px; bottom: 10px; transform: none; width: auto; }
+  /* The panel runs full width here and is height-capped, so its bottom-right
+   * corner is fixed and the zoom controls would sit on top of the moon's
+   * rows. Padding cannot lift the content clear once the cap is reached, so
+   * the controls move up under the theme toggle instead, where the wheel is
+   * narrow and nothing else is. */
+  .zoom-controls { top: 76px; bottom: auto; }
   .readout .r-num { font-size: 30px; }
   .day-panel .d-num { font-size: 40px; }
   .day-panel .d-date { margin-top: 6px; font-size: 15px; }
@@ -502,3 +520,28 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   margin-top: 6px; font-family: var(--mono); font-size: 12px;
   color: var(--today); letter-spacing: .02em;
 }
+
+/* Minimise. The panel can stand taller than the wheel it explains, which on a
+ * tablet leaves the day barely visible behind it. Collapsed it keeps only the
+ * date and the control to bring it back. */
+.panel-min {
+  position: absolute; top: 6px; right: 8px; z-index: 2;
+  width: 26px; height: 26px; border-radius: 8px; cursor: pointer;
+  background: transparent; border: 1px solid transparent; color: var(--ink-3);
+  font-size: 12px; line-height: 1; pointer-events: auto;
+}
+.panel-min:hover { color: var(--ink); border-color: var(--line); background: var(--sky-patch); }
+.panel-min:focus-visible { outline: 2px solid var(--sun); outline-offset: 1px; }
+
+.day-panel .d-mini { display: none; }
+.day-panel.min .d-mini {
+  display: block; font-family: var(--serif); font-size: 15px;
+  color: var(--ink-2); padding-right: 24px;
+}
+.day-panel.min > *:not(.d-mini):not(.panel-min) { display: none; }
+.day-panel.min { max-height: none; overflow: visible; padding: 10px 16px;
+  width: min(300px, calc(100% - 32px));
+  /* Stay centred when collapsed. The narrow-screen rule pins the expanded
+   * panel to both edges, which would otherwise drop the little bar into the
+   * left corner the moment it shrinks. */
+  left: 50%; right: auto; transform: translateX(-50%); }
