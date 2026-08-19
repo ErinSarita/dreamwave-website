@@ -1347,6 +1347,12 @@
     $('frost-last').addEventListener('change', frostChanged);
     $('frost-first').addEventListener('change', frostChanged);
 
+    $('ethos-btn').addEventListener('click', function () { $('ethos').hidden = false; });
+    $('ethos-close').addEventListener('click', function () { $('ethos').hidden = true; });
+    $('ethos').addEventListener('click', function (e) {
+      if (e.target === $('ethos')) $('ethos').hidden = true;
+    });
+
     $('about-btn').addEventListener('click', function () { $('about').hidden = false; });
     $('about-close').addEventListener('click', function () { $('about').hidden = true; });
     $('about').addEventListener('click', function (e) {
@@ -1426,6 +1432,7 @@
     document.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.key === 'Escape') {
+        if (!$('ethos').hidden) { $('ethos').hidden = true; return; }
         if (!$('about').hidden) { $('about').hidden = true; return; }
         if (!$('compare').hidden) { $('compare').hidden = true; return; }
         if (!$('spiral').hidden) { $('spiral').hidden = true; return; }

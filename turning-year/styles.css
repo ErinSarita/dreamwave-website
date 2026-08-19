@@ -122,7 +122,24 @@ body {
   font-family: var(--serif); font-weight: 500; font-size: 26px;
   margin: 0 0 2px; letter-spacing: .01em;
 }
-.panel-head .sub { margin: 0 0 22px; color: var(--ink-3); font-size: 12.5px; }
+.panel-head .sub { margin: 0 0 12px; color: var(--ink-3); font-size: 12.5px; }
+/* Why the wheel is built this way, at the top rather than in the footer with
+ * the tools. It is the first thing to read, not the last. Sized to its own
+ * word so it reads as an invitation beside the title, not as another control
+ * in the stack below. */
+.panel-head .ethos-btn {
+  width: auto; margin: 0 0 22px; padding: 6px 16px; border-radius: 999px;
+  font-family: var(--serif); font-size: 13px; letter-spacing: .06em;
+  color: var(--sun); border-color: var(--line);
+}
+.panel-head .ethos-btn:hover { border-color: var(--sun); }
+
+/* Longer lines than the reference sections, and no subheadings to break them,
+ * so the measure is held in and the leading opened out. */
+.ethos-card { width: min(94vw, 560px); }
+.ethos-card p { font-size: 14.5px; line-height: 1.72; margin: 0 0 14px; }
+.ethos-card p:last-of-type { margin-bottom: 0; }
+.ethos-card b { color: var(--sun-bright); font-weight: 500; }
 
 .field { margin-bottom: 22px; }
 .field > label {
