@@ -54,16 +54,13 @@
     'Full Moon': 'full', 'Last Quarter': 'last quarter'
   };
 
-  /* days: the cycle days this lunation covers, in order. */
-  function daysOf(cycle, L) {
-    var out = [];
-    for (var k = L.startDay; k <= L.endDay; k++) if (cycle.days[k - 1]) out.push(cycle.days[k - 1]);
-    return out;
-  }
-
-  function render(cycle, L, opts) {
+  /* `month` and `days` come from the lunar chain, which knows nothing of
+   * solstices, so a month straddling one arrives whole. Days are keyed by date
+   * rather than by a solar-cycle day number, since the two ends of such a
+   * month sit in different cycles and their numbering is not comparable. */
+  function render(month, days, opts) {
     opts = opts || {};
-    var days = daysOf(cycle, L), N = days.length;
+    var tz = opts.tz, N = days.length;
     if (!N) return '';
     var parts = [];
     var step = 360 / N;
@@ -97,8 +94,8 @@
     /* -- one day at a time ------------------------------------------------ */
     days.forEach(function (d, i) {
       var a = angleOf(i);
-      var isSel = opts.selectedDay === d.n;
-      var isToday = opts.todayN === d.n;
+      var isSel = opts.selectedISO === d.iso;
+      var isToday = opts.todayISO === d.iso;
 
       /* Light the day's own arc of the ring. Running it all the way to the
        * centre as well would put a wash across the hub, where the big face
@@ -126,7 +123,7 @@
           '" fill="none" stroke="var(--line)" stroke-width="1"/></g>');
 
       // calendar date, with the month named only where it turns over
-      var cp = TZ.civilParts(cycle.tz, d.date);
+      var cp = TZ.civilParts(tz, d.date);
       var dateTxt = (i === 0 || cp.day === 1)
         ? TZ.MONTHS_SHORT[cp.month - 1] + ' ' + cp.day : String(cp.day);
       var dp = polar(R.dateLabel, a);
@@ -140,7 +137,7 @@
       parts.push('<text x="' + f(np[0]) + '" y="' + f(np[1]) + '" text-anchor="middle" ' +
         'dominant-baseline="middle" font-size="10.5" fill="var(--ink-3)" ' +
         'transform="rotate(' + f(tangent(a)) + ' ' + f(np[0]) + ' ' + f(np[1]) + ')">' +
-        d.dayInLunation + '</text>');
+        d.dayInMonth + '</text>');
 
       // the four turning points of the month
       if (d.moonEvent) {
@@ -157,12 +154,8 @@
 
     /* -- the middle: whichever day is in hand ------------------------------ */
     var focus = null;
-    for (var i = 0; i < N; i++) {
-      if (days[i].n === opts.selectedDay) { focus = days[i]; break; }
-    }
-    if (!focus) for (var j = 0; j < N; j++) {
-      if (days[j].n === opts.todayN) { focus = days[j]; break; }
-    }
+    for (var i = 0; i < N; i++) if (days[i].iso === opts.selectedISO) { focus = days[i]; break; }
+    if (!focus) for (var j = 0; j < N; j++) if (days[j].iso === opts.todayISO) { focus = days[j]; break; }
     if (!focus) focus = days[Math.floor(N / 2)];
 
     parts.push('<circle cx="500" cy="500" r="' + R.hub + '" fill="var(--bg)" opacity=".72"/>');
@@ -178,21 +171,21 @@
     parts.push('<text x="500" y="' + (CY + 72) + '" text-anchor="middle" font-size="14" ' +
       'fill="var(--ink-2)">' + esc(focus.moonPhaseName) + '</text>');
     parts.push('<text x="500" y="' + (CY + 98) + '" text-anchor="middle" font-size="12" ' +
-      'fill="var(--ink-3)">' + esc(TZ.formatDate(cycle.tz, focus.date, 'short')) +
-      ' &#183; day ' + focus.dayInLunation + ' of ' + N + '</text>');
+      'fill="var(--ink-3)">' + esc(TZ.formatDate(tz, focus.date, 'short')) +
+      ' &#183; day ' + focus.dayInMonth + ' of ' + N + '</text>');
 
     /* -- doors back to the day view ---------------------------------------- */
     days.forEach(function (d, i) {
       var a = angleOf(i);
-      parts.push('<path class="moon-day-hit" data-day="' + d.n + '" d="' +
+      parts.push('<path class="moon-day-hit" data-iso="' + d.iso + '" d="' +
                  sector(R.hitIn, R.hitOut, a - step / 2, a + step / 2) +
                  '" fill="transparent" style="cursor:pointer"><title>' +
-                 esc(TZ.formatDate(cycle.tz, d.date)) + ' · ' +
+                 esc(TZ.formatDate(tz, d.date)) + ' · ' +
                  Math.round(d.moonIllumination * 100) + '% lit</title></path>');
     });
 
     return parts.join('');
   }
 
-  global.MoonView = { render: render, daysOf: daysOf };
+  global.MoonView = { render: render };
 })(typeof window !== 'undefined' ? window : globalThis);

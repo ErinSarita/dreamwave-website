@@ -3,7 +3,7 @@
   'use strict';
   var A = global.Astro, TZ = global.TZ, Places = global.Places,
       CycleModel = global.Cycle, WheelView = global.WheelView, DayView = global.DayView,
-      Clock = global.Clock, MoonView = global.MoonView;
+      Clock = global.Clock, MoonView = global.MoonView, Lunar = global.Lunar;
 
   var STORE = 'turning-year:v1';
   var NOTES_STORE = 'turning-year:notes';
@@ -15,7 +15,7 @@
     anchorYear: null,
     level: 'year',
     season: null,
-    lunation: null,
+    lunationK: null,   // absolute lunation index; see lunar.js
     day: null,
     hover: null,
     noteOpen: false,
@@ -240,7 +240,10 @@
     for (var m = 0; m < moonHits.length; m++) {
       moonHits[m].addEventListener('click', function (e) {
         e.stopPropagation();          // the day sector underneath must not also fire
-        state.lunation = +e.currentTarget.getAttribute('data-lunation');
+        var li = +e.currentTarget.getAttribute('data-lunation');
+        var L = cycle.lunations[li];
+        state.lunationK = L ? Lunar.kAt(A.jdFromDate(cycle.days[L.startDay - 1].end) - 1e-6)
+                            : lunationKOfDay(state.day || todayNumber() || 1);
         setLevel('moon');
       });
     }
@@ -267,7 +270,9 @@
   }
 
   function applyZoom() {
-    var t = WheelView.transformFor(cycle, state.level, state.season, state.lunation);
+    /* The moon has its own scene now, so the wheel is never zoomed to a
+     * lunation and that argument no longer has anything to say. */
+    var t = WheelView.transformFor(cycle, state.level, state.season, null);
     $('wheel').style.transform = t.transform;
     $('hud').style.transform = t.transform;    // kept in lock-step so the sky glyphs track their stations
     $('wheel-svg').classList.toggle('zoomed', !!t.zoomed);
@@ -278,11 +283,8 @@
     if (wheelZoom) wheelZoom.reset();
     if (dayZoom) dayZoom.reset();
     state.level = level;
-    if (level === 'year') { state.season = null; state.day = null; state.lunation = null; }
-    if (level === 'season') state.lunation = null;
-    if (level === 'moon' && state.lunation === null) {
-      state.lunation = lunationOfDay(state.day || todayNumber() || 1);
-    }
+    if (level === 'year') { state.season = null; state.day = null; state.lunationK = null; }
+    if (level === 'season') state.lunationK = null;
     if (level === 'season' && state.season === null) {
       state.season = WheelView.seasonOfDay(cycle, state.day || todayNumber() || 1);
     }
@@ -376,14 +378,13 @@
     }
     var cS = $('crumb-season'), cM = $('crumb-moon'), cD = $('crumb-day');
     cS.disabled = !cycle;
-    cM.disabled = !cycle || !cycle.lunations || !cycle.lunations.length;
+    cM.disabled = !cycle;
     cD.disabled = !cycle;
     if (cycle && state.season !== null) cS.textContent = cycle.seasons[state.season].from.name;
     else cS.textContent = 'Season';
-    var Lc = cycle && cycle.lunations && state.lunation !== null
-      ? cycle.lunations[state.lunation] : null;
-    cM.textContent = (state.level === 'moon' && Lc && Lc.yearMoonNumber)
-      ? 'Moon ' + Lc.yearMoonNumber : 'Moon';
+    if (state.level === 'moon' && state.lunationK !== null && state.place) {
+      cM.textContent = 'Moon ' + Lunar.month(state.lunationK, moonCtx()).number;
+    } else cM.textContent = 'Moon';
     cD.textContent = state.day ? 'Day ' + state.day : 'Day';
   }
 
@@ -496,79 +497,100 @@
 
 
   /* ------------------------------------------------------------ lunar month
-   * A lunation is not a subdivision of a season: it runs new moon to new
-   * moon and crosses whatever solar boundary it likes. It still sits between
-   * the season and the day in scale, which is where the crumb puts it. */
-  function lunationOfDay(n) {
-    if (!cycle || !cycle.lunations) return null;
-    for (var i = 0; i < cycle.lunations.length; i++) {
-      var L = cycle.lunations[i];
-      if (n >= L.startDay && n <= L.endDay) return i;
-    }
-    return 0;
+   * The moon is not a subdivision of the solar year. Twelve of its months
+   * fall eleven days short of a year and thirteen overshoot, so nothing here
+   * is anchored to a solstice: months come from the continuous chain in
+   * lunar.js and are named afterwards, by the year holding their full moon.
+   * Stepping is k-1 and k+1, so it runs as far back or forward as anyone
+   * cares to go, and the two calendars are joined only by the dates they
+   * happen to share. */
+  function moonCtx() {
+    return { lat: state.place.lat, lon: state.place.lon, tz: state.place.tz,
+             anchorMode: cycle ? cycle.anchorMode : 'local' };
+  }
+  /* Which month a calendar day belongs to. Read at the day's end rather than
+   * its middle: a new moon falling in the afternoon still opens that day's
+   * month, but midday would come before it and answer with the month before. */
+  function lunationKOfDay(n) {
+    var d = cycle && cycle.days[n - 1];
+    if (!d) return Lunar.kAt(A.jdFromDate(new Date()));
+    return Lunar.kAt(A.jdFromDate(d.end) - 1e-6);
+  }
+  function todayISO() { return cycle ? TZ.formatDate(cycle.tz, new Date(), 'iso') : null; }
+  function selectedISO() {
+    var d = cycle && state.day ? cycle.days[state.day - 1] : null;
+    return d ? d.iso : null;
   }
 
-  function moonHeadHTML(L) {
-    if (!L) return '';
-    var sel = state.day && state.day >= L.startDay && state.day <= L.endDay
-      ? cycle.days[state.day - 1] : null;
-    var name = L.yearMoonNumber
-      ? 'Moon ' + L.yearMoonNumber + (cycle.yearMoonCount ? ' of ' + cycle.yearMoonCount : '')
-      : (L.lead ? 'Carried in from last year' : 'Running into next year');
-    var sub = [];
-    if (L.shortLabel) sub.push(L.shortLabel);
-    if (L.isBlue) sub.push('blue moon');
-    sub.push(TZ.formatDate(cycle.tz, cycle.days[L.startDay - 1].date, 'short') + ' to ' +
-             TZ.formatDate(cycle.tz, cycle.days[L.endDay - 1].date, 'short'));
-    /* A month at either end of the cycle is cut by the solstice, not by the
-     * moon. Saying "28 days" flat would suggest lunar months come that short,
-     * and they do not: the shortest is a little over 29. Say what is showing
-     * and where the rest of it went. */
-    if (L.complete) sub.push(L.days + ' days');
-    else if (L.lead) sub.push(L.days + ' days of it fall in this cycle, it opened in the last one');
-    else sub.push(L.days + ' days of it fall in this cycle, it closes in the next one');
+  function moonHeadHTML(m, days) {
+    var selISO = selectedISO(), sel = null;
+    for (var i = 0; i < days.length; i++) if (days[i].iso === selISO) { sel = days[i]; break; }
+    var sub = [m.shortLabel];
+    if (m.isBlue) sub.push('blue moon');
+    sub.push(TZ.formatDate(state.place.tz, days[0].date, 'short') + ' to ' +
+             TZ.formatDate(state.place.tz, days[days.length - 1].date, 'short'));
+    sub.push(days.length + ' days');
     var line3 = sel
-      ? 'Day ' + sel.n + ' of the year &#183; day ' + sel.dayInLunation + ' of ' + L.days +
-        ' of this moon &#183; ' + TZ.formatDate(cycle.tz, sel.date)
+      ? 'Day ' + sel.dayInMonth + ' of ' + days.length + ' &#183; ' +
+        TZ.formatDate(state.place.tz, sel.date)
       : 'Pick a day to open its twenty-four hours';
-    return '<div class="mh-name">' + esc(name) + '</div>' +
+    return '<div class="mh-name">Moon ' + m.number + ' of ' + m.count +
+             ' <span class="mh-year">' + m.yearLabel + '</span></div>' +
            '<div class="mh-sub">' + sub.map(esc).join(' &#183; ') + '</div>' +
            '<div class="mh-day">' + line3 + '</div>';
   }
 
   function drawMoon() {
-    if (!cycle || !cycle.lunations || !cycle.lunations.length) return;
-    if (state.lunation === null) state.lunation = lunationOfDay(state.day || todayNumber() || 1);
-    var L = cycle.lunations[state.lunation];
-    if (!L) return;
-    $('moonwheel').innerHTML = MoonView.render(cycle, L, {
-      selectedDay: state.day, todayN: todayNumber()
+    if (!state.place) return;
+    if (state.lunationK === null) state.lunationK = lunationKOfDay(state.day || todayNumber() || 1);
+    var ctx = moonCtx();
+    var m = Lunar.month(state.lunationK, ctx);
+    var days = Lunar.daysOf(state.lunationK, ctx);
+    $('moonwheel').innerHTML = MoonView.render(m, days, {
+      tz: ctx.tz, selectedISO: selectedISO(), todayISO: todayISO()
     });
-    $('moon-head').innerHTML = moonHeadHTML(L);
-    $('moon-prev').disabled = state.lunation <= 0;
-    $('moon-next').disabled = state.lunation >= cycle.lunations.length - 1;
+    $('moon-head').innerHTML = moonHeadHTML(m, days);
+    $('moon-prev').disabled = false;      // the chain has no ends
+    $('moon-next').disabled = false;
 
     var hits = $('moonwheel').querySelectorAll('.moon-day-hit');
     for (var i = 0; i < hits.length; i++) {
       hits[i].addEventListener('click', function (e) {
-        state.day = +e.currentTarget.getAttribute('data-day');
-        setLevel('day');
+        openISO(e.currentTarget.getAttribute('data-iso'));
       });
     }
   }
 
-  /* Step to the neighbouring month, carrying the selection with it so the
-   * middle of the circle keeps showing a day of the month on view. */
+  /* Open a date in the day view, moving to another solar cycle first if the
+   * date belongs to one. A month either side of a solstice holds days from
+   * two cycles, so this is the ordinary case at both ends of such a month,
+   * not an edge case. */
+  function openISO(iso) {
+    if (!iso || !cycle) return;
+    if (cycle.dayByISO[iso]) { state.day = cycle.dayByISO[iso].n; setLevel('day'); return; }
+    var parts = iso.split('-');
+    var when = TZ.instantFromCivil(cycle.tz, +parts[0], +parts[1], +parts[2], 12, 0, 0);
+    state.anchorYear = anchorYearFor(when, state.place.lat, state.place.tz);
+    /* rebuild defers the work a tick so the loading state can paint, so the
+     * new cycle only exists inside its callback. Reading `cycle` straight
+     * after the call gets the old one and lands on the wrong day. */
+    rebuild(function () {
+      var d = cycle.dayByISO[iso];
+      if (d) { state.day = d.n; setLevel('day'); }
+    });
+  }
+
   function stepMoon(delta) {
-    if (!cycle || !cycle.lunations) return;
-    var next = state.lunation + delta;
-    if (next < 0 || next >= cycle.lunations.length) return;
-    state.lunation = next;
-    var L = cycle.lunations[next];
-    if (!state.day || state.day < L.startDay || state.day > L.endDay) {
-      state.day = delta > 0 ? L.startDay : L.endDay;
-    }
+    state.lunationK += delta;
+    /* Carry the selection into the month arrived at, so its middle keeps
+     * showing a day that is actually on screen. */
+    var ctx = moonCtx();
+    var days = Lunar.daysOf(state.lunationK, ctx);
+    var edge = days[delta > 0 ? 0 : days.length - 1];
+    if (cycle.dayByISO[edge.iso]) state.day = cycle.dayByISO[edge.iso].n;
+    else state.day = null;
     drawMoon();
+    syncCrumbs();
     writeHash();
   }
 
@@ -1050,7 +1072,7 @@
       /* The crumb means "the moon I am on", so it always recomputes from the
        * day in hand. Only the arrows and the wheel's own pies choose a month
        * deliberately, and those set it themselves before coming here. */
-      if (lvl === 'moon') state.lunation = lunationOfDay(state.day || todayNumber() || 1);
+      if (lvl === 'moon') state.lunationK = lunationKOfDay(state.day || todayNumber() || 1);
       setLevel(lvl);
     });
 

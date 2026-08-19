@@ -306,17 +306,46 @@
   }
 
   /* Flag the day nearest each new / first quarter / full / last quarter. */
+  /* Flag the day nearest each new / first quarter / full / last quarter.
+   *
+   * A phase crossing falls between two consecutive days, which makes the two
+   * seams at the ends of the cycle a blind spot: the last day has no day
+   * after it to cross into, and the first has none before it. A full moon
+   * landing in either seam is recorded by neither cycle. It is rare and it is
+   * real: the full moon of 20 December 2029 sits on the last day of its
+   * cycle, crosses exact fullness overnight, and went unmarked by that cycle
+   * and by the next one both, leaving a sixty-day hole in the chain of full
+   * moons where thirty belonged.
+   *
+   * Scanning one day past each end closes the seam. Marking only when the
+   * nearer of the two days lies inside this cycle stops the neighbours from
+   * both claiming the same crossing. */
+  function ageAtMidday(tz, instant) {
+    var p = TZ.civilParts(tz, instant);
+    var s0 = TZ.startOfDay(tz, p.year, p.month, p.day);
+    var s1 = TZ.startOfDay(tz, p.year, p.month, p.day + 1);
+    var mid = new Date((s0.getTime() + s1.getTime()) / 2);
+    return A.moonPhase(A.jdeFromJD(A.jdFromDate(mid))).age;
+  }
+
   function markMoonEvents(cycle) {
     var days = cycle.days, targets = [0, 90, 180, 270];
     var labels = ['New Moon', 'First Quarter', 'Full Moon', 'Last Quarter'];
-    for (var i = 1; i < days.length; i++) {
-      var prevAge = days[i - 1].moonAge;
-      var age = days[i].moonAge;
+    if (!days.length) return;
+
+    // the run of days, with one unowned probe day at each end
+    var seq = [{ age: ageAtMidday(cycle.tz, new Date(cycle.day1.getTime() - 43200000)),
+                 day: null }];
+    days.forEach(function (d) { seq.push({ age: d.moonAge, day: d }); });
+    seq.push({ age: ageAtMidday(cycle.tz, cycle.nextDay1), day: null });
+
+    for (var i = 1; i < seq.length; i++) {
+      var prev = seq[i - 1], cur = seq[i];
       for (var t = 0; t < targets.length; t++) {
-        var a = A.norm180(prevAge - targets[t]), b = A.norm180(age - targets[t]);
+        var a = A.norm180(prev.age - targets[t]), b = A.norm180(cur.age - targets[t]);
         if (a < 0 && b >= 0) {
-          var pick = Math.abs(a) < Math.abs(b) ? days[i - 1] : days[i];
-          pick.moonEvent = labels[t];
+          var pick = Math.abs(a) < Math.abs(b) ? prev : cur;
+          if (pick.day) pick.day.moonEvent = labels[t];
         }
       }
     }
