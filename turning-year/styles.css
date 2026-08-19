@@ -22,6 +22,11 @@
 
   --moon: #cfd8ef;
   --moon-dim: #59637f;
+  /* The phase glyph needs "lit" and "unlit" explicitly. Reusing --moon for lit
+     broke in the daylight theme, where --moon is a dark ink picked to read on
+     parchment, so full moons drew darker than new ones. */
+  --moon-lit: #e8eeff;
+  --moon-shadow: #3d4763;
   --grow: #6fbf8b;
   --frost: #8fd3ff;
   --solstice: #ff9d5c;
@@ -58,6 +63,8 @@ body[data-theme="day"] {
 
   --moon: #454c6b;
   --moon-dim: #a29a89;
+  --moon-lit: #fffdf4;
+  --moon-shadow: #8a8296;
   --grow: #2f7d4e;
   --frost: #1c6b98;
   --solstice: #b04a12;
@@ -152,6 +159,8 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .frost-tag { font-size: 12.5px; color: var(--ink-2); }
 .md-input { padding: 6px 8px !important; font-size: 13px !important; text-align: center; }
 
+.notes-row { display: flex; gap: 8px; }
+.notes-row .ghost-btn { flex: 1; }
 .legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .legend li { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--ink-2); }
 .sw { width: 13px; height: 13px; border-radius: 3px; flex: 0 0 auto; }
@@ -164,6 +173,18 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .sw-noted { background: var(--sun-bright); border-radius: 50%; width: 8px; height: 8px; }
 .sw-sky { background: none; border: 1px solid var(--ink-3); border-radius: 50%; position: relative; }
 .sw-sky::after { content: ''; position: absolute; inset: 3px; background: var(--ink-2); border-radius: 1px; transform: rotate(20deg); }
+.sw-dec {
+  background: linear-gradient(180deg, var(--sun) 0 48%, var(--ink-3) 48% 52%, var(--equinox) 52% 100%);
+  border-radius: 50%; opacity: .8;
+}
+/* Backed by the same dark sky patch the real glyphs sit on, so a white star
+   stays visible in the daylight theme too. */
+.sw-polaris {
+  background:
+    radial-gradient(circle, #fff 0 22%, rgba(188,212,255,.5) 23% 48%, transparent 49%),
+    var(--sky-patch);
+  border-radius: 50%;
+}
 .sw-twi { background: linear-gradient(0deg, var(--twilight-3), var(--twilight-1)); }
 .sw-sunline { width: 14px; height: 0; border-top: 2px solid var(--sun-bright); border-radius: 0; background: none; }
 .sw-moonline { width: 14px; height: 0; border-top: 2px dashed var(--moon); border-radius: 0; background: none; }
@@ -198,7 +219,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
  * is centred in what's left, never behind it; the svg's own max-height (below)
  * matches this reservation so the two can never overlap at any viewport size. */
 .scene { position: absolute; inset: 0; display: grid; place-items: center;
-  padding: 48px 12px calc(32dvh + 32px);
+  padding: 48px 12px calc(32dvh + 32px); touch-action: none;
   transition: opacity .45s ease, transform .45s ease; }
 .scene[hidden] { display: none; }
 .scene.fading { opacity: 0; transform: scale(.94); }
@@ -223,7 +244,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .readout, .day-panel {
   position: absolute; left: 50%; top: auto; bottom: 16px; transform: translateX(-50%);
   text-align: center; pointer-events: none; width: min(300px, calc(100% - 32px));
-  max-height: 40dvh; overflow-y: auto; box-sizing: border-box;
+  max-height: 40dvh; overflow-y: auto; box-sizing: border-box; touch-action: pan-y;
   background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
   padding: 15px 20px; backdrop-filter: blur(10px); box-shadow: var(--shadow);
 }
@@ -240,6 +261,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   margin-top: 9px; display: flex; align-items: center; justify-content: center;
   gap: 7px; font-size: 12px; color: var(--ink-2);
 }
+.readout .r-lunation { margin-top: 4px; font-size: 11.5px; color: var(--ink-3); }
 .readout .r-hint { margin-top: 12px; font-size: 11px; color: var(--ink-3); }
 
 /* -------------------------------------------------------------- day panel */
@@ -253,6 +275,18 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .day-panel .d-split b { display: block; font-family: var(--mono); font-size: 15px; font-weight: 500; }
 .day-panel .d-sun b { color: var(--sun); }
 .day-panel .d-dark b { color: var(--ink-2); }
+.day-panel .d-peaks { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.day-panel .d-peak {
+  display: flex; align-items: center; gap: 7px; font-size: 12px;
+  color: var(--ink-2); margin-bottom: 3px;
+}
+.day-panel .d-peak .pk { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.day-panel .d-peak .pk-sun { background: var(--sun-bright); }
+.day-panel .d-peak .pk-dark { background: var(--equinox); }
+.day-panel .d-peak .pk-name { flex: 1; text-align: left; }
+.day-panel .d-peak b { font-family: var(--mono); font-weight: 500; color: var(--ink); }
+.day-panel .d-peak .pk-alt { font-family: var(--mono); color: var(--ink-3); min-width: 34px; text-align: right; }
+.day-panel .d-peak-note { font-size: 11px; color: var(--ink-3); margin-top: 5px; line-height: 1.35; }
 .day-panel .d-moon-row {
   margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
@@ -298,10 +332,17 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .station-label { font-family: var(--serif); font-size: 15px; fill: var(--ink); }
 .station-sub { font-size: 10.5px; fill: var(--ink-3); }
 .month-label { font-size: 11px; fill: var(--ink-3); letter-spacing: .1em; }
+/* Moon-cycle numbers show at every zoom level, unlike the solar terms: being
+   able to see where the moons fall across the whole year is the point of
+   them, so gating them behind a zoom would defeat it. */
+.moon-num { font-size: 12px; fill: var(--ink-2); }
+.moon-season { font-size: 8px; fill: var(--ink-3); }
+.moon-num.is-blue { fill: var(--frost); font-weight: 500; }
+.moon-hit { fill: transparent; cursor: pointer; }
 .term-label { font-size: 11px; fill: var(--ink-3); opacity: 0; transition: opacity .4s; }
 .term-sub { font-size: 7.5px; fill: var(--ink-3); opacity: 0; transition: opacity .4s; }
-#wheel-svg.zoomed .term-sub { opacity: .75; }
 #wheel-svg.zoomed .term-label { opacity: 1; }
+#wheel-svg.zoomed .term-sub { opacity: .75; }
 
 .rot { transition: transform .35s ease; }
 .rot.flip { transform: rotate(180deg); }
@@ -323,6 +364,49 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--panel); color: var(--ink); font-size: 16px; cursor: pointer;
 }
+
+.top-tools {
+  position: absolute; top: 14px; right: 14px; z-index: 6; display: flex; gap: 6px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 5px;
+  backdrop-filter: blur(10px);
+}
+.tool-btn {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid transparent;
+  background: transparent; color: var(--ink-2); font-size: 16px; line-height: 1; cursor: pointer;
+}
+.tool-btn:hover { border-color: var(--sun); color: var(--sun); background: var(--bg-2); }
+.tool-btn.is-open { border-color: var(--sun); color: var(--sun); background: var(--bg-2); }
+
+.tool-panel {
+  position: absolute; top: 58px; right: 14px; z-index: 7; width: min(310px, calc(100vw - 28px));
+  max-height: min(60dvh, 460px); display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  backdrop-filter: blur(14px); box-shadow: var(--shadow); overflow: hidden;
+}
+.tool-panel[hidden] { display: none; }
+.tool-panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 11px 14px; border-bottom: 1px solid var(--line-soft); flex: 0 0 auto;
+}
+.tool-panel-head strong { font-family: var(--serif); font-weight: 500; font-size: 14.5px; }
+.tool-panel-head button {
+  background: none; border: 0; color: var(--ink-3); font-size: 20px; line-height: 1; cursor: pointer;
+}
+.tool-panel-head button:hover { color: var(--sun); }
+.tool-panel ul { list-style: none; margin: 0; padding: 6px; overflow-y: auto; flex: 1 1 auto; }
+.tool-panel li { margin: 0; }
+.tool-panel li button {
+  width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
+  padding: 8px 9px; border-radius: 8px; border: 0; background: transparent;
+  color: var(--ink-2); font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.tool-panel li button:hover { background: rgba(232,184,75,.14); color: var(--ink); }
+.tool-panel li button.is-today { color: var(--today); }
+.tool-panel .ti-name { flex: 1; min-width: 0; }
+.tool-panel .ti-date { color: var(--ink-3); font-size: 11.5px; white-space: nowrap; }
+.tool-panel .ti-day { color: var(--ink-3); font-family: var(--mono); font-size: 10.5px; min-width: 42px; text-align: right; }
+.tool-panel .ti-sub { display: block; color: var(--ink-3); font-size: 10.5px; }
+.tool-panel-empty { padding: 14px; color: var(--ink-3); font-size: 12.5px; }
 
 .zoom-controls {
   position: absolute; right: 14px; bottom: 14px; z-index: 6;
@@ -355,6 +439,8 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .close { position: absolute; top: 12px; right: 14px; background: none; border: 0;
   color: var(--ink-3); font-size: 26px; cursor: pointer; line-height: 1; }
 
+.spiral-card { width: min(96vw, 940px); }
+#spiral-svg { width: 100%; height: auto; margin-top: 12px; display: block; }
 .compare-card { width: min(94vw, 700px); }
 #compare-svg { width: 100%; height: auto; margin-top: 10px; display: block; }
 .compare-legend {

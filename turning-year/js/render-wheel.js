@@ -4,7 +4,7 @@
  */
 (function (global) {
   'use strict';
-  var TZ = global.TZ, A = global.Astro, Stars = global.Stars;
+  var TZ = global.TZ, A = global.Astro, Stars = global.Stars, MoonGlyph = global.MoonGlyph;
 
   var CX = 500, CY = 500;
   var R = {
@@ -12,8 +12,10 @@
     skyClock: 600, skyClockR: 68,
     monthOut: 446, monthIn: 424, monthLabel: 435,
     bandOut: 418, bandIn: 262,
-    moonRing: 246, moonR: 3.0,
-    termOut: 192, termIn: 183, termLabel: 205,
+    moonRing: 240, moonR: 1.95, moonSwing: 11,
+    moonPieIn: 224, moonPieOut: 257, moonNumR: 217, moonSeasonR: 205,
+    decOut: 138, decZero: 100, decIn: 62,
+    termOut: 192, termIn: 183, termLabel: 197,
     frostOut: 175, frostIn: 165,
     noteMark: 157,
     hitIn: 150, hitOut: 462
@@ -49,6 +51,12 @@
              'a' + r + ' ' + r + ' 0 1 ' + dir + ' ' + (-2 * r) + ' 0Z';
     }
     return circ(r2, 1) + circ(r1, 0);
+  }
+  /* A full circle as closed path data, for fills and clip paths. */
+  function circlePath(r) {
+    return 'M' + (CX - r) + ' ' + CY +
+           'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0' +
+           'a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0Z';
   }
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -194,21 +202,145 @@
       }
     }
 
-    /* -- moon ring -------------------------------------------------------- */
+    /* -- the Sun's declination: what actually defines these four days ------
+     * Declination is how far north (+) or south (-) of the celestial equator
+     * the Sun stands. The equinoxes are exactly where it crosses zero and the
+     * solstices exactly where it bottoms out at -23.4 and peaks at +23.4, so
+     * drawing it against a zero-circle shows the definition rather than
+     * asserting it: the crossings line up with the equinox spokes on their
+     * own. Warm fill = Sun north of the equator, cool = south. */
+    if (opts.layers.declination) {
+      var TILT = 23.44;
+      var decR = function (dec) {
+        return R.decZero + Math.max(-TILT, Math.min(TILT, dec)) * (R.decOut - R.decZero) / TILT;
+      };
+      var decPts = [];
+      for (i = 0; i < N; i++) {
+        var dp = polar(decR(cycle.days[i].sunDeclination), dayAngle(cycle, cycle.days[i].n));
+        decPts.push((i ? 'L' : 'M') + fmt(dp[0]) + ' ' + fmt(dp[1]));
+      }
+      var decCurve = decPts.join('') + 'Z';
+      var zeroCircle = circlePath(R.decZero);
+      var COVER = 'M-2000 -2000H2600V2600H-2000Z';
+
+      parts.push('<defs>' +
+        '<clipPath id="dec-outside-zero"><path clip-rule="evenodd" d="' + COVER + zeroCircle + '"/></clipPath>' +
+        '<clipPath id="dec-outside-curve"><path clip-rule="evenodd" d="' + COVER + decCurve + '"/></clipPath>' +
+        '</defs>');
+      // North of the equator: the part of the curve reaching beyond zero.
+      parts.push('<path d="' + decCurve + '" fill="var(--sun)" opacity=".3" ' +
+                 'clip-path="url(#dec-outside-zero)"/>');
+      // South of it: the part of the zero disc the curve doesn't reach.
+      parts.push('<path d="' + zeroCircle + '" fill="var(--equinox)" opacity=".22" ' +
+                 'clip-path="url(#dec-outside-curve)"/>');
+      parts.push('<path d="' + zeroCircle + '" fill="none" stroke="var(--ink-3)" ' +
+                 'stroke-width="1" stroke-dasharray="3 4" opacity=".9"/>');
+      parts.push('<path d="' + decCurve + '" fill="none" stroke="var(--sun-bright)" stroke-width="1.6"/>');
+      parts.push('<circle cx="500" cy="500" r="' + R.decOut + '" fill="none" stroke="var(--line-soft)" stroke-width=".7"/>');
+      parts.push('<circle cx="500" cy="500" r="' + R.decIn + '" fill="none" stroke="var(--line-soft)" stroke-width=".7"/>');
+      parts.push('<text x="500" y="' + (CY - R.decZero - 4) + '" text-anchor="middle" ' +
+                 'font-size="9" fill="var(--ink-3)">celestial equator · 0°</text>');
+    }
+
+    /* -- moon ring: real phase shapes, on an orbit that breathes ----------
+     * Each day gets the Moon's actual lit shape rather than a dimmed dot,
+     * and the ring's radius tracks its real distance from Earth — nearer at
+     * perigee, further at apogee — so the ~27.5-day in-and-out of the orbit
+     * shows up as a visible wave, about 13 of them around the year. */
     if (opts.layers.moon) {
       var moons = [];
+
+      /* -- lunation pies: one wedge per new-moon-to-new-moon cycle --------
+       * The Moon's cycle does not divide the Sun's, so these wedges do not
+       * line up with anything solar and the year opens and closes part-way
+       * through one. Both partial ends are drawn dimmer and left unnumbered
+       * rather than rounded into whole moons. */
+      if (cycle.lunations && cycle.lunations.length) {
+        var pieMid = (R.moonPieIn + R.moonPieOut) / 2;
+        var pieHits = [];
+        cycle.lunations.forEach(function (L, li) {
+          var a1 = dayEdge(cycle, L.startDay);
+          var a2 = L.endDay >= N ? dayEdge(cycle, N) + step : dayEdge(cycle, L.endDay + 1);
+          // Alternating wash so neighbouring moons read apart at a glance.
+          parts.push('<path d="' + sector(R.moonPieIn, R.moonPieOut, a1, a2) +
+                     '" fill="var(--moon)" opacity="' +
+                     (L.complete ? (li % 2 ? '.05' : '.10') : '.03') + '"/>');
+          // Divider on the new moon itself.
+          var b1 = polar(R.moonPieIn, a1), b2 = polar(R.moonPieOut, a1);
+          parts.push('<path d="M' + fmt(b1[0]) + ' ' + fmt(b1[1]) + 'L' + fmt(b2[0]) + ' ' + fmt(b2[1]) +
+                     '" stroke="var(--moon)" stroke-width="' + (L.complete ? 1.1 : .7) +
+                     '" opacity="' + (L.complete ? '.65' : '.35') + '"/>');
+          // Named by the full moon inside it, which is how these are actually
+          // spoken of: "the second full moon of spring". A wedge with no full
+          // moon inside is a cut-off end and stays unlabelled.
+          // Two lines: the running year count leads, since that is the moon's
+          // name for the whole turn, with its position inside the season as
+          // the smaller supporting line beneath.
+          if (L.shortLabel) {
+            var mid = a1 + (((a2 - a1) % 360 + 360) % 360) / 2;
+            var np = polar(R.moonNumR, mid);
+            var sp2 = polar(R.moonSeasonR, mid);
+            parts.push(rotLabel(mid, np[0], np[1],
+              '<text class="moon-num' + (L.isBlue ? ' is-blue' : '') + '" x="' + fmt(np[0]) +
+              '" y="' + fmt(np[1]) + '" text-anchor="middle" dominant-baseline="middle">' +
+              'Moon ' + L.yearMoonNumber + (L.isBlue ? ' \u2022' : '') + '</text>'));
+            parts.push(rotLabel(mid, sp2[0], sp2[1],
+              '<text class="moon-season" x="' + fmt(sp2[0]) + '" y="' + fmt(sp2[1]) +
+              '" text-anchor="middle" dominant-baseline="middle">' + esc(L.shortLabel) + '</text>'));
+          }
+          pieHits.push('<path class="moon-hit" data-lunation="' + li + '" d="' +
+                       sector(R.moonPieIn, R.moonPieOut, a1, a2) + '"/>');
+        });
+        // Closing divider at the very end of the last segment.
+        var lastA = dayEdge(cycle, N) + step;
+        var e1 = polar(R.moonPieIn, lastA), e2 = polar(R.moonPieOut, lastA);
+        parts.push('<path d="M' + fmt(e1[0]) + ' ' + fmt(e1[1]) + 'L' + fmt(e2[0]) + ' ' + fmt(e2[1]) +
+                   '" stroke="var(--moon)" stroke-width=".7" opacity=".35"/>');
+        cycle._pieHits = pieHits.join('');
+      }
+      var near = cycle.moonNearestKm, far = cycle.moonFurthestKm;
+      var spanKm = (far - near) || 1;
+      function moonRadiusFor(d) {
+        // 0 at perigee (closest, drawn nearest the centre), 1 at apogee.
+        var t = (d.moonDistanceKm - near) / spanKm;
+        return R.moonRing - R.moonSwing + t * (R.moonSwing * 2);
+      }
+      // A faint guide at the mean distance, so the wave reads against it.
       parts.push('<circle cx="500" cy="500" r="' + R.moonRing + '" fill="none" ' +
-                 'stroke="var(--line-soft)" stroke-width="' + (R.moonR * 2 + 4) + '" opacity=".5"/>');
+                 'stroke="var(--line-soft)" stroke-width="1" opacity=".8" stroke-dasharray="2 5"/>');
+
+      // The orbit path itself, traced through every day's distance.
+      var orbit = [];
+      for (i = 0; i < N; i++) {
+        var od = cycle.days[i];
+        var op = polar(moonRadiusFor(od), dayAngle(cycle, od.n));
+        orbit.push((i ? 'L' : 'M') + fmt(op[0]) + ' ' + fmt(op[1]));
+      }
+      // Deliberately NOT closed: day 365 and day 1 are a whole year apart in
+      // the Moon's own cycle, so joining them would draw a jump that isn't
+      // real. The seam left at the solstice is the honest picture — the wheel
+      // closes because a circle must, but the Moon's rhythm carries on into
+      // the next turn. The spiral view is where that continuation is shown.
+      parts.push('<path d="' + orbit.join('') + '" fill="none" stroke="var(--moon)" ' +
+                 'stroke-width="1" opacity=".5"/>');
+
       for (i = 0; i < N; i++) {
         var dd = cycle.days[i];
-        var mp = polar(R.moonRing, dayAngle(cycle, dd.n));
-        var lit = dd.moonIllumination;
-        moons.push('<circle cx="' + fmt(mp[0]) + '" cy="' + fmt(mp[1]) + '" r="' + R.moonR +
-                   '" fill="var(--moon)" fill-opacity="' + fmt(0.08 + 0.92 * lit) + '"/>');
-        if (dd.moonEvent === 'Full Moon' || dd.moonEvent === 'New Moon') {
-          moons.push('<circle cx="' + fmt(mp[0]) + '" cy="' + fmt(mp[1]) + '" r="' + (R.moonR + 3.2) +
-                     '" fill="none" stroke="var(--moon)" stroke-width="1" opacity="' +
-                     (dd.moonEvent === 'Full Moon' ? '.9' : '.45') + '"/>');
+        var rr = moonRadiusFor(dd);
+        var mp = polar(rr, dayAngle(cycle, dd.n));
+        var isEvent = dd.moonEvent === 'Full Moon' || dd.moonEvent === 'New Moon' ||
+                      dd.moonEvent === 'First Quarter' || dd.moonEvent === 'Last Quarter';
+        var gr = isEvent ? R.moonR + 1.7 : R.moonR;
+        // Dark disc, then the real lit shape on top (same geometry the day
+        // view's larger glyph uses), so a crescent looks like a crescent.
+        moons.push('<circle cx="' + fmt(mp[0]) + '" cy="' + fmt(mp[1]) + '" r="' + fmt(gr) +
+                   '" fill="var(--moon-shadow)" opacity=".9"/>' +
+                   '<path d="' + MoonGlyph.litPath(mp[0], mp[1], gr, dd.moonAge) +
+                   '" fill="var(--moon-lit)"/>');
+        if (isEvent) {
+          moons.push('<circle cx="' + fmt(mp[0]) + '" cy="' + fmt(mp[1]) + '" r="' + fmt(gr + 2.6) +
+                     '" fill="none" stroke="var(--moon)" stroke-width=".9" opacity="' +
+                     (dd.moonEvent === 'Full Moon' ? '.85' : '.4') + '"/>');
         }
       }
       parts.push(moons.join(''));
@@ -280,7 +412,13 @@
       // a spoke through the wheel at all eight stations, marking the season
       // quarters; the four cardinal points read a little stronger than the
       // four cross-quarter midpoints
-      var s1 = polar(R.frostIn, ang), s2 = polar(R.bandOut, ang);
+      // Cardinal spokes reach all the way in through the declination ring, so
+      // the curve's zero crossing can be checked against the equinox line
+      // rather than taken on trust. Without that the two sit in rings far
+      // apart with nothing joining them, and the alignment looks unverifiable.
+      var innerReach = (opts.layers.declination && s.offset % 90 === 0)
+        ? R.decIn - 8 : R.frostIn;
+      var s1 = polar(innerReach, ang), s2 = polar(R.bandOut, ang);
       parts.push('<path d="M' + fmt(s1[0]) + ' ' + fmt(s1[1]) + 'L' + fmt(s2[0]) + ' ' + fmt(s2[1]) +
                  '" stroke="' + colour + '" stroke-width="1" opacity="' + (s.offset % 90 === 0 ? '.35' : '.18') +
                  '" stroke-dasharray="3 4"/>');
@@ -329,6 +467,10 @@
                 sector(R.hitIn, R.hitOut, dayEdge(cycle, i), dayEdge(cycle, i) + step) + '"/>');
     }
     parts.push('<g id="hits">' + hits.join('') + '</g>');
+    if (cycle._pieHits) {
+      parts.push('<g id="moon-hits">' + cycle._pieHits + '</g>');
+      cycle._pieHits = null;
+    }
 
     return parts.join('');
   }
@@ -369,7 +511,7 @@
       var ang = dayAngle(cycle, s.dayNumber);
       var dayObj = cycle.days[s.dayNumber - 1];
       var eveJD = Stars.eveningInstant(A.jdFromDate(dayObj.date), cycle.lat, cycle.lon);
-      var glyph = Stars.dipperGlyph(eveJD, cycle.lat, cycle.lon, R.skyClockR * 1.5);
+      var glyph = Stars.dipperGlyph(eveJD, cycle.lat, cycle.lon, R.skyClockR * 1.65);
       var cp = polar(R.skyClock, ang);
       if (glyph) {
         // Each star is three stacked circles — a wide soft halo, a tighter
@@ -377,19 +519,35 @@
         // without needing an SVG filter.
         var starDots = glyph.stars.map(function (st) {
           var x = st.x.toFixed(1), y = st.y.toFixed(1);
-          return '<circle cx="' + x + '" cy="' + y + '" r="9" fill="#fff" opacity=".16"/>' +
-                 '<circle cx="' + x + '" cy="' + y + '" r="5" fill="#fff" opacity=".38"/>' +
-                 '<circle cx="' + x + '" cy="' + y + '" r="2.3" fill="#fff"/>';
+          return '<circle cx="' + x + '" cy="' + y + '" r="7" fill="#fff" opacity=".14"/>' +
+                 '<circle cx="' + x + '" cy="' + y + '" r="4" fill="#fff" opacity=".34"/>' +
+                 '<circle cx="' + x + '" cy="' + y + '" r="2" fill="#fff"/>';
         }).join('');
+        // Polaris gets a bigger, cooler glow and four diffraction spikes, so
+        // the one fixed point in the picture is unmistakable against the
+        // seven that swing around it.
+        var px = glyph.polaris.x, py = glyph.polaris.y;
+        var sp = 11;
+        var polarisMark =
+          '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="12" fill="#bcd4ff" opacity=".18"/>' +
+          '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="6.5" fill="#d8e6ff" opacity=".45"/>' +
+          '<path d="M' + (px - sp).toFixed(1) + ' ' + py.toFixed(1) + 'L' + (px + sp).toFixed(1) + ' ' + py.toFixed(1) +
+          'M' + px.toFixed(1) + ' ' + (py - sp).toFixed(1) + 'L' + px.toFixed(1) + ' ' + (py + sp).toFixed(1) +
+          '" stroke="#eaf2ff" stroke-width="1.1" opacity=".75" stroke-linecap="round"/>' +
+          '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="3" fill="#fff"/>';
         parts.push('<g transform="translate(' + fmt(cp[0]) + ' ' + fmt(cp[1]) + ')">' +
           '<circle r="' + R.skyClockR + '" fill="var(--sky-patch)" stroke="var(--line)" stroke-width="1"/>' +
-          '<path d="' + glyph.bowl + '" fill="none" stroke="#dfe6ff" stroke-width="1.6" opacity=".8" ' +
+          // the pointer stars' sightline, Merak through Dubhe on to Polaris
+          '<path d="' + glyph.pointer + '" fill="none" stroke="#9fb4e8" stroke-width="1" ' +
+          'stroke-dasharray="3 3" opacity=".45" stroke-linecap="round"/>' +
+          '<path d="' + glyph.bowl + '" fill="none" stroke="#dfe6ff" stroke-width="1.5" opacity=".8" ' +
           'stroke-linejoin="round" stroke-linecap="round"/>' +
-          '<path d="' + glyph.handle + '" fill="none" stroke="#dfe6ff" stroke-width="1.6" opacity=".8" ' +
+          '<path d="' + glyph.handle + '" fill="none" stroke="#dfe6ff" stroke-width="1.5" opacity=".8" ' +
           'stroke-linejoin="round" stroke-linecap="round"/>' +
-          starDots +
+          starDots + polarisMark +
           '<title>The Big Dipper facing north at nightfall on this date, from this place. ' +
-          (glyph.polarisUp ? 'Polaris is above the horizon too.' : '') + '</title>' +
+          'The bright cross is Polaris: the two stars on the bowl\'s outer edge point straight at it, ' +
+          'and it holds still all year while the Dipper swings around it.</title>' +
           '</g>');
       } else {
         parts.push('<g transform="translate(' + fmt(cp[0]) + ' ' + fmt(cp[1]) + ')">' +
@@ -412,15 +570,33 @@
     el.setAttribute('opacity', '.85');
   }
 
-  /* The transform that frames one season, or the identity for the whole year. */
-  function transformFor(cycle, level, seasonIndex) {
+  /* The transform that frames one span of days, or the identity for the whole
+   * year. Seasons and lunations use the same framing maths; only the span
+   * differs, which is the point — a moon is just a different set of days. */
+  function transformFor(cycle, level, seasonIndex, lunationIndex) {
+    if (level === 'lunation' && lunationIndex != null && cycle.lunations) {
+      var L = cycle.lunations[lunationIndex];
+      if (L) return frameSpan(cycle, L.startDay, L.endDay);
+    }
     if (level !== 'season' || seasonIndex == null) return { transform: 'none', zoomed: false, rotation: 0 };
     var s = cycle.seasons[seasonIndex];
-    var a1 = dayEdge(cycle, s.startDay);
-    var a2 = s.endDay >= cycle.length ? 360 : dayEdge(cycle, s.endDay + 1);
+    return frameSpan(cycle, s.startDay, s.endDay);
+  }
+
+  /* Frame days [startDay..endDay] across the top of the view. Zoom is scaled
+   * to the span so a 30-day moon fills the frame as a 91-day season does. */
+  function frameSpan(cycle, startDay, endDay) {
+    var a1 = dayEdge(cycle, startDay);
+    var a2 = endDay >= cycle.length ? dayEdge(cycle, cycle.length) + 360 / cycle.length
+                                    : dayEdge(cycle, endDay + 1);
     var span = ((a2 - a1) % 360 + 360) % 360 || 360;
     var mid = a1 + span / 2;
-    var k = 2.0;
+    // A quarter-year fills the frame at 2x. Scaling a 30-day moon to fill the
+    // frame identically works out near 5.5x, which is technically right and
+    // visually useless: the ring swamps the view and the surrounding year
+    // disappears. Damping by a square root keeps a moon clearly zoomed while
+    // leaving the seasons either side of it in frame.
+    var k = Math.max(2.0, Math.min(3.4, 2.0 * Math.sqrt(90 / span)));
     var ty = 128 - (CY - k * (R.stationLabel + 22));
     return {
       transform: 'translate(0px,' + Math.round(ty) + 'px) scale(' + k + ') rotate(' + (-mid) + 'deg)',

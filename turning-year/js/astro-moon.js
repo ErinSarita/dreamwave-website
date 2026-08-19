@@ -123,6 +123,9 @@
     return {
       illumination: k, phaseAngle: i, elongation: psi, age: age,
       waxing: age < 180, name: PHASE_NAMES[idx],
+      // centre-to-centre distance to the Moon, km — varies by roughly
+      // 356,500 (perigee) to 406,700 (apogee) over an anomalistic month
+      distanceKm: m.distanceKm,
       // days since the last new moon, approximate
       ageDays: age / 360 * 29.530588853
     };

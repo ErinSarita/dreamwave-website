@@ -14,10 +14,11 @@
     anchorYear: null,
     level: 'year',
     season: null,
+    lunation: null,
     day: null,
     hover: null,
     noteOpen: false,
-    layers: { moon: true, terms: false, frost: true, months: true, traditional: false, skyClock: true },
+    layers: { moon: true, terms: false, frost: true, months: true, traditional: false, skyClock: true, declination: true },
     frost: { last: null, first: null },
     theme: 'night',
     hour12: false
@@ -63,6 +64,44 @@
     if (text) notes[iso] = text; else delete notes[iso];
     saveNotes();
   }
+  /* Notes live only in this browser's localStorage, so they are one cleared
+   * cache away from gone and never appear on another device. Export/import
+   * is the honest fix: a plain JSON file the user actually holds. */
+  function exportNotes() {
+    var payload = {
+      kind: 'turning-year-notes', version: 1,
+      exported: new Date().toISOString(), notes: notes
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'turning-year-notes-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  /* Merge rather than replace: restoring on a device that already has notes
+   * should never silently destroy them. Same date on both sides keeps the
+   * longer text, on the assumption that the fuller note is the wanted one. */
+  function importNotes(text) {
+    var parsed;
+    try { parsed = JSON.parse(text); } catch (e) { return { ok: false, msg: 'That file is not valid JSON.' }; }
+    var incoming = parsed && parsed.notes && typeof parsed.notes === 'object' ? parsed.notes
+                 : (parsed && typeof parsed === 'object' && !parsed.notes ? parsed : null);
+    if (!incoming) return { ok: false, msg: 'No notes found in that file.' };
+    var added = 0, merged = 0;
+    Object.keys(incoming).forEach(function (k) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
+      var val = String(incoming[k] || '').trim();
+      if (!val) return;
+      if (!notes[k]) { notes[k] = val; added++; }
+      else if (notes[k] !== val) { if (val.length > notes[k].length) notes[k] = val; merged++; }
+    });
+    saveNotes();
+    return { ok: true, msg: 'Restored: ' + added + ' added, ' + merged + ' already here.' };
+  }
+
   /* Notes from other years on this same month and day, most recent first,
    * so "last frost" or "first bloom" can actually be compared year to year. */
   function notesOnSameDate(iso, limit) {
@@ -161,6 +200,7 @@
       cycle.buildMs = Math.round(performance.now() - t0);
       drawWheel();
       syncChrome();
+      closeTool();
       $('loading').hidden = true;
       if (then) then();
     }, 16);
@@ -189,6 +229,14 @@
       hits[i].addEventListener('click', onPick);
       hits[i].addEventListener('focus', onHover);
     }
+    var moonHits = $('wheel').querySelectorAll('.moon-hit');
+    for (var m = 0; m < moonHits.length; m++) {
+      moonHits[m].addEventListener('click', function (e) {
+        e.stopPropagation();          // the day sector underneath must not also fire
+        state.lunation = +e.currentTarget.getAttribute('data-lunation');
+        setLevel('lunation');
+      });
+    }
     $('wheel').addEventListener('mouseleave', function () {
       state.hover = null;
       updateReadout(state.day || todayNumber() || 1);
@@ -212,7 +260,7 @@
   }
 
   function applyZoom() {
-    var t = WheelView.transformFor(cycle, state.level, state.season);
+    var t = WheelView.transformFor(cycle, state.level, state.season, state.lunation);
     $('wheel').style.transform = t.transform;
     $('hud').style.transform = t.transform;    // kept in lock-step so the sky glyphs track their stations
     $('wheel-svg').classList.toggle('zoomed', !!t.zoomed);
@@ -223,7 +271,8 @@
     if (wheelZoom) wheelZoom.reset();
     if (dayZoom) dayZoom.reset();
     state.level = level;
-    if (level === 'year') { state.season = null; state.day = null; }
+    if (level === 'year') { state.season = null; state.day = null; state.lunation = null; }
+    if (level === 'season') state.lunation = null;
     if (level === 'season' && state.season === null) {
       state.season = WheelView.seasonOfDay(cycle, state.day || todayNumber() || 1);
     }
@@ -233,6 +282,12 @@
       state.noteOpen = false;
     }
     var wheelScene = $('scene-wheel'), dayScene = $('scene-day');
+    if (level === 'lunation') {
+      applyZoom();
+      updateReadout(state.hover || todayNumber() || 1);
+      syncCrumbs(); syncLegend(); writeHash();
+      return;
+    }
     if (level === 'day') {
       drawDay();
       wheelScene.classList.add('fading');
@@ -267,7 +322,9 @@
     '<li><i class="sw sw-sol"></i> Solstice &amp; equinox</li>' +
     '<li><i class="sw sw-cq"></i> Midseason (cross-quarter day)</li>' +
     '<li><i class="sw sw-noted"></i> A day you\'ve written a note on</li>' +
-    '<li><i class="sw sw-sky"></i> The Big Dipper facing north at nightfall</li>';
+    '<li><i class="sw sw-sky"></i> The Big Dipper facing north at nightfall</li>' +
+    '<li><i class="sw sw-polaris"></i> Polaris, held still by the pointer stars\' dashed sightline</li>' +
+    '<li><i class="sw sw-dec"></i> Sun north / south of the celestial equator</li>';
 
   var DAY_LEGEND =
     '<li><i class="sw sw-day"></i> Sun above the horizon (gold ring)</li>' +
@@ -287,14 +344,20 @@
 
   function syncCrumbs() {
     var cs = $('crumbs').querySelectorAll('.crumb');
+    // A lunation sits in the same middle slot a season does, so it lights the
+    // same crumb; without this nothing is highlighted at that level at all.
+    var slot = state.level === 'lunation' ? 'season' : state.level;
     for (var i = 0; i < cs.length; i++) {
       var lvl = cs[i].getAttribute('data-level');
-      cs[i].classList.toggle('is-on', lvl === state.level);
+      cs[i].classList.toggle('is-on', lvl === slot);
     }
     var cS = $('crumb-season'), cD = $('crumb-day');
     cS.disabled = !cycle;
     cD.disabled = !cycle;
-    if (cycle && state.season !== null) cS.textContent = cycle.seasons[state.season].from.name;
+    if (cycle && state.level === 'lunation' && state.lunation !== null && cycle.lunations) {
+      var L = cycle.lunations[state.lunation];
+      cS.textContent = L && L.yearMoonNumber ? 'Moon ' + L.yearMoonNumber : 'Lunar month';
+    } else if (cycle && state.season !== null) cS.textContent = cycle.seasons[state.season].from.name;
     else cS.textContent = 'Season';
     cD.textContent = state.day ? 'Day ' + state.day : 'Day';
   }
@@ -334,6 +397,7 @@
       '<div class="r-rows">' + rows.join('') + '</div>' +
       '<div class="r-moon">' + MoonGlyph.svg(d.moonAge, 20) +
         '<span>' + Math.round(d.moonIllumination * 100) + '% lit · ' + d.moonPhaseName + '</span></div>' +
+      (d.lunation ? '<div class="r-lunation">' + lunationLabel(d) + '</div>' : '') +
       (hint ? '<div class="r-hint">' + hint + '</div>' : '');
   }
   function row(k, v) { return '<div><span>' + k + '</span> · ' + v + '</div>'; }
@@ -375,13 +439,144 @@
         '<div class="d-sun"><b>' + (d.sunAlwaysUp ? '24 h' : d.sunAlwaysDown ? '0 h' : DayView.hm(d.daylightHours)) + '</b>light</div>' +
         '<div class="d-dark"><b>' + (d.sunAlwaysDown ? '24 h' : d.sunAlwaysUp ? '0 h' : DayView.hm(d.nightHours)) + '</b>dark</div>' +
       '</div>' +
+      peaksMarkup(d, out.darkMidpoint) +
       '<div class="d-moon-row">' + MoonGlyph.svg(d.moonAge, 30) +
         '<div class="d-moon-text"><b>' + Math.round(d.moonIllumination * 100) + '% lit</b>' +
         d.moonPhaseName + '</div></div>' +
+      (d.lunation ? '<div class="d-term">' + lunationLabel(d) + '</div>' : '') +
       '<div class="d-week" style="margin-top:6px">Moon ' + moonLine + '</div>' +
       noteMarkup(d.iso);
 
     wireNote(d.iso);
+  }
+
+  /* "Moon 3 · day 12 of 30" — which lunation this day sits in and how far
+   * through it. Segment length is the real 29 or 30 days rather than a
+   * rounded 29, and the partial ends say so instead of claiming a number. */
+  function lunationLabel(d) {
+    var L = d.lunation;
+    if (!L) return '';
+    if (!L.yearMoonNumber) {
+      var edge = L.lead ? 'Lunar month carried in from last year'
+                        : 'Lunar month running into next year';
+      return edge + ' · day ' + d.dayInLunation + (L.complete ? ' of ' + L.days : '');
+    }
+    return 'Year Moon ' + L.yearMoonNumber +
+           (cycle.yearMoonCount ? ' of ' + cycle.yearMoonCount : '') +
+           ' · ' + L.shortLabel + (L.isBlue ? ' · blue moon' : '') +
+           ' · day ' + d.dayInLunation + (L.complete ? ' of ' + L.days : '');
+  }
+
+  /* ------------------------------------------------------- quick-find lists
+   * Two indexes into the cycle: the moons, and the eight seasonal stations.
+   * Both are just views onto data already computed for the wheel, and every
+   * row jumps straight to that day. */
+  var toolOpen = null;
+
+  function moonListItems() {
+    return cycle.days
+      .filter(function (d) { return d.moonEvent === 'Full Moon' || d.moonEvent === 'New Moon'; })
+      .map(function (d) {
+        return {
+          n: d.n,
+          name: d.moonEvent === 'Full Moon'
+            ? ('Year Moon ' + d.yearMoonNumber + ' · ' + d.fullMoonSeasonLabel)
+            : (d.newMoonSeasonLabel ? d.newMoonSeasonLabel + ' · new' : d.moonEvent),
+          date: TZ.formatDate(cycle.tz, d.date),
+          sub: (d.isBlueMoon ? 'blue moon · ' : '') +
+               Math.round(d.moonIllumination * 100) + '% lit · ' +
+               Math.round(d.moonDistanceKm).toLocaleString() + ' km',
+          glyph: MoonGlyph.svg(d.moonAge, 17)
+        };
+      });
+  }
+
+  function stationListItems() {
+    return cycle.stations.filter(function (s) { return s.dayNumber; }).map(function (s) {
+      var d = cycle.days[s.dayNumber - 1];
+      return {
+        n: s.dayNumber, name: s.name,
+        date: TZ.formatDate(cycle.tz, d.date),
+        sub: s.alt + (s.term ? ' · ' + s.term.hanzi + ' ' + s.term.pinyin : ''),
+        glyph: '<i class="sw ' + (s.kind === 'cross-quarter' ? 'sw-cq' : 'sw-sol') + '"></i>'
+      };
+    });
+  }
+
+  function openTool(kind) {
+    if (toolOpen === kind) { closeTool(); return; }
+    var items = kind === 'moon' ? moonListItems() : stationListItems();
+    var todayN = todayNumber();
+    $('tool-panel-title').textContent = kind === 'moon'
+      ? 'Full and new moons' : 'Solstices, equinoxes and midseasons';
+    $('tool-panel-list').innerHTML = items.length
+      ? items.map(function (it) {
+          return '<li><button data-day="' + it.n + '"' +
+            (it.n === todayN ? ' class="is-today"' : '') + '>' +
+            it.glyph +
+            '<span class="ti-name">' + esc(it.name) +
+            (it.sub ? '<span class="ti-sub">' + esc(it.sub) + '</span>' : '') + '</span>' +
+            '<span class="ti-date">' + esc(it.date) + '</span>' +
+            '<span class="ti-day">day ' + it.n + '</span>' +
+            '</button></li>';
+        }).join('')
+      : '<li class="tool-panel-empty">Nothing to list for this cycle.</li>';
+
+    Array.prototype.forEach.call($('tool-panel-list').querySelectorAll('button[data-day]'), function (b) {
+      b.addEventListener('click', function () {
+        state.day = +b.getAttribute('data-day');
+        closeTool();
+        setLevel('day');
+      });
+    });
+
+    $('tool-panel').hidden = false;
+    toolOpen = kind;
+    $('tool-moon').classList.toggle('is-open', kind === 'moon');
+    $('tool-stations').classList.toggle('is-open', kind === 'stations');
+    $('tool-moon').setAttribute('aria-expanded', String(kind === 'moon'));
+    $('tool-stations').setAttribute('aria-expanded', String(kind === 'stations'));
+  }
+
+  function closeTool() {
+    toolOpen = null;
+    $('tool-panel').hidden = true;
+    $('tool-moon').classList.remove('is-open');
+    $('tool-stations').classList.remove('is-open');
+    $('tool-moon').setAttribute('aria-expanded', 'false');
+    $('tool-stations').setAttribute('aria-expanded', 'false');
+  }
+
+  /* The day's two turning points: the sun's upper and lower meridian
+   * crossings. Altitudes are signed, so a negative peak-sun means the sun
+   * never cleared the horizon and a positive peak-darkness means it never
+   * set, both of which are worth saying outright rather than hiding. */
+  function peaksMarkup(d, darkMidpoint) {
+    if (!d.solarNoon && !d.solarMidnight) return '';
+    function deg(v) { return (v >= 0 ? '+' : '') + Math.round(v) + '\u00B0'; }
+    var rows = '';
+    if (d.solarNoon) {
+      rows += '<div class="d-peak"><i class="pk pk-sun"></i>' +
+        '<span class="pk-name">Peak sun</span>' +
+        '<b>' + TZ.formatTime(cycle.tz, d.solarNoon, state.hour12) + '</b>' +
+        '<span class="pk-alt">' + deg(d.maxSunAltitude) + '</span></div>';
+    }
+    if (d.solarMidnight) {
+      rows += '<div class="d-peak"><i class="pk pk-dark"></i>' +
+        '<span class="pk-name">Peak darkness</span>' +
+        '<b>' + TZ.formatTime(cycle.tz, d.solarMidnight, state.hour12) + '</b>' +
+        '<span class="pk-alt">' + deg(d.minSunAltitude) + '</span></div>';
+    }
+    var note = '';
+    if (d.sunAlwaysUp) note = 'The sun stays up all day; even its low point is above the horizon.';
+    else if (d.sunAlwaysDown) note = 'The sun stays down all day; even its high point is below the horizon.';
+    else if (darkMidpoint && d.solarMidnight) {
+      var mins = Math.abs(darkMidpoint.getTime() - d.solarMidnight.getTime()) / 60000;
+      note = 'Middle of the dark: ' + TZ.formatTime(cycle.tz, darkMidpoint, state.hour12) +
+             (mins < 1 ? ', under a minute off.' : ', ' + Math.round(mins) + ' min off.');
+    }
+    return '<div class="d-peaks">' + rows +
+           (note ? '<div class="d-peak-note">' + note + '</div>' : '') + '</div>';
   }
 
   /* A note is one free-text entry per calendar date: what actually happened
@@ -422,6 +617,7 @@
     ta.addEventListener('input', function () {
       setNote(iso, ta.value);
       $('note-btn').classList.toggle('has-note', !!ta.value.trim());
+      syncNotesCount();
     });
     $('note-done').addEventListener('click', function () {
       state.noteOpen = false;
@@ -443,6 +639,7 @@
       TZ.formatDate(cycle.tz, cycle.day1, 'short') + ' ' + TZ.civilParts(cycle.tz, cycle.day1).year +
       ' → ' + TZ.formatDate(cycle.tz, lastDay.date, 'short') + ' ' + lastDay.year;
     $('cycle-meta').textContent = cycle.length + ' days' +
+      (cycle.yearMoonCount ? ' · ' + cycle.yearMoonCount + ' full moons' : '') +
       (cycle.isLong ? ' · a long cycle' : '') +
       (cycle.southern ? ' · June solstice anchor' : '');
 
@@ -456,7 +653,13 @@
         ? 'Latitude estimate, shown as a ±15 day window around each date. Type your own dates.'
         : 'Shown as a ±15 day window around each date.');
     }
+    syncNotesCount();
     syncCrumbs();
+  }
+
+  function syncNotesCount() {
+    var n = Object.keys(notes).length;
+    $('notes-count').textContent = n ? (n + (n === 1 ? ' day noted' : ' days noted')) : 'No notes yet.';
   }
 
   /* ------------------------------------------------------------------ setup */
@@ -544,7 +747,8 @@
     $('goto-date').addEventListener('keydown', function (e) { if (e.key === 'Enter') goToDate(); });
 
     [['lay-moon', 'moon'], ['lay-terms', 'terms'], ['lay-frost', 'frost'],
-     ['lay-months', 'months'], ['lay-trad', 'traditional'], ['lay-sky', 'skyClock']].forEach(function (pair) {
+     ['lay-months', 'months'], ['lay-trad', 'traditional'], ['lay-sky', 'skyClock'],
+     ['lay-dec', 'declination']].forEach(function (pair) {
       var el = $(pair[0]);
       el.checked = state.layers[pair[1]];
       el.addEventListener('change', function () {
@@ -560,6 +764,25 @@
       CycleModel.applyFrost(cycle, state.frost);
       drawWheel(); syncChrome();
     }
+    $('notes-export').addEventListener('click', function () {
+      if (!Object.keys(notes).length) { $('notes-meta').textContent = 'No notes to back up yet.'; return; }
+      exportNotes();
+      $('notes-meta').textContent = 'Backup downloaded.';
+    });
+    $('notes-import').addEventListener('click', function () { $('notes-file').click(); });
+    $('notes-file').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var res = importNotes(String(reader.result));
+        $('notes-meta').textContent = res.msg;
+        if (res.ok) { drawWheel(); syncNotesCount(); if (state.level === 'day') drawDay(); }
+      };
+      reader.readAsText(f);
+      e.target.value = '';
+    });
+
     $('frost-last').addEventListener('change', frostChanged);
     $('frost-first').addEventListener('change', frostChanged);
 
@@ -567,6 +790,15 @@
     $('about-close').addEventListener('click', function () { $('about').hidden = true; });
     $('about').addEventListener('click', function (e) {
       if (e.target === $('about')) $('about').hidden = true;
+    });
+
+    $('tool-moon').addEventListener('click', function () { openTool('moon'); });
+    $('tool-stations').addEventListener('click', function () { openTool('stations'); });
+    $('tool-panel-close').addEventListener('click', closeTool);
+    document.addEventListener('click', function (e) {
+      if (!toolOpen) return;
+      if ($('tool-panel').contains(e.target) || $('top-tools').contains(e.target)) return;
+      closeTool();
     });
 
     $('compare-btn').addEventListener('click', function () {
@@ -579,6 +811,29 @@
       }).join('');
       $('compare').hidden = false;
     });
+    $('spiral-btn').addEventListener('click', function () {
+      var data = Spiral.build({
+        lat: state.place.lat, tz: state.place.tz, centerYear: state.anchorYear,
+        anchorMode: cycle.anchorMode, span: 2
+      });
+      var out = Spiral.render(data, { todayJD: A.jdFromDate(new Date()) });
+      $('spiral-svg').innerHTML = out.svg;
+      var lengths = data.turns.map(function (t) { return t.days; });
+      var long = data.turns.filter(function (t) { return t.days === 366; })
+                           .map(function (t) { return t.year; });
+      $('spiral-meta').textContent =
+        'Cycle lengths shown: ' + lengths.join(', ') + ' days. ' +
+        (long.length
+          ? 'The ' + long.join(' and ') + ' cycle' + (long.length > 1 ? 's run' : ' runs') +
+            ' to 366 days, which is where the extra sunrise goes.'
+          : 'All the same length in this stretch.');
+      $('spiral').hidden = false;
+    });
+    $('spiral-close').addEventListener('click', function () { $('spiral').hidden = true; });
+    $('spiral').addEventListener('click', function (e) {
+      if (e.target === $('spiral')) $('spiral').hidden = true;
+    });
+
     $('compare-close').addEventListener('click', function () { $('compare').hidden = true; });
     $('compare').addEventListener('click', function (e) {
       if (e.target === $('compare')) $('compare').hidden = true;
@@ -604,6 +859,8 @@
       if (e.key === 'Escape') {
         if (!$('about').hidden) { $('about').hidden = true; return; }
         if (!$('compare').hidden) { $('compare').hidden = true; return; }
+        if (!$('spiral').hidden) { $('spiral').hidden = true; return; }
+        if (toolOpen) { closeTool(); return; }
         setLevel(state.level === 'day' ? 'season' : 'year');
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
         var dir = e.key === 'ArrowRight' ? 1 : -1;

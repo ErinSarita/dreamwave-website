@@ -53,43 +53,71 @@
     return dayStartJD + 0.5;
   }
 
-  /* Small SVG path data for the dipper glyph. Its seven stars only span
-   * about 25 degrees of sky (Dubhe to Alkaid) — mapping that against the
-   * full 90-degree horizon-to-zenith range, the way a compass sketch would,
-   * squeezes the whole shape into an unreadable dot. Instead this centres
-   * and zooms on the pattern itself: real relative position and orientation
-   * (which is what actually varies with date and place), rescaled around a
-   * fixed ~16-degree half-width so the dipper reads as a dipper wherever it
-   * sits in the sky. Returns null if it isn't above the horizon to draw. */
+  /* alt/az (degrees) to a unit vector in (east, north, up). */
+  function toVector(alt, az) {
+    var a = alt * Math.PI / 180, z = az * Math.PI / 180, ca = Math.cos(a);
+    return [ca * Math.sin(z), ca * Math.cos(z), Math.sin(a)];
+  }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+  function cross(a, b) {
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  }
+  function norm(v) {
+    var m = Math.sqrt(dot(v, v)) || 1;
+    return [v[0] / m, v[1] / m, v[2] / m];
+  }
+
+  /* SVG path data for the dipper glyph, with Polaris included as a fixed
+   * anchor so each circle reads as a piece of sky rather than a loose
+   * scatter of dots: the Dipper's orientation changes through the year, but
+   * its relationship to the pole star doesn't, which is exactly what makes
+   * the rotation legible.
+   *
+   * The projection is azimuthal-equidistant centred on Polaris itself. That
+   * choice matters: Polaris sits under a degree from the celestial pole, so
+   * it is the one star that effectively does not move all night or all year.
+   * Pinning it to the middle and letting the Dipper swing around it renders
+   * the yearly rotation as rotation. Centring on the group's centroid, as
+   * this did before, slid the whole pattern about the frame instead and
+   * partly hid the motion the glyph exists to show.
+   *
+   * Distances are exact angular degrees from Polaris, with local "up" mapped
+   * to up in the glyph, so it matches what you see facing north. Returns null
+   * if the Dipper is below the horizon. */
   function dipperGlyph(jd, lat, lon, size) {
     var view = dipperView(jd, lat, lon);
     if (!view.visible) return null;
 
-    // Circular mean azimuth and mean altitude of the seven stars, so the
-    // sketch is centred on the constellation regardless of which way it
-    // happens to be facing (its azimuth can sit right across the 0/360 seam).
-    var sx = 0, sy = 0, salt = 0;
-    DIPPER.forEach(function (s) {
-      var p = view.pos[s.name];
-      sx += Math.sin(p.az * Math.PI / 180);
-      sy += Math.cos(p.az * Math.PI / 180);
-      salt += p.alt;
+    var names = DIPPER.map(function (s) { return s.name; }).concat(['Polaris']);
+    var vecs = {};
+    names.forEach(function (n) {
+      vecs[n] = toVector(view.pos[n].alt, view.pos[n].az);
     });
-    var centerAz = Math.atan2(sx, sy) * 180 / Math.PI;
-    var centerAlt = salt / DIPPER.length;
 
-    var DEGREE_HALF_WIDTH = 20;               // sky-degrees mapped to size/2
+    // Polaris is the axis the whole picture turns on, so it is the centre.
+    var w = vecs.Polaris;
+
+    // View basis: `right` is horizontal (perpendicular to the zenith), `up`
+    // completes it, so the sketch keeps the sky's own up/down.
+    var zenith = [0, 0, 1];
+    var right = norm(cross(w, zenith));
+    if (!isFinite(right[0]) || dot(right, right) < 1e-9) right = [1, 0, 0];   // looking straight up
+    var up = cross(right, w);
+
+    var DEGREE_HALF_WIDTH = 47;               // Polaris to Alkaid is about 41 deg
     var scale = (size / 2) / DEGREE_HALF_WIDTH;
-    var azCorrection = Math.max(0.35, Math.cos(centerAlt * Math.PI / 180));
 
     function xy(name) {
-      var p = view.pos[name];
-      var daz = ((p.az - centerAz + 540) % 360) - 180;    // shortest signed delta
-      var dalt = p.alt - centerAlt;
-      return [daz * azCorrection * scale, -dalt * scale];
+      var v = vecs[name];
+      var cosT = Math.max(-1, Math.min(1, dot(v, w)));
+      var theta = Math.acos(cosT) * 180 / Math.PI;      // angular distance from centre
+      var px = dot(v, right), py = dot(v, up);
+      var m = Math.sqrt(px * px + py * py);
+      if (m < 1e-9) return [0, 0];
+      return [theta * scale * (px / m), -theta * scale * (py / m)];
     }
-    function path(names) {
-      return names.map(function (n, i) {
+    function path(list) {
+      return list.map(function (n, i) {
         var p = xy(n);
         return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
       }).join('');
@@ -98,7 +126,18 @@
       var p = xy(s.name);
       return { name: s.name, x: p[0], y: p[1] };
     });
-    return { bowl: path(BOWL), handle: path(HANDLE), stars: stars, polarisUp: view.pos.Polaris.alt > 0 };
+    var polarisXY = xy('Polaris');
+    // The classic pointer line: the bowl's outer edge, Merak through Dubhe,
+    // extended onward to Polaris. Drawn faintly so it reads as a sightline
+    // rather than part of the constellation itself.
+    var pointer = path(['Merak', 'Dubhe']) + 'L' + polarisXY[0].toFixed(1) + ' ' + polarisXY[1].toFixed(1);
+
+    return {
+      bowl: path(BOWL), handle: path(HANDLE), stars: stars,
+      polaris: { x: polarisXY[0], y: polarisXY[1], alt: view.pos.Polaris.alt },
+      pointer: pointer,
+      polarisUp: view.pos.Polaris.alt > 0
+    };
   }
 
   global.Stars = { DIPPER: DIPPER, POLARIS: POLARIS, dipperView: dipperView,

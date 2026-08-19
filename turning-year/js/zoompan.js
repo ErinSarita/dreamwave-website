@@ -55,27 +55,39 @@
       zoomAt(factor, e.clientX, e.clientY);
     }
     function onPointerDown(e) {
-      hostEl.setPointerCapture(e.pointerId);
       pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
       var ids = Object.keys(pointers);
       if (ids.length === 2) {
+        // Starting a pinch: capture both fingers so the gesture survives a
+        // finger sliding past the element's edge.
+        ids.forEach(function (id) { try { hostEl.setPointerCapture(+id); } catch (err) {} });
         pinchStartDist = dist(pointers[ids[0]], pointers[ids[1]]);
         pinchStartScale = scale;
       } else if (ids.length === 1 && scale > 1.01) {
+        // Panning an already-zoomed view: capture so the drag continues
+        // smoothly even if the finger moves past the element's edge.
+        try { hostEl.setPointerCapture(e.pointerId); } catch (err) {}
         dragLast = { x: e.clientX, y: e.clientY };
       }
+      // A plain single-finger touch on the unzoomed view is left uncaptured
+      // entirely, so it can still become a normal tap/click on whatever is
+      // underneath — a day sector, the note button — instead of being
+      // swallowed by capture before it gets there. This was the actual bug:
+      // capturing on every touch broke tapping to select a day on iOS Safari.
     }
     function onPointerMove(e) {
       if (!pointers[e.pointerId]) return;
       pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
       var ids = Object.keys(pointers);
       if (ids.length === 2 && pinchStartDist) {
+        e.preventDefault();      // stop iOS from also trying to zoom the page underneath
         var d = dist(pointers[ids[0]], pointers[ids[1]]);
         var mid = { x: (pointers[ids[0]].x + pointers[ids[1]].x) / 2,
                     y: (pointers[ids[0]].y + pointers[ids[1]].y) / 2 };
         var target = pinchStartScale * (d / pinchStartDist);
         zoomAt(target / scale, mid.x, mid.y);
       } else if (ids.length === 1 && dragLast) {
+        e.preventDefault();      // stop the page from scrolling under the drag
         tx += e.clientX - dragLast.x;
         ty += e.clientY - dragLast.y;
         dragLast = { x: e.clientX, y: e.clientY };
@@ -94,13 +106,21 @@
       if (scale > 1.01) { scale = 1; tx = 0; ty = 0; apply(); }
       else zoomAt(2, e.clientX, e.clientY);
     }
+    // Safari (uniquely) recognises a two-finger pinch as its own proprietary
+    // gesture and, on top of whatever Pointer Events fire, may still try to
+    // zoom the whole page with it unless these are explicitly blocked —
+    // touch-action: none alone doesn't reliably stop it. Harmless no-ops in
+    // every other browser, which never fires these events at all.
+    function preventGesture(e) { e.preventDefault(); }
 
     hostEl.addEventListener('wheel', onWheel, { passive: false });
-    hostEl.addEventListener('pointerdown', onPointerDown);
-    hostEl.addEventListener('pointermove', onPointerMove);
+    hostEl.addEventListener('pointerdown', onPointerDown, { passive: false });
+    hostEl.addEventListener('pointermove', onPointerMove, { passive: false });
     hostEl.addEventListener('pointerup', onPointerUp);
     hostEl.addEventListener('pointercancel', onPointerUp);
     hostEl.addEventListener('dblclick', onDblClick);
+    hostEl.addEventListener('gesturestart', preventGesture);
+    hostEl.addEventListener('gesturechange', preventGesture);
 
     return {
       zoomIn: function () { var r = svgEl.getBoundingClientRect();
@@ -117,6 +137,8 @@
         hostEl.removeEventListener('pointerup', onPointerUp);
         hostEl.removeEventListener('pointercancel', onPointerUp);
         hostEl.removeEventListener('dblclick', onDblClick);
+        hostEl.removeEventListener('gesturestart', preventGesture);
+        hostEl.removeEventListener('gesturechange', preventGesture);
       }
     };
   }

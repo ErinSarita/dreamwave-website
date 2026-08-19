@@ -10,7 +10,7 @@
   var R = {
     eventLabel: 486, hourNum: 462, tickOut: 454, tickIn: 444,
     sunOut: 440, sunIn: 402,
-    moonOut: 394, moonIn: 362,
+    moonOut: 394, moonIn: 362, moonLabel: 378,
     horizon: 252, altScale: 70,
     hub: 176, globe: 150
   };
@@ -163,29 +163,92 @@
                  f(np[1]) + ')">' + (opts.hour12 ? hour12(h) : (h === 0 ? 24 : h)) + '</text>');
     }
 
+    /* ---- peaks: the sun's two meridian crossings ---------------------------
+     * Peak sun is the upper transit, the moment it is highest; peak darkness
+     * the lower transit, when it is furthest below. They are the maximum and
+     * minimum of the altitude curve drawn above, so both are marked on the
+     * curve itself as well as round the rim. The middle of the dark is shown
+     * too, as a second reading of the same idea: it sits within a minute of
+     * the lower transit at most latitudes. */
+    var darkBracket = day.solarMidnight
+      ? A.darkBracket(A.jdFromDate(day.solarMidnight), cycle.lat, cycle.lon) : null;
+    var darkMidpoint = darkBracket
+      ? A.dateFromJD((darkBracket.set + darkBracket.rise) / 2) : null;
+
+    function markOnCurve(when, colour, r) {
+      if (!when) return;
+      var jd = A.jdFromDate(when), sp = A.sunPosition(A.jdeFromJD(jd));
+      var altv = A.altitudeOf(sp.ra, sp.dec, jd, cycle.lat, cycle.lon);
+      var q = polar(altR(altv), angleOf(when));
+      parts.push('<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="' + r +
+                 '" fill="' + colour + '" stroke="var(--bg)" stroke-width="1.2"/>');
+    }
+    markOnCurve(day.solarNoon, 'var(--sun-bright)', 5);
+    markOnCurve(day.solarMidnight, 'var(--equinox)', 5);
+
+    if (darkMidpoint) {
+      var dm = angleOf(darkMidpoint);
+      if (dm !== null && dm >= 0 && dm <= 360) {
+        var d1 = polar(R.horizon - R.altScale - 10, dm), d2 = polar(R.horizon + R.altScale + 10, dm);
+        parts.push('<path d="M' + f(d1[0]) + ' ' + f(d1[1]) + 'L' + f(d2[0]) + ' ' + f(d2[1]) +
+                   '" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="2 4" opacity=".7"/>');
+      }
+    }
+
     /* ---- event markers ----------------------------------------------------- */
     var events = [];
-    if (day.sunrise) events.push({ t: day.sunrise, label: 'Sunrise', colour: 'var(--sun-bright)', r1: R.sunIn - 8, r2: R.sunOut + 10 });
-    if (day.sunset)  events.push({ t: day.sunset,  label: 'Sunset',  colour: 'var(--sun-bright)', r1: R.sunIn - 8, r2: R.sunOut + 10 });
-    if (day.solarNoon) events.push({ t: day.solarNoon, label: 'Solar noon', colour: 'var(--sun)', r1: R.sunIn, r2: R.sunOut, thin: true });
-    if (day.moonrise) events.push({ t: day.moonrise, label: 'Moonrise', colour: 'var(--moon)', r1: R.moonIn - 8, r2: R.moonOut + 8 });
-    if (day.moonset)  events.push({ t: day.moonset,  label: 'Moonset',  colour: 'var(--moon)', r1: R.moonIn - 8, r2: R.moonOut + 8 });
+    if (day.sunrise) events.push({ t: day.sunrise, label: 'Sunrise', colour: 'var(--sun-bright)', group: 'sun', r1: R.sunIn - 8, r2: R.sunOut + 10 });
+    if (day.sunset)  events.push({ t: day.sunset,  label: 'Sunset',  colour: 'var(--sun-bright)', group: 'sun', r1: R.sunIn - 8, r2: R.sunOut + 10 });
+    if (day.solarNoon) events.push({ t: day.solarNoon, label: 'Peak sun', colour: 'var(--sun-bright)', group: 'sun', r1: R.sunIn - 8, r2: R.sunOut + 10 });
+    if (day.solarMidnight) events.push({ t: day.solarMidnight, label: 'Peak darkness', colour: 'var(--equinox)', group: 'sun', r1: R.sunIn - 8, r2: R.sunOut + 10 });
+    if (day.moonrise) events.push({ t: day.moonrise, label: 'Moonrise', colour: 'var(--moon)', group: 'moon', r1: R.moonIn - 8, r2: R.moonOut + 8 });
+    if (day.moonset)  events.push({ t: day.moonset,  label: 'Moonset',  colour: 'var(--moon)', group: 'moon', r1: R.moonIn - 8, r2: R.moonOut + 8 });
+
+    /* Sun labels ride the outer rim; moon labels sit down on the moon band
+     * itself, on a dark pill so they stay readable over either half of it.
+     * Keeping the two families on different rings is what stops a sunrise
+     * and a moonrise at the same minute from writing over each other. Within
+     * a family, anything still crowded gets nudged to a second tier. */
+    events.forEach(function (e) { e.a = angleOf(e.t); });
+    events = events.filter(function (e) { return e.a !== null && e.a >= 0 && e.a <= 360; });
+
+    function angDist(x, y) { var d = Math.abs(x - y) % 360; return d > 180 ? 360 - d : d; }
+    function assignTiers(group, baseR, stepR) {
+      var g = events.filter(function (e) { return e.group === group; })
+                    .sort(function (x, y) { return x.a - y.a; });
+      var placed = [];
+      g.forEach(function (e) {
+        var tier = 0;
+        while (placed.some(function (o) { return o.tier === tier && angDist(o.a, e.a) < 26; })) tier++;
+        e.labelR = baseR + tier * stepR;
+        placed.push({ a: e.a, tier: tier });
+      });
+    }
+    assignTiers('sun', R.eventLabel, 17);      // outward
+    assignTiers('moon', R.moonLabel, -19);     // inward, into the clear gap
 
     events.forEach(function (e) {
-      var a = angleOf(e.t);
-      if (a === null || a < 0 || a > 360) return;
-      var p1 = polar(e.r1, a), p2 = polar(e.r2, a);
+      var p1 = polar(e.r1, e.a), p2 = polar(e.r2, e.a);
       parts.push('<path d="M' + f(p1[0]) + ' ' + f(p1[1]) + 'L' + f(p2[0]) + ' ' + f(p2[1]) +
-                 '" stroke="' + e.colour + '" stroke-width="' + (e.thin ? 1 : 2) + '"' +
-                 (e.thin ? ' stroke-dasharray="2 3"' : '') + '/>');
-      if (e.thin) return;
-      var dot = polar(e.r2, a);
+                 '" stroke="' + e.colour + '" stroke-width="2"/>');
+      var dot = polar(e.r2, e.a);
       parts.push('<circle cx="' + f(dot[0]) + '" cy="' + f(dot[1]) + '" r="3.4" fill="' + e.colour + '"/>');
-      var lp = polar(R.eventLabel, a);
-      parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
-                 'dominant-baseline="middle" font-size="12" fill="' + e.colour + '" transform="rotate(' +
-                 f(tangent(a)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) + ')">' +
-                 e.label + ' ' + TZ.formatTime(cycle.tz, e.t, opts.hour12) + '</text>');
+
+      var lp = polar(e.labelR, e.a);
+      var txt = e.label + ' ' + TZ.formatTime(cycle.tz, e.t, opts.hour12);
+      var rot = 'rotate(' + f(tangent(e.a)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) + ')';
+      if (e.group === 'moon') {
+        var w = txt.length * 5.7 + 12;
+        parts.push('<g transform="' + rot + '">' +
+          '<rect x="' + f(lp[0] - w / 2) + '" y="' + f(lp[1] - 8) + '" width="' + f(w) +
+          '" height="16" rx="5" fill="var(--sky-patch)" stroke="var(--line)" stroke-width=".6" opacity=".92"/>' +
+          '<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
+          'dominant-baseline="middle" font-size="11" fill="' + e.colour + '">' + txt + '</text></g>');
+      } else {
+        parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
+                   'dominant-baseline="middle" font-size="12" fill="' + e.colour + '" transform="' + rot + '">' +
+                   txt + '</text>');
+      }
     });
 
     /* ---- earth, centred on this place, at this moment ------------------------ */
@@ -208,7 +271,7 @@
       parts.push('<circle cx="' + f(np2[0]) + '" cy="' + f(np2[1]) + '" r="4" fill="var(--today)"/>');
     }
 
-    return { svg: parts.join(''), samples: s, anyMoon: anyMoon };
+    return { svg: parts.join(''), samples: s, anyMoon: anyMoon, darkMidpoint: darkMidpoint };
   }
 
   function hour12(h) {

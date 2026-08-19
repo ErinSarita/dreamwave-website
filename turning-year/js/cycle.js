@@ -131,6 +131,7 @@
 
     buildDays(cycle);
     buildStations(cycle, anchorJDE, nextJDE);
+    labelMoonsBySeason(cycle);
     buildTerms(cycle, anchorJDE, nextJDE);
     return cycle;
   }
@@ -169,6 +170,11 @@
         sunrise: sun.rise !== null ? A.dateFromJD(sun.rise) : null,
         sunset: sun.set !== null ? A.dateFromJD(sun.set) : null,
         solarNoon: sun.transit !== null ? A.dateFromJD(sun.transit) : null,
+        // The two meridian crossings: peak sun (highest the sun gets) and
+        // peak darkness (lowest it goes). Altitudes are taken at the refined
+        // culmination itself, so "how high did it actually get" is exact.
+        solarMidnight: sun.antiTransit !== null ? A.dateFromJD(sun.antiTransit) : null,
+        minSunAltitude: sun.minAltitude,
         sunAlwaysUp: sun.alwaysUp, sunAlwaysDown: sun.alwaysDown,
         maxSunAltitude: sun.maxAltitude,
         daylightHours: daylight, nightHours: spanDays * 24 - daylight,
@@ -177,13 +183,74 @@
         moonAlwaysUp: moon.alwaysUp, moonAlwaysDown: moon.alwaysDown,
         moonIllumination: phase.illumination, moonPhaseName: phase.name,
         moonWaxing: phase.waxing, moonAgeDays: phase.ageDays, moonAge: phase.age,
+        moonDistanceKm: phase.distanceKm,
+        // The Sun's declination: its angle north (+) or south (-) of the
+        // celestial equator. This is the quantity the solstices and equinoxes
+        // are actually defined by, so the wheel can draw it directly.
+        sunDeclination: A.sunPosition(noonJDE).dec,
         station: null, term: null, season: 0, frost: null
       };
       days.push(day);
       cycle.dayByISO[day.iso] = day;
     }
     markMoonEvents(cycle);
+    buildLunations(cycle);
     computeExtremes(cycle);
+  }
+
+  /* Lunations: new moon to new moon, the Moon's own cycle laid against the
+   * Sun's. A synodic month is 29.53 days and a solar cycle 365, so 12.37 of
+   * them fit: a year carries 12 or 13 new moons and almost always opens and
+   * closes mid-moon, leaving a partial segment at each end. Those partials
+   * are kept and marked rather than hidden, because pretending the year
+   * begins on a new moon would be the same error as pretending it closes
+   * into a circle.
+   *
+   * Only the whole ones are numbered. The first of those is flagged, since
+   * "the first full moon-cycle of the solar year" is a real, locatable thing
+   * and the partial that precedes it is not. */
+  function buildLunations(cycle) {
+    var starts = [];
+    cycle.days.forEach(function (d) { if (d.moonEvent === 'New Moon') starts.push(d.n); });
+    cycle.lunations = [];
+    if (!starts.length) return;
+
+    var segs = [];
+    if (starts[0] > 1) segs.push({ startDay: 1, endDay: starts[0] - 1, complete: false, lead: true });
+    starts.forEach(function (s, i) {
+      var last = i + 1 >= starts.length;
+      segs.push({
+        startDay: s,
+        endDay: last ? cycle.length : starts[i + 1] - 1,
+        complete: !last,          // the trailing segment runs off the end of the cycle
+        lead: false
+      });
+    });
+
+    var n = 0, firstComplete = null;
+    segs.forEach(function (seg) {
+      seg.days = seg.endDay - seg.startDay + 1;
+      if (seg.complete) {
+        seg.number = ++n;
+        if (firstComplete === null) firstComplete = seg;
+      } else seg.number = null;
+      cycle.lunations.push(seg);
+    });
+    if (firstComplete) firstComplete.isFirstComplete = true;
+    cycle.completeLunations = n;
+
+    // Tag every day with the moon it belongs to and how far into it we are.
+    cycle.lunations.forEach(function (seg) {
+      for (var k = seg.startDay; k <= seg.endDay; k++) {
+        var d = cycle.days[k - 1];
+        d.lunation = seg;
+        // The leading partial has no new moon inside the cycle to count from,
+        // so fall back on the Moon's true age for those days.
+        d.dayInLunation = seg.lead
+          ? Math.floor(d.moonAgeDays) + 1
+          : k - seg.startDay + 1;
+      }
+    });
   }
 
   /* Flag the day nearest each new / first quarter / full / last quarter. */
@@ -211,6 +278,16 @@
     });
     cycle.minDaylight = minD; cycle.maxDaylight = maxD;
     cycle.shortestDay = minDay; cycle.longestDay = maxDay;
+
+    // Moon distance range over this cycle, and which days hold the closest
+    // and furthest full moons (the "supermoon" / "micromoon" of the year).
+    var near = Infinity, far = -Infinity, nearDay = null, farDay = null;
+    cycle.days.forEach(function (d) {
+      if (d.moonDistanceKm < near) { near = d.moonDistanceKm; nearDay = d; }
+      if (d.moonDistanceKm > far) { far = d.moonDistanceKm; farDay = d; }
+    });
+    cycle.moonNearestKm = near; cycle.moonFurthestKm = far;
+    cycle.moonNearestDay = nearDay; cycle.moonFurthestDay = farDay;
   }
 
   function dayNumberForInstant(cycle, instant) {
@@ -270,8 +347,83 @@
     });
   }
 
+  /* The cycle is anchored on the local winter solstice, so season 0 is always
+   * the viewer's own winter and these names hold in either hemisphere. */
+  var MOON_SEASONS = ['Winter', 'Spring', 'Summer', 'Autumn'];
+  var ORDINALS = ['', '1st', '2nd', '3rd', '4th'];
+
   var SEASON_NAMES = ['Deep Winter to Spring', 'Spring to Summer',
                       'Summer to Autumn', 'Autumn to Winter'];
+
+  /* Name each full and new moon by where it falls in the seasons, which is how
+   * they are actually spoken of: "the second full moon of spring".
+   *
+   * A season runs about 91.3 days against a 29.53-day month, so 3.09 moons fit
+   * and a season carries three full moons most of the time but sometimes four
+   * (three of them span 88.6 days, which fits; a fourth instant can still land
+   * inside before the season closes). Measured over 18 years, 66 seasons held
+   * three and 6 held four. The third full moon of a four-moon season is the
+   * traditional blue moon, which is where that name comes from.
+   *
+   * Runs after buildStations, since it needs each day's season, which is only
+   * assigned there. */
+  function labelMoonsBySeason(cycle) {
+    /* The year count runs straight through from the first full moon after the
+     * winter solstice to the last one before the next, so it usually reaches
+     * 12 and reaches 13 whenever some season carries four. Season position and
+     * year position are both kept: "Spring Moon 2" says where in the season it
+     * falls, "Year Moon 5" where in the whole turn. */
+    var yearMoon = 0;
+    cycle.days.forEach(function (d) {
+      if (d.moonEvent === 'Full Moon') {
+        d.yearMoonNumber = ++yearMoon;
+        d.yearMoonLabel = 'Year Moon ' + d.yearMoonNumber;
+      }
+    });
+    cycle.yearMoonCount = yearMoon;
+
+    [['Full Moon', 'full'], ['New Moon', 'new']].forEach(function (pair) {
+      var evt = pair[0], key = pair[1];
+      var bySeason = [[], [], [], []];
+      cycle.days.forEach(function (d) {
+        if (d.moonEvent === evt && bySeason[d.season]) bySeason[d.season].push(d);
+      });
+      bySeason.forEach(function (list, si) {
+        list.forEach(function (d, i) {
+          d[key + 'MoonSeason'] = MOON_SEASONS[si];
+          d[key + 'MoonOrdinal'] = i + 1;
+          d[key + 'MoonOfSeason'] = list.length;
+          d[key + 'MoonLabel'] = (ORDINALS[i + 1] || (i + 1) + 'th') + ' ' +
+            (evt === 'Full Moon' ? 'full' : 'new') + ' moon of ' + MOON_SEASONS[si];
+          // Shorter form the wheel uses: "Spring Moon 2".
+          d[key + 'MoonSeasonLabel'] = MOON_SEASONS[si] + ' Moon ' + (i + 1);
+          // The third of four is the blue moon in the older seasonal sense.
+          if (evt === 'Full Moon' && list.length === 4 && i === 2) d.isBlueMoon = true;
+        });
+      });
+    });
+
+    // Carry the naming onto the lunar month that contains each full moon, so
+    // a wedge can be spoken of by its moon rather than a bare index.
+    (cycle.lunations || []).forEach(function (L) {
+      L.fullMoon = null;
+      for (var k = L.startDay; k <= L.endDay; k++) {
+        var d = cycle.days[k - 1];
+        if (d && d.moonEvent === 'Full Moon') { L.fullMoon = d; break; }
+      }
+      if (L.fullMoon) {
+        L.seasonName = L.fullMoon.fullMoonSeason;
+        L.ordinal = L.fullMoon.fullMoonOrdinal;
+        L.ofSeason = L.fullMoon.fullMoonOfSeason;
+        L.isBlue = !!L.fullMoon.isBlueMoon;
+        L.yearMoonNumber = L.fullMoon.yearMoonNumber;
+        L.shortLabel = L.fullMoon.fullMoonSeasonLabel;      // "Spring Moon 2"
+        L.yearLabel = 'Year Moon ' + L.yearMoonNumber;
+        L.longLabel = (ORDINALS[L.ordinal] || L.ordinal + 'th') +
+                      ' full moon of ' + L.seasonName;
+      }
+    });
+  }
 
   function termFor(lon) {
     for (var i = 0; i < SOLAR_TERMS.length; i++) {
@@ -342,6 +494,7 @@
   global.Cycle = {
     build: build, applyFrost: applyFrost, estimateFrost: estimateFrost,
     dayNumberForInstant: dayNumberForInstant,
-    STATIONS: STATIONS, SOLAR_TERMS: SOLAR_TERMS, SEASON_NAMES: SEASON_NAMES
+    STATIONS: STATIONS, SOLAR_TERMS: SOLAR_TERMS, SEASON_NAMES: SEASON_NAMES,
+    MOON_SEASONS: MOON_SEASONS
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -28,8 +28,8 @@
   function svg(ageDeg, size, opts) {
     opts = opts || {};
     var r = 17, cx = 20, cy = 20;
-    var lit = opts.lit || 'var(--moon)';
-    var dark = opts.dark || 'var(--moon-dim)';
+    var lit = opts.lit || 'var(--moon-lit)';
+    var dark = opts.dark || 'var(--moon-shadow)';
     var ring = opts.ring || 'var(--line)';
     return '<svg class="moon-glyph" width="' + size + '" height="' + size +
       '" viewBox="0 0 40 40" aria-hidden="true" style="vertical-align:-22%">' +

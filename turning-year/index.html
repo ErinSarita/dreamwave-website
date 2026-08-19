@@ -59,6 +59,7 @@
         <label class="tog"><input type="checkbox" id="lay-months" checked><span>Months</span></label>
         <label class="tog"><input type="checkbox" id="lay-trad"><span>Traditional festival dates</span></label>
         <label class="tog"><input type="checkbox" id="lay-sky" checked><span>Big Dipper at nightfall</span></label>
+        <label class="tog"><input type="checkbox" id="lay-dec" checked><span>Sun's declination (celestial equator)</span></label>
       </div>
     </section>
 
@@ -73,6 +74,17 @@
       <p class="meta" id="frost-meta"></p>
     </section>
 
+    <section class="field">
+      <label>Your notes</label>
+      <p class="meta" id="notes-count" style="margin-top:0"></p>
+      <div class="notes-row">
+        <button id="notes-export" class="ghost-btn" style="margin-top:0">Download backup</button>
+        <button id="notes-import" class="ghost-btn" style="margin-top:0">Restore</button>
+      </div>
+      <input type="file" id="notes-file" accept="application/json,.json" hidden>
+      <p class="meta" id="notes-meta">Saved in this browser only. Download a backup to keep them or move them to another device.</p>
+    </section>
+
     <section class="field legend">
       <label>Legend</label>
       <p class="meta" id="legend-context" hidden>Reading this day's 24-hour clock</p>
@@ -85,11 +97,14 @@
         <li><i class="sw sw-cq"></i> Midseason (cross-quarter day)</li>
         <li><i class="sw sw-noted"></i> A day you've written a note on</li>
         <li><i class="sw sw-sky"></i> The Big Dipper facing north at nightfall</li>
+        <li><i class="sw sw-polaris"></i> Polaris, held still by the pointer stars' dashed sightline</li>
+        <li><i class="sw sw-dec"></i> Sun north / south of the celestial equator</li>
       </ul>
     </section>
 
     <footer class="panel-foot">
       <button id="compare-btn" class="ghost-btn">Compare the seasons' sun path</button>
+      <button id="spiral-btn" class="ghost-btn">See the years as a spiral</button>
       <button id="about-btn" class="ghost-btn">About &amp; accuracy</button>
       <button id="theme-btn" class="ghost-btn">Daylight theme</button>
     </footer>
@@ -134,6 +149,20 @@
       <div class="day-panel" id="day-panel"></div>
     </div>
 
+    <div class="top-tools" id="top-tools">
+      <button id="tool-moon" class="tool-btn" aria-haspopup="true" aria-expanded="false"
+              aria-label="Full and new moons" title="Full and new moons">&#9789;</button>
+      <button id="tool-stations" class="tool-btn" aria-haspopup="true" aria-expanded="false"
+              aria-label="Solstices, equinoxes and midseasons" title="Solstices, equinoxes and midseasons">&#10037;</button>
+    </div>
+    <div class="tool-panel" id="tool-panel" hidden>
+      <div class="tool-panel-head">
+        <strong id="tool-panel-title"></strong>
+        <button id="tool-panel-close" aria-label="Close">&times;</button>
+      </div>
+      <ul id="tool-panel-list"></ul>
+    </div>
+
     <div class="loading" id="loading" hidden><span class="spin"></span> Computing the sky…</div>
     <button class="panel-toggle" id="panel-toggle" aria-label="Toggle controls">☰</button>
 
@@ -158,6 +187,23 @@
     but not on a fixed rule. Nothing in this site adds a leap day; the length is
     simply the number of sunrises between one solstice and the next.</p>
 
+    <h3>The seam, and the spiral</h3>
+    <p>Look closely where day 365 meets day 1 and there is a small
+    discontinuity. That is not a drawing error, it is the honest edge of the
+    metaphor. A circle has to close, so the wheel lays the last day of one
+    cycle right beside the first day of the same cycle — but those two days
+    are a whole year apart. The Moon is at a different phase and a different
+    distance; nothing about them actually continues into each other. The
+    Moon's orbit line is deliberately left unjoined there rather than drawing
+    a link that isn't real.</p>
+    <p>What actually happens is that day 365 hands off to the <em>next</em>
+    cycle's day 1. So this is a helix, not a ring: it never closes, it only
+    comes back round to the same place a turn further along. <em>See the years
+    as a spiral</em> unrolls it — one coil per cycle, climbing toward the
+    summer solstice and falling back to winter, with each coil's real length
+    printed underneath. That is also the clearest way to see where the extra
+    day in a 366-day cycle goes.</p>
+
     <h3>The eight stations</h3>
     <p>Four are astronomical: the two solstices and the two equinoxes. Four are the
     midpoints between them, labelled by which season they're the midpoint of (Winter
@@ -177,12 +223,83 @@
     star, but the Big Dipper is a real, checkable consequence of the same
     orbital motion: because it circles Polaris once a year in addition to once
     a night, its orientation at a fixed clock time drifts through the seasons.
-    Each of the four cardinal stations carries a small sketch of the Dipper's
-    bowl and handle exactly as they stand facing north at nightfall (nautical
-    twilight) on that date, computed for your place, not a generic diagram.
-    Go outside after dark near one of those dates and it should match. Below
-    the latitude where the Dipper never clears the horizon, the circle is
-    left empty instead of guessing.</p>
+    Each station carries a small sketch of the Dipper's bowl and handle
+    exactly as they stand facing north at nightfall (nautical twilight) on
+    that date, computed for your place, not a generic diagram. Go outside
+    after dark near one of those dates and it should match. Below the
+    latitude where the Dipper never clears the horizon, the circle is left
+    empty instead of guessing.</p>
+    <p>The bright cross in each circle is Polaris, and the dashed line is the
+    oldest trick in the sky: the two stars on the outer edge of the Dipper's
+    bowl point straight at it. Polaris sits almost exactly on the axis Earth
+    spins around, so it barely moves all night or all year — its height above
+    your horizon is simply your latitude. Having it fixed in every circle is
+    what makes the rotation legible: the Dipper is what swings, Polaris is
+    the hinge it swings on.</p>
+    <p>These sketches are drawn on an azimuthal-equidistant projection about
+    the group's centre, which keeps angular distances honest across the
+    roughly 50° of sky the Dipper and Polaris span together, with up in the
+    picture matching up in the sky.</p>
+
+    <h3>What actually defines the four days</h3>
+    <p>The seasons are not caused by the equator, and not by distance from the
+    Sun either. They are caused by Earth's axis being tilted 23.44° from the
+    plane of its orbit, which keeps that axis pointing the same way in space
+    all year while Earth goes around. So one hemisphere leans sunward for half
+    the orbit and away for the other half.</p>
+    <p>What the equator gives us is the <em>ruler</em>. Extend Earth's equator
+    outward onto the sky and you get the celestial equator, and the Sun's angle
+    north or south of it is called its declination. That single number is what
+    the four days are defined by: the equinoxes are the exact moments the Sun's
+    declination passes through <strong>0°</strong>, and the solstices the moments
+    it reaches its extremes of <strong>+23.44°</strong> and <strong>−23.44°</strong>,
+    the tilt itself. Turn on the declination layer and the inner ring draws that
+    number directly: gold where the Sun stands north of the celestial equator,
+    blue where it stands south, against a dashed circle at 0°. The curve crosses
+    that circle exactly where the equinox spokes are and reaches furthest out and
+    in exactly at the solstices, which is the definition made visible rather than
+    asserted.</p>
+
+    <h3>Why the lunar months don't come out even</h3>
+    <p>A synodic month, new moon to new moon, is 29.53 days. A solar cycle is
+    about 365.24. Divide one by the other and you get <strong>12.37 lunations
+    per year</strong>, which is not a whole number and never will be, so the
+    two calendars cannot be made to agree. Twelve lunar months run 354.4 days
+    and fall about eleven days short of the year; thirteen run 383.9 and
+    overshoot it.</p>
+    <p>That fixes what you can actually see. A year always contains
+    <strong>12 or 13 new moons</strong>, never 11 and never 14, and the same
+    for full moons: at least twelve of each is guaranteed. But a <em>whole</em>
+    cycle needs a new moon at both ends, and the year's edges cut through the
+    first and last ones, so the number of complete cycles comes out at
+    <strong>11 or 12</strong> depending on where the new moons happen to land
+    relative to the solstice. Twelve when a thirteenth new moon squeezes in,
+    eleven when only twelve do.</p>
+    <p>Each lunar month is named by the full moon inside it, twice over. The
+    running count from the first full moon after the winter solstice gives
+    <strong>Year Moon 1</strong> through 12, or 13 when a season carries an
+    extra. Underneath sits its place in the season, <strong>Winter Moon 1</strong>,
+    <strong>Spring Moon 2</strong> and so on, which restarts four times a year
+    and so never has to stretch to cover the mismatch. Year Moon 1 and Winter
+    Moon 1 are always the same moon, the first full one after the solstice.</p>
+    <p>A season is about 91.3 days, so 3.09 lunar months fit inside it. That
+    means a season carries <strong>three full moons most of the time and
+    occasionally four</strong>: three of them span 88.6 days and fit easily,
+    while a fourth instant can still fall inside before the season closes.
+    Counted over eighteen years here, 66 seasons held three and 6 held four.
+    The third full moon of a four-moon season is the original
+    <strong>blue moon</strong>, which is where the phrase comes from, and the
+    wheel marks it when one turns up.</p>
+
+    <h3>The Moon's ring</h3>
+    <p>Each day carries the Moon's real lit shape for that date, not a dimmed
+    dot, so the waxing and waning rhythm is legible directly. The ring's radius
+    is the Moon's actual distance from Earth, which is not constant: its orbit
+    is an ellipse, carrying it from roughly 356,500 km at perigee out to about
+    406,700 km at apogee and back roughly every 27.5 days. Drawn nearer the
+    centre when it is nearer to us, that becomes a visible wave, about thirteen
+    of them around the year. A full moon landing near perigee is what gets
+    called a supermoon.</p>
 
     <h3>The 24 solar terms</h3>
     <p>Turn this layer on and the wheel marks all 24 equal divisions of the Sun's
@@ -267,6 +384,21 @@
   </div>
 </div>
 
+<div class="modal" id="spiral" hidden>
+  <div class="modal-card spiral-card" role="dialog" aria-modal="true" aria-labelledby="spiral-h">
+    <button class="close" id="spiral-close" aria-label="Close">&times;</button>
+    <h2 id="spiral-h">The years as a spiral</h2>
+    <p>A circle has to close, so on the wheel day 365 lands back beside day 1 and
+    leaves a visible seam. Time doesn't close: that day hands off to the
+    <em>next</em> cycle's day 1, one turn further along. Here the same stretch is
+    unrolled, one coil per cycle, so what looks like a jump on the wheel is just
+    the line carrying on.</p>
+    <svg id="spiral-svg" viewBox="0 0 900 460" role="img"
+         aria-label="Several solar cycles drawn as a continuous helix"></svg>
+    <p class="meta" id="spiral-meta"></p>
+  </div>
+</div>
+
 <script src="js/astro.js"></script>
 <script src="js/astro-sun.js"></script>
 <script src="js/astro-moon.js"></script>
@@ -279,6 +411,7 @@
 <script src="js/globe.js"></script>
 <script src="js/render-wheel.js"></script>
 <script src="js/render-day.js"></script>
+<script src="js/spiral.js"></script>
 <script src="js/zoompan.js"></script>
 <script src="js/app.js"></script>
 </body>
