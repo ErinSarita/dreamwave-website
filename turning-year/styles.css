@@ -383,6 +383,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .moon-hit:hover { fill: var(--moon); fill-opacity: .12; }
 .term-band { stroke: var(--night); opacity: .28; }
 .term-cut { stroke: var(--equinox); stroke-width: 1.1; opacity: .65; }
+.term-day { stroke: var(--ink-3); stroke-width: .6; opacity: .38; }
 .term-label { font-size: 8.5px; fill: var(--ink-2); }
 .frost-label { font-size: 9px; }
 .term-sub { font-size: 7.5px; fill: var(--ink-3); }

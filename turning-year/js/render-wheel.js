@@ -451,6 +451,16 @@
     if (opts.layers.terms) {
       parts.push('<circle cx="500" cy="500" r="' + ((R.termIn + R.termOut) / 2) +
                  '" fill="none" class="term-band" stroke-width="' + (R.termOut - R.termIn) + '"/>');
+      /* A day comb along the ring's inner edge, one dash per day, so a term's
+       * width can be counted as well as read. They line up with the day
+       * sectors everything else on the wheel is built from. */
+      for (var dt = 1; dt <= N; dt++) {
+        var da = dayEdge(cycle, dt);
+        var c1 = polar(R.termIn, da), c2 = polar(R.termIn + 4, da);
+        parts.push('<path class="term-day" d="M' + fmt(c1[0]) + ' ' + fmt(c1[1]) +
+                   'L' + fmt(c2[0]) + ' ' + fmt(c2[1]) + '"/>');
+      }
+
       var termsSorted = cycle.terms.filter(function (t) { return t.dayNumber; });
       termsSorted.forEach(function (t, ti) {
         var ang = dayEdge(cycle, t.dayNumber);
@@ -460,8 +470,13 @@
 
         /* Named in its own span, the way a month is: the cut opens the term
          * and the wording belongs to the stretch that follows it. */
+        /* The last term closes at the end of the cycle, which on a wheel
+         * turned 270 degrees is dayEdge(N+1) and not 360. Using the bare 360
+         * put term 24's midpoint about a third of the way round the wheel,
+         * where it landed on top of term 3. */
         var nxt = termsSorted[(ti + 1) % termsSorted.length];
-        var a2 = (ti + 1 < termsSorted.length) ? dayEdge(cycle, nxt.dayNumber) : 360;
+        var a2 = (ti + 1 < termsSorted.length)
+          ? dayEdge(cycle, nxt.dayNumber) : dayEdge(cycle, N + 1);
         var sweep = ((a2 - ang) % 360 + 360) % 360;
         if (sweep < 1) sweep = 15;
         var mid = ang + sweep / 2;
@@ -493,8 +508,12 @@
         var e1 = polar(R.monthIn, aStart), e2 = polar(R.monthOut, aStart);
         parts.push('<path d="M' + fmt(e1[0]) + ' ' + fmt(e1[1]) + 'L' + fmt(e2[0]) + ' ' + fmt(e2[1]) +
                    '" stroke="var(--line)" stroke-width="1"/>');
-        var mid = (dayEdge(cycle, run.start) + dayEdge(cycle, run.end + 1)) / 2;
-        if (run.end + 1 > N) mid = (dayEdge(cycle, run.start) + 360) / 2;
+        /* Same wrap as the terms: the closing run ends at dayEdge(N+1), not
+         * at 360. A cycle that opens and closes in the same month, which every
+         * one of them does, had its second December thrown into the middle of
+         * the wheel and so appeared to have no label at all. */
+        var mid = (dayEdge(cycle, run.start) +
+                   dayEdge(cycle, Math.min(run.end + 1, N + 1))) / 2;
         var lp = polar(R.monthLabel, mid);
         parts.push(rotLabel(mid, lp[0], lp[1],
           '<text class="month-label" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1]) +
