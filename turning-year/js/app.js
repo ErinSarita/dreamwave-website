@@ -3,7 +3,7 @@
   'use strict';
   var A = global.Astro, TZ = global.TZ, Places = global.Places,
       CycleModel = global.Cycle, WheelView = global.WheelView, DayView = global.DayView,
-      Clock = global.Clock;
+      Clock = global.Clock, MoonView = global.MoonView;
 
   var STORE = 'turning-year:v1';
   var NOTES_STORE = 'turning-year:notes';
@@ -241,7 +241,7 @@
       moonHits[m].addEventListener('click', function (e) {
         e.stopPropagation();          // the day sector underneath must not also fire
         state.lunation = +e.currentTarget.getAttribute('data-lunation');
-        setLevel('lunation');
+        setLevel('moon');
       });
     }
     $('wheel').addEventListener('mouseleave', function () {
@@ -280,6 +280,9 @@
     state.level = level;
     if (level === 'year') { state.season = null; state.day = null; state.lunation = null; }
     if (level === 'season') state.lunation = null;
+    if (level === 'moon' && state.lunation === null) {
+      state.lunation = lunationOfDay(state.day || todayNumber() || 1);
+    }
     if (level === 'season' && state.season === null) {
       state.season = WheelView.seasonOfDay(cycle, state.day || todayNumber() || 1);
     }
@@ -288,32 +291,45 @@
       state.season = WheelView.seasonOfDay(cycle, state.day);
       state.noteOpen = false;
     }
-    var wheelScene = $('scene-wheel'), dayScene = $('scene-day');
-    if (level === 'lunation') {
-      applyZoom();
-      updateReadout(state.hover || todayNumber() || 1);
+    $('zoom-controls').hidden = false;
+    var wheelScene = $('scene-wheel'), dayScene = $('scene-day'), moonScene = $('scene-moon');
+
+    /* Three scenes share the stage. Whichever the new level wants comes
+     * forward and the other two step back, on the same fade the wheel and the
+     * day already used between them. */
+    function showScene(want) {
+      var all = [['wheel', wheelScene], ['day', dayScene], ['moon', moonScene]];
+      var current = null;
+      all.forEach(function (pair) { if (!pair[1].hidden) current = pair; });
+      var target = all.filter(function (pair) { return pair[0] === want; })[0];
+      if (current && current[0] === want) { if (want === 'wheel') applyZoom(); return; }
+      if (!current) { target[1].hidden = false; target[1].classList.remove('fading'); return; }
+      current[1].classList.add('fading');
+      setTimeout(function () {
+        current[1].hidden = true;
+        target[1].hidden = false;
+        requestAnimationFrame(function () {
+          target[1].classList.remove('fading');
+          if (want === 'wheel') applyZoom();
+        });
+      }, 260);
+    }
+
+    if (level === 'moon') {
+      drawMoon();
+      showScene('moon');
+      /* No zoom controller is attached to this scene, so the buttons would do
+       * nothing here, and on a narrow screen they sit over the month's name. */
+      $('zoom-controls').hidden = true;
       syncCrumbs(); syncLegend(); writeHash();
       return;
     }
     if (level === 'day') {
       drawDay();
-      wheelScene.classList.add('fading');
-      setTimeout(function () {
-        wheelScene.hidden = true; dayScene.hidden = false;
-        requestAnimationFrame(function () { dayScene.classList.remove('fading'); });
-      }, 260);
+      showScene('day');
     } else {
-      if (dayScene.hidden === false) {
-        drawWheel();                      // refresh note markers set while on the day view
-        dayScene.classList.add('fading');
-        setTimeout(function () {
-          dayScene.hidden = true; wheelScene.hidden = false;
-          requestAnimationFrame(function () {
-            wheelScene.classList.remove('fading');
-            applyZoom();
-          });
-        }, 260);
-      } else applyZoom();
+      if (!dayScene.hidden) drawWheel();  // refresh note markers set while on the day view
+      showScene('wheel');
       updateReadout(state.hover || state.day || todayNumber() || 1);
     }
     syncCrumbs();
@@ -353,19 +369,21 @@
     var cs = $('crumbs').querySelectorAll('.crumb');
     // A lunation sits in the same middle slot a season does, so it lights the
     // same crumb; without this nothing is highlighted at that level at all.
-    var slot = state.level === 'lunation' ? 'season' : state.level;
+    var slot = state.level;
     for (var i = 0; i < cs.length; i++) {
       var lvl = cs[i].getAttribute('data-level');
       cs[i].classList.toggle('is-on', lvl === slot);
     }
-    var cS = $('crumb-season'), cD = $('crumb-day');
+    var cS = $('crumb-season'), cM = $('crumb-moon'), cD = $('crumb-day');
     cS.disabled = !cycle;
+    cM.disabled = !cycle || !cycle.lunations || !cycle.lunations.length;
     cD.disabled = !cycle;
-    if (cycle && state.level === 'lunation' && state.lunation !== null && cycle.lunations) {
-      var L = cycle.lunations[state.lunation];
-      cS.textContent = L && L.yearMoonNumber ? 'Moon ' + L.yearMoonNumber : 'Lunar month';
-    } else if (cycle && state.season !== null) cS.textContent = cycle.seasons[state.season].from.name;
+    if (cycle && state.season !== null) cS.textContent = cycle.seasons[state.season].from.name;
     else cS.textContent = 'Season';
+    var Lc = cycle && cycle.lunations && state.lunation !== null
+      ? cycle.lunations[state.lunation] : null;
+    cM.textContent = (state.level === 'moon' && Lc && Lc.yearMoonNumber)
+      ? 'Moon ' + Lc.yearMoonNumber : 'Moon';
     cD.textContent = state.day ? 'Day ' + state.day : 'Day';
   }
 
@@ -474,6 +492,84 @@
            (cycle.yearMoonCount ? ' of ' + cycle.yearMoonCount : '') +
            ' · ' + L.shortLabel + (L.isBlue ? ' · blue moon' : '') +
            ' · day ' + d.dayInLunation + (L.complete ? ' of ' + L.days : '');
+  }
+
+
+  /* ------------------------------------------------------------ lunar month
+   * A lunation is not a subdivision of a season: it runs new moon to new
+   * moon and crosses whatever solar boundary it likes. It still sits between
+   * the season and the day in scale, which is where the crumb puts it. */
+  function lunationOfDay(n) {
+    if (!cycle || !cycle.lunations) return null;
+    for (var i = 0; i < cycle.lunations.length; i++) {
+      var L = cycle.lunations[i];
+      if (n >= L.startDay && n <= L.endDay) return i;
+    }
+    return 0;
+  }
+
+  function moonHeadHTML(L) {
+    if (!L) return '';
+    var sel = state.day && state.day >= L.startDay && state.day <= L.endDay
+      ? cycle.days[state.day - 1] : null;
+    var name = L.yearMoonNumber
+      ? 'Moon ' + L.yearMoonNumber + (cycle.yearMoonCount ? ' of ' + cycle.yearMoonCount : '')
+      : (L.lead ? 'Carried in from last year' : 'Running into next year');
+    var sub = [];
+    if (L.shortLabel) sub.push(L.shortLabel);
+    if (L.isBlue) sub.push('blue moon');
+    sub.push(TZ.formatDate(cycle.tz, cycle.days[L.startDay - 1].date, 'short') + ' to ' +
+             TZ.formatDate(cycle.tz, cycle.days[L.endDay - 1].date, 'short'));
+    /* A month at either end of the cycle is cut by the solstice, not by the
+     * moon. Saying "28 days" flat would suggest lunar months come that short,
+     * and they do not: the shortest is a little over 29. Say what is showing
+     * and where the rest of it went. */
+    if (L.complete) sub.push(L.days + ' days');
+    else if (L.lead) sub.push(L.days + ' days of it fall in this cycle, it opened in the last one');
+    else sub.push(L.days + ' days of it fall in this cycle, it closes in the next one');
+    var line3 = sel
+      ? 'Day ' + sel.n + ' of the year &#183; day ' + sel.dayInLunation + ' of ' + L.days +
+        ' of this moon &#183; ' + TZ.formatDate(cycle.tz, sel.date)
+      : 'Pick a day to open its twenty-four hours';
+    return '<div class="mh-name">' + esc(name) + '</div>' +
+           '<div class="mh-sub">' + sub.map(esc).join(' &#183; ') + '</div>' +
+           '<div class="mh-day">' + line3 + '</div>';
+  }
+
+  function drawMoon() {
+    if (!cycle || !cycle.lunations || !cycle.lunations.length) return;
+    if (state.lunation === null) state.lunation = lunationOfDay(state.day || todayNumber() || 1);
+    var L = cycle.lunations[state.lunation];
+    if (!L) return;
+    $('moonwheel').innerHTML = MoonView.render(cycle, L, {
+      selectedDay: state.day, todayN: todayNumber()
+    });
+    $('moon-head').innerHTML = moonHeadHTML(L);
+    $('moon-prev').disabled = state.lunation <= 0;
+    $('moon-next').disabled = state.lunation >= cycle.lunations.length - 1;
+
+    var hits = $('moonwheel').querySelectorAll('.moon-day-hit');
+    for (var i = 0; i < hits.length; i++) {
+      hits[i].addEventListener('click', function (e) {
+        state.day = +e.currentTarget.getAttribute('data-day');
+        setLevel('day');
+      });
+    }
+  }
+
+  /* Step to the neighbouring month, carrying the selection with it so the
+   * middle of the circle keeps showing a day of the month on view. */
+  function stepMoon(delta) {
+    if (!cycle || !cycle.lunations) return;
+    var next = state.lunation + delta;
+    if (next < 0 || next >= cycle.lunations.length) return;
+    state.lunation = next;
+    var L = cycle.lunations[next];
+    if (!state.day || state.day < L.startDay || state.day > L.endDay) {
+      state.day = delta > 0 ? L.startDay : L.endDay;
+    }
+    drawMoon();
+    writeHash();
   }
 
   /* ------------------------------------------------------- quick-find lists
@@ -944,10 +1040,18 @@
       $('app').classList.toggle('panel-open');
     });
 
+    $('moon-prev').addEventListener('click', function () { stepMoon(-1); });
+    $('moon-next').addEventListener('click', function () { stepMoon(1); });
+
     $('crumbs').addEventListener('click', function (e) {
       var b = e.target.closest('.crumb');
       if (!b || b.disabled) return;
-      setLevel(b.getAttribute('data-level'));
+      var lvl = b.getAttribute('data-level');
+      /* The crumb means "the moon I am on", so it always recomputes from the
+       * day in hand. Only the arrows and the wheel's own pies choose a month
+       * deliberately, and those set it themselves before coming here. */
+      if (lvl === 'moon') state.lunation = lunationOfDay(state.day || todayNumber() || 1);
+      setLevel(lvl);
     });
 
     document.addEventListener('keydown', function (e) {

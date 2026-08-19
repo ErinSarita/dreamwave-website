@@ -126,6 +126,8 @@
       <span class="crumb-sep">›</span>
       <button data-level="season" class="crumb" id="crumb-season" disabled>Season</button>
       <span class="crumb-sep">›</span>
+      <button data-level="moon" class="crumb" id="crumb-moon" disabled>Moon</button>
+      <span class="crumb-sep">›</span>
       <button data-level="day" class="crumb" id="crumb-day" disabled>Day</button>
     </nav>
 
@@ -155,6 +157,18 @@
         <g id="dayclock"></g>
       </svg>
       <div class="day-panel" id="day-panel"></div>
+    </div>
+
+    <div class="scene scene-moon" id="scene-moon" hidden>
+      <div class="moon-head" id="moon-head"></div>
+      <button class="moon-arrow moon-prev" id="moon-prev" aria-label="Previous lunar month"
+              title="Previous lunar month">‹</button>
+      <svg id="moon-svg" viewBox="-40 -40 1080 1080" role="img"
+           aria-label="One lunar month, new moon to new moon">
+        <g id="moonwheel"></g>
+      </svg>
+      <button class="moon-arrow moon-next" id="moon-next" aria-label="Next lunar month"
+              title="Next lunar month">›</button>
     </div>
 
     <div class="top-tools" id="top-tools">
@@ -420,6 +434,7 @@
 <script src="js/globe.js"></script>
 <script src="js/render-wheel.js"></script>
 <script src="js/render-day.js"></script>
+<script src="js/render-moon.js"></script>
 <script src="js/spiral.js"></script>
 <script src="js/zoompan.js"></script>
 <script src="js/app.js"></script>
