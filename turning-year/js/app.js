@@ -540,6 +540,38 @@
            '<div class="mh-day">' + line3 + '</div>';
   }
 
+  /* The day under the cursor, described below the circle. Both calendars are
+   * named on it: the standard date, and where the day falls in the solar
+   * cycle. A month either side of a solstice reaches into the neighbouring
+   * cycle, and those days have no number in the one on screen, so they say
+   * which side they fell out on rather than showing a wrong one. */
+  function moonReadoutHTML(d, monthDays) {
+    if (!d) return '';
+    var tz = state.place.tz;
+    var solar = cycle.dayByISO[d.iso];
+    var where;
+    if (solar) where = 'Day ' + solar.n + ' of ' + cycle.length;
+    else if (d.iso < cycle.days[0].iso) where = 'in the cycle before this one';
+    else where = 'in the cycle after this one';
+
+    return '<div class="mr-glyph">' + MoonGlyph.svg(d.moonAge, 34) + '</div>' +
+      '<div class="mr-main">' +
+        '<div class="mr-date">' + esc(TZ.formatDate(tz, d.date)) + '</div>' +
+        '<div class="mr-sub">' + esc(TZ.weekdayName(tz, d.date)) + ' &#183; ' + where + '</div>' +
+      '</div>' +
+      '<div class="mr-stat"><b>' + d.dayInMonth + ' / ' + monthDays + '</b>' +
+        '<span>of this moon</span></div>' +
+      '<div class="mr-stat"><b>' + Math.round(d.moonIllumination * 100) + '%</b>' +
+        '<span>lit</span></div>' +
+      /* On the four turning points the phase is named by the event itself, so
+       * printing both says the same thing twice. The pill wins there: it marks
+       * that the exact moment falls on this day, which the name alone does not. */
+      (d.moonEvent === d.moonPhaseName ? ''
+        : '<div class="mr-main"><div class="mr-date" style="font-size:13px">' +
+          esc(d.moonPhaseName) + '</div></div>') +
+      (d.moonEvent ? '<div class="mr-event">' + esc(d.moonEvent) + '</div>' : '');
+  }
+
   function drawMoon() {
     if (!state.place) return;
     if (state.lunationK === null) state.lunationK = lunationKOfDay(state.day || todayNumber() || 1);
@@ -553,12 +585,32 @@
     $('moon-prev').disabled = false;      // the chain has no ends
     $('moon-next').disabled = false;
 
+    /* The readout answers to the pointer, and settles back on the day in hand
+     * when the pointer leaves, so it is never blank. */
+    var byISO = {};
+    days.forEach(function (d) { byISO[d.iso] = d; });
+    function showDay(iso) {
+      $('moon-readout').innerHTML = moonReadoutHTML(byISO[iso], days.length);
+    }
+    function restDay() {
+      var sel = selectedISO(), tod = todayISO();
+      showDay(byISO[sel] ? sel : (byISO[tod] ? tod : days[0].iso));
+    }
+    restDay();
+
     var hits = $('moonwheel').querySelectorAll('.moon-day-hit');
     for (var i = 0; i < hits.length; i++) {
       hits[i].addEventListener('click', function (e) {
         openISO(e.currentTarget.getAttribute('data-iso'));
       });
+      hits[i].addEventListener('mouseenter', function (e) {
+        showDay(e.currentTarget.getAttribute('data-iso'));
+      });
+      hits[i].addEventListener('focus', function (e) {
+        showDay(e.currentTarget.getAttribute('data-iso'));
+      });
     }
+    $('moonwheel').addEventListener('mouseleave', restDay);
   }
 
   /* Open a date in the day view, moving to another solar cycle first if the
