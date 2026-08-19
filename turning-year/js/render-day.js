@@ -384,7 +384,7 @@
         var w = txt.length * 5.7 + 12;
         parts.push('<g transform="' + rot + '">' +
           '<rect x="' + f(lp[0] - w / 2) + '" y="' + f(lp[1] - 8) + '" width="' + f(w) +
-          '" height="16" rx="5" fill="var(--sky-patch)" stroke="var(--line)" stroke-width=".6" opacity=".92"/>' +
+          '" height="16" rx="5" fill="var(--bg-2)" stroke="var(--line)" stroke-width=".6" opacity=".94"/>' +
           '<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
           'dominant-baseline="middle" font-size="11" fill="' + e.colour + '">' + txt + '</text></g>');
       } else {

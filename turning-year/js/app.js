@@ -25,12 +25,13 @@
     hour12: false,
     useDST: true,       // off = the zone's winter offset all year; see clock.js
     panelMin: false,    // day panel collapsed to a single line
+    moonMin: false,     // lunation readout collapsed to a single line
     moonPhases: { 'New Moon': true, 'First Quarter': true,
                   'Full Moon': true, 'Last Quarter': true }
   };
   var cycle = null;
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
-  var wheelZoom = null, dayZoom = null;   // ZoomPan controllers, attached once in init
+  var wheelZoom = null, dayZoom = null, moonZoom = null;  // ZoomPan controllers, attached in init
 
   /* ------------------------------------------------------------ persistence */
   function save() {
@@ -38,7 +39,8 @@
       localStorage.setItem(STORE, JSON.stringify({
         place: state.place, layers: state.layers, frost: state.frost,
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
-        panelMin: state.panelMin, moonPhases: state.moonPhases
+        panelMin: state.panelMin, moonMin: state.moonMin,
+        moonPhases: state.moonPhases
       }));
     } catch (e) { /* private mode; the site still works, it just forgets */ }
   }
@@ -56,6 +58,7 @@
       if (typeof o.hour12 === 'boolean') state.hour12 = o.hour12;
       if (typeof o.useDST === 'boolean') state.useDST = o.useDST;
       if (typeof o.panelMin === 'boolean') state.panelMin = o.panelMin;
+      if (typeof o.moonMin === 'boolean') state.moonMin = o.moonMin;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
         if (typeof o.moonPhases[k] === 'boolean') state.moonPhases[k] = o.moonPhases[k];
       });
@@ -287,6 +290,7 @@
   function setLevel(level, opts) {
     if (wheelZoom) wheelZoom.reset();
     if (dayZoom) dayZoom.reset();
+    if (moonZoom) moonZoom.reset();
     state.level = level;
     if (level === 'year') { state.season = null; state.day = null; state.lunationK = null; }
     if (level === 'season') state.lunationK = null;
@@ -325,9 +329,7 @@
     if (level === 'moon') {
       drawMoon();
       showScene('moon');
-      /* No zoom controller is attached to this scene, so the buttons would do
-       * nothing here, and on a narrow screen they sit over the month's name. */
-      $('zoom-controls').hidden = true;
+      /* The ring zooms and pans like the year wheel, so the stack stays. */
       syncCrumbs(); syncLegend(); writeHash();
       return;
     }
@@ -558,6 +560,10 @@
    * cycle. A month either side of a solstice reaches into the neighbouring
    * cycle, and those days have no number in the one on screen, so they say
    * which side they fell out on rather than showing a wrong one. */
+  /* What one day of a lunation is called. Kept in one place so the word can
+   * be changed without hunting for it. */
+  var DAY_WORD = { lab: 'Day', of: 'of this lunation' };
+
   function moonReadoutHTML(d, monthDays) {
     if (!d) return '';
     var tz = state.place.tz;
@@ -586,15 +592,20 @@
           : esc(d.moonPhaseName) +
             (d.moonEvent ? ' <span class="mr-event">' + esc(d.moonEvent) + '</span>' : '')) +
       '</div>' +
+      /* This is the lunation's view, so the lunation's own day is what gets
+       * set large. The solar day follows underneath as the tie back to the
+       * 365, and the standard date under that. */
       '<div class="mr-solar">' +
-        '<span class="mr-lab">Day</span>' +
-        '<b>' + (solar ? solar.n : '\u2014') + '</b>' +
-        '<span class="mr-lab">' + (solar ? 'of ' + cycle.length : esc(where)) + '</span>' +
+        '<span class="mr-lab">' + DAY_WORD.lab + '</span>' +
+        '<b>' + d.dayInMonth + '</b>' +
+        '<span class="mr-lab">of ' + monthDays + '</span>' +
       '</div>' +
       '<div class="mr-date">' + esc(TZ.formatDate(tz, d.date)) + '</div>' +
       '<div class="mr-sub">' + esc(TZ.weekdayName(tz, d.date)) + '</div>' +
-      '<div class="mr-lun">Day ' + d.dayInMonth + ' of ' + monthDays +
-        ' of this lunation &#183; ' + Math.round(d.moonIllumination * 100) + '% lit</div>';
+      '<div class="mr-lun">' +
+        (solar ? 'Day ' + solar.n + ' of ' + cycle.length + ' of the solar cycle'
+               : esc(where.charAt(0).toUpperCase() + where.slice(1))) +
+        ' &#183; ' + Math.round(d.moonIllumination * 100) + '% lit</div>';
   }
 
   function drawMoon(focusISO) {
@@ -624,7 +635,21 @@
     var shown = null;
     function showDay(iso) {
       shown = iso;
-      $('moon-readout').innerHTML = moonReadoutHTML(byISO[iso], days.length);
+      var d0 = byISO[iso];
+      $('moon-readout').className = 'moon-readout' + (state.moonMin ? ' min' : '');
+      $('moon-readout').innerHTML =
+        '<button class="panel-min" id="moon-min" aria-label="' +
+          (state.moonMin ? 'Expand day details' : 'Minimise day details') + '" title="' +
+          (state.moonMin ? 'Expand' : 'Minimise') + '">' +
+          (state.moonMin ? '\u25B4' : '\u25BE') + '</button>' +
+        '<div class="mr-mini">' + (d0 ? esc(TZ.formatDate(state.place.tz, d0.date, 'short')) +
+          ' &#183; ' + DAY_WORD.lab.toLowerCase() + ' ' + d0.dayInMonth : '') + '</div>' +
+        moonReadoutHTML(d0, days.length);
+      $('moon-min').addEventListener('click', function (e) {
+        e.stopPropagation();
+        state.moonMin = !state.moonMin;
+        save(); showDay(shown);
+      });
       Array.prototype.forEach.call($('moon-readout').querySelectorAll('.mr-step'), function (b) {
         b.addEventListener('click', function (e) {
           e.stopPropagation();
@@ -1298,7 +1323,11 @@
   function wireZoom() {
     wheelZoom = ZoomPan.attach($('wheel-svg'), $('scene-wheel'));
     dayZoom = ZoomPan.attach($('day-svg'), $('scene-day'));
-    function active() { return state.level === 'day' ? dayZoom : wheelZoom; }
+    moonZoom = ZoomPan.attach($('moon-svg'), $('scene-moon'));
+    function active() {
+      return state.level === 'day' ? dayZoom
+           : state.level === 'moon' ? moonZoom : wheelZoom;
+    }
     $('zoom-in').addEventListener('click', function () { active().zoomIn(); });
     $('zoom-out').addEventListener('click', function () { active().zoomOut(); });
     $('zoom-reset').addEventListener('click', function () { active().reset(); });

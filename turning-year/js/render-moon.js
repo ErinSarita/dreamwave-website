@@ -67,11 +67,15 @@
     function angleOf(i) { return (i + 0.5) * step; }   // centre of the i-th day
 
     /* -- ground ---------------------------------------------------------- */
-    parts.push('<path d="' + annulus(R.illumIn - 6, R.illumOut + 6) + '" fill-rule="evenodd" ' +
-               'fill="var(--night)" opacity=".32"/>');
+    /* Coloured from CSS rather than inline, because the relationship has to
+     * survive both themes: the swell means more light, so it must always read
+     * lighter than the ring behind it. Taking the fill from --moon broke that
+     * in daylight, where --moon is a dark navy, and the fullest part of the
+     * month came out darkest. */
+    parts.push('<path class="mb-bg" d="' + annulus(R.illumIn - 6, R.illumOut + 6) +
+               '" fill-rule="evenodd"/>');
     /* A baseline at nothing-lit, so the swell is read against something. */
-    parts.push('<circle cx="500" cy="500" r="' + R.illumIn + '" fill="none" ' +
-               'stroke="var(--line)" stroke-width="1" opacity=".55"/>');
+    parts.push('<circle class="mb-base" cx="500" cy="500" r="' + R.illumIn + '" fill="none"/>');
 
     /* -- the lit fraction, swelling to full and draining back -------------
      * Radius carries illumination, so the band is widest at the full moon.
@@ -86,10 +90,10 @@
     var innerRing = 'M' + (CX - R.illumIn) + ' ' + CY +
       'a' + R.illumIn + ' ' + R.illumIn + ' 0 1 0 ' + (2 * R.illumIn) + ' 0' +
       'a' + R.illumIn + ' ' + R.illumIn + ' 0 1 0 ' + (-2 * R.illumIn) + ' 0Z';
-    parts.push('<path d="' + wave.join('') + 'Z' + innerRing + '" fill-rule="evenodd" ' +
-               'fill="var(--moon)" opacity=".45"/>');
-    parts.push('<path d="' + wave.join('') + 'Z" fill="none" stroke="var(--moon)" ' +
-               'stroke-width="1.4" stroke-linejoin="round" opacity=".85"/>');
+    parts.push('<path class="mb-fill" d="' + wave.join('') + 'Z' + innerRing +
+               '" fill-rule="evenodd"/>');
+    parts.push('<path class="mb-line" d="' + wave.join('') + 'Z" fill="none" ' +
+               'stroke-width="1.4" stroke-linejoin="round"/>');
 
     /* -- one day at a time ------------------------------------------------ */
     days.forEach(function (d, i) {
