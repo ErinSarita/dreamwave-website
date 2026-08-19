@@ -461,7 +461,10 @@
       var style = SEASON_CURVE[s.key];
       if (!style) return;
       var day = cycle.days[s.dayNumber - 1];
-      var samples = sample(cycle, day);
+      /* Standard midnights for all four, so every curve spans exactly 24 hours
+       * and the shared axis means the same thing on each. A daylight-saving
+       * day would run 23 or 25 and make the comparison lie. */
+      var samples = sample(cycle, day, dayWindow(cycle, day, false));
       var d = '';
       samples.forEach(function (p, i) {
         var hourFrac = p.angle / 360 * 24;
