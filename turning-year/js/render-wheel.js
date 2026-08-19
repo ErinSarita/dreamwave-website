@@ -536,14 +536,12 @@
       cycle.stations.forEach(function (st) {
         if (!st.dayNumber) return;
         var a = dayEdge(cycle, st.dayNumber);
-        /* Coloured by what the cut is: the same three colours the stations
-         * themselves use, so a divider and its mark read as one thing. */
-        /* Eight cuts of equal weight, so the ring reads as eight sections.
-         * A season's midpoint opens the second half of it just as the solstice
+        /* Eight cuts of equal weight, so the ring reads as eight sections. A
+         * season's midpoint opens the second half of it just as the solstice
          * opens the first, and the wheel should not imply one matters less.
-         * Each keeps the colour of the station it marks. */
-        var tc = st.kind === 'solstice' ? 'var(--solstice)'
-               : st.kind === 'equinox' ? 'var(--equinox)' : 'var(--cross)';
+         * Each takes its own station's colour, so a cut and the mark standing
+         * on it read as one thing. */
+        var tc = 'var(--st-' + st.offset + ')';
         var p1 = polar(R.seasonIn, a), p2 = polar(R.seasonOut, a);
         parts.push('<path class="season-tick" stroke="' + tc + '" d="M' + fmt(p1[0]) +
                    ' ' + fmt(p1[1]) + 'L' + fmt(p2[0]) + ' ' + fmt(p2[1]) + '"/>');
@@ -603,8 +601,11 @@
     var stationsInOrder = cycle.stations.filter(function (x) { return x.dayNumber; });
     stationsInOrder.forEach(function (s, si) {
       var ang = dayAngle(cycle, s.dayNumber);
-      var colour = s.kind === 'solstice' ? 'var(--solstice)'
-                 : s.kind === 'equinox' ? 'var(--equinox)' : 'var(--cross)';
+      /* Each station has its own colour rather than one per kind, running the
+       * spectrum round the year. Keyed by offset from the local winter
+       * solstice, so the southern hemisphere gets midsummer's yellow in
+       * December where its midsummer actually is. */
+      var colour = 'var(--st-' + s.offset + ')';
       var l1 = polar(R.stationTick0, ang), l2 = polar(R.stationTick1, ang);
       parts.push('<path d="M' + fmt(l1[0]) + ' ' + fmt(l1[1]) + 'L' + fmt(l2[0]) + ' ' + fmt(l2[1]) +
                  '" stroke="' + colour + '" stroke-width="2"/>');

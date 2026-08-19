@@ -20,6 +20,21 @@
   --twilight-2: #202a52;   /* nautical */
   --twilight-3: #171e3d;   /* astronomical */
 
+
+  /* The eight stations, each its own colour, running the spectrum round the
+   * year: yellow at midsummer through orange and red into autumn, purple at
+   * midwinter, then blue and the greens back up into spring. Keyed by offset
+   * from the local winter solstice, so a southern cycle gets midsummer yellow
+   * in December where it belongs. */
+  --st-0: #9e7bd6;      /* winter solstice   purple      */
+  --st-45: #5a9be2;     /* winter midseason  blue        */
+  --st-90: #4cbe74;     /* spring equinox    green       */
+  --st-135: #a6d64a;    /* spring midseason  light green */
+  --st-180: #f5d046;    /* summer solstice   yellow      */
+  --st-225: #f2a03e;    /* summer midseason  yellow-orange */
+  --st-270: #ec7228;    /* autumn equinox    orange      */
+  --st-315: #e24c4c;    /* autumn midseason  red         */
+
   --moon: #cfd8ef;
   --moon-dim: #59637f;
   /* The phase glyph needs "lit" and "unlit" explicitly. Reusing --moon for lit
@@ -60,6 +75,17 @@ body[data-theme="day"] {
   --twilight-1: #a9aec2;
   --twilight-2: #8f95ab;
   --twilight-3: #787f97;
+
+
+  /* Deepened for the cream ground, same eight hues in the same order. */
+  --st-0: #6b4c9a;
+  --st-45: #2f6fb8;
+  --st-90: #2e8b4f;
+  --st-135: #6b9e24;
+  --st-180: #c2960a;
+  --st-225: #d4791a;
+  --st-270: #c2500f;
+  --st-315: #b02a2a;
 
   --moon: #454c6b;
   --moon-dim: #a29a89;
@@ -168,7 +194,15 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .sw-night { background: var(--night-2); }
 .sw-moon { background: var(--moon); border-radius: 50%; }
 .sw-grow { background: var(--grow); }
-.sw-sol { background: var(--solstice); border-radius: 50%; }
+/* The eight-station wheel, in one swatch and in order. */
+.sw-wheel {
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--st-0) 0 12.5%, var(--st-45) 12.5% 25%, var(--st-90) 25% 37.5%,
+    var(--st-135) 37.5% 50%, var(--st-180) 50% 62.5%, var(--st-225) 62.5% 75%,
+    var(--st-270) 75% 87.5%, var(--st-315) 87.5% 100%);
+}
+.sw-sol { background: var(--ink-3); border-radius: 50%; }
 .sw-cq { background: var(--cross); transform: rotate(45deg); border-radius: 2px; }
 .sw-noted { background: var(--sun-bright); border-radius: 50%; width: 8px; height: 8px; }
 .sw-sky { background: none; border: 1px solid var(--ink-3); border-radius: 50%; position: relative; }
