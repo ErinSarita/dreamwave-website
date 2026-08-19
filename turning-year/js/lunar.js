@@ -137,7 +137,10 @@
       number: idx + 1, count: siblings.length,
       seasonName: SEASONS[seasonIdx],
       seasonRank: seasonRank, seasonOf: inSeason.length,
-      shortLabel: SEASONS[seasonIdx] + ' Lunation ' + seasonRank,
+      /* Counts full moons inside the season, not lunations: a lunation can
+       * straddle a season boundary, so "Summer Moon 3" names the third full
+       * moon of summer and not the third turn of the moon. */
+      shortLabel: SEASONS[seasonIdx] + ' Moon ' + seasonRank,
       // the third of four full moons in one season, in the older sense
       isBlue: inSeason.length === 4 && seasonRank === 3
     };

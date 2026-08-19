@@ -297,7 +297,8 @@
           }
           pieHits.push('<path class="moon-hit" data-lunation="' + li + '" d="' +
                        sector(R.moonHitIn, R.moonPieOut, a1, a2) + '"><title>' +
-                       (L.shortLabel ? esc('Lunation ' + L.yearMoonNumber + ' \u00B7 ' + L.shortLabel)
+                       (L.shortLabel ? esc('Lunation ' + L.yearMoonNumber + ' of the year \u00B7 ' +
+                                       (L.longLabel || L.shortLabel))
                                      : 'Lunar month') + '</title></path>');
         });
         // Closing divider at the very end of the last segment.

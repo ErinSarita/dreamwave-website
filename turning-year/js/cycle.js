@@ -476,10 +476,12 @@
           d[key + 'MoonOfSeason'] = list.length;
           d[key + 'MoonLabel'] = (ORDINALS[i + 1] || (i + 1) + 'th') + ' ' +
             (evt === 'Full Moon' ? 'full' : 'new') + ' moon of ' + MOON_SEASONS[si];
-          /* Shorter form the wheel uses. "Lunation" rather than "moon": the
-           * moon is the body, a lunation is one turn of it, and this is
-           * counting turns. */
-          d[key + 'MoonSeasonLabel'] = MOON_SEASONS[si] + ' Lunation ' + (i + 1);
+          /* Shorter form the wheel uses. "Moon" and not "lunation" here, on
+           * purpose: this counts full moons falling inside a season, not turns
+           * of the moon. A lunation can open in one season and close in the
+           * next, so the two are not the same tally. The running count of the
+           * year is a count of lunations and says so; this one names a moon. */
+          d[key + 'MoonSeasonLabel'] = MOON_SEASONS[si] + ' Moon ' + (i + 1);
           // The third of four is the blue moon in the older seasonal sense.
           if (evt === 'Full Moon' && list.length === 4 && i === 2) d.isBlueMoon = true;
         });
