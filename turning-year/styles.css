@@ -662,6 +662,20 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 }
 .moon-readout .mr-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
 .moon-readout .mr-lun { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+/* The two anchoring counts, side by side and separately labelled, so neither
+ * is mistaken for the tithi above them. */
+.moon-readout .mr-refs {
+  display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft);
+}
+.moon-readout .mr-ref { min-width: 74px; }
+.moon-readout .mr-ref b {
+  display: block; font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--moon);
+}
+.moon-readout .mr-ref span {
+  display: block; font-size: 9px; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-3); margin-top: 2px; line-height: 1.3;
+}
 /* Short screens: the circle is the thing, so the box gives ground. */
 @media (max-height: 760px), (max-width: 560px) {
   .scene-moon { padding-top: 50px; }
@@ -670,6 +684,9 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   .moon-readout .mr-date { font-size: 13.5px; margin-top: 5px; }
   .moon-readout .mr-phase { font-size: 11.5px; margin-top: 3px; }
   .moon-readout .mr-sub, .moon-readout .mr-lun { font-size: 10.5px; }
+  .moon-readout .mr-refs { gap: 10px; margin-top: 6px; padding-top: 6px; }
+  .moon-readout .mr-ref { min-width: 66px; }
+  .moon-readout .mr-ref b { font-size: 13px; }
   .moon-head .mh-name { font-size: 19px; }
   .moon-head .mh-sub, .moon-head .mh-day { font-size: 11px; }
   .moon-head { padding-bottom: 4px; }

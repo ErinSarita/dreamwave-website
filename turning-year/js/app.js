@@ -560,9 +560,11 @@
    * cycle. A month either side of a solstice reaches into the neighbouring
    * cycle, and those days have no number in the one on screen, so they say
    * which side they fell out on rather than showing a wrong one. */
-  /* What one day of a lunation is called. Kept in one place so the word can
-   * be changed without hunting for it. */
-  var DAY_WORD = { lab: 'Day', of: 'of this lunation' };
+  /* A tithi is the time the moon takes to gain twelve degrees of elongation
+   * from the sun: thirty to a lunation, but 19 to 26 hours each, so they do
+   * not line up with days. The number shown is the tithi running at the start
+   * of that day. Explained in full under About. */
+  var DAY_WORD = { lab: 'Tithi', of: 'of 30' };
 
   function moonReadoutHTML(d, monthDays) {
     if (!d) return '';
@@ -595,17 +597,26 @@
       /* This is the lunation's view, so the lunation's own day is what gets
        * set large. The solar day follows underneath as the tie back to the
        * 365, and the standard date under that. */
-      '<div class="mr-solar">' +
+      '<div class="mr-solar" title="A tithi is 12 degrees of the moon\u2019s ' +
+          'elongation from the sun: thirty to a lunation, 19 to 26 hours each">' +
         '<span class="mr-lab">' + DAY_WORD.lab + '</span>' +
-        '<b>' + d.dayInMonth + '</b>' +
-        '<span class="mr-lab">of ' + monthDays + '</span>' +
+        '<b>' + d.tithi + '</b>' +
+        '<span class="mr-lab">' + DAY_WORD.of + '</span>' +
       '</div>' +
       '<div class="mr-date">' + esc(TZ.formatDate(tz, d.date)) + '</div>' +
       '<div class="mr-sub">' + esc(TZ.weekdayName(tz, d.date)) + '</div>' +
-      '<div class="mr-lun">' +
-        (solar ? 'Day ' + solar.n + ' of ' + cycle.length + ' of the solar cycle'
-               : esc(where.charAt(0).toUpperCase() + where.slice(1))) +
-        ' &#183; ' + Math.round(d.moonIllumination * 100) + '% lit</div>';
+      /* The tithi is the moon's own reckoning and does not land one to one on
+       * days, so it cannot anchor anything by itself. The two counts that can
+       * are kept beside it and kept apart: the day of this lunation, and the
+       * day of the solar cycle, each labelled for what it counts. */
+      '<div class="mr-refs">' +
+        '<div class="mr-ref"><b>' + d.dayInMonth + ' / ' + monthDays + '</b>' +
+          '<span>day of lunation</span></div>' +
+        '<div class="mr-ref"><b>' + (solar ? solar.n + ' / ' + cycle.length : '\u2014') + '</b>' +
+          '<span>' + (solar ? 'day of solar cycle' : esc(where)) + '</span></div>' +
+        '<div class="mr-ref"><b>' + Math.round(d.moonIllumination * 100) + '%</b>' +
+          '<span>lit</span></div>' +
+      '</div>';
   }
 
   function drawMoon(focusISO) {
@@ -643,7 +654,7 @@
           (state.moonMin ? 'Expand' : 'Minimise') + '">' +
           (state.moonMin ? '\u25B4' : '\u25BE') + '</button>' +
         '<div class="mr-mini">' + (d0 ? esc(TZ.formatDate(state.place.tz, d0.date, 'short')) +
-          ' &#183; ' + DAY_WORD.lab.toLowerCase() + ' ' + d0.dayInMonth : '') + '</div>' +
+          ' &#183; ' + DAY_WORD.lab.toLowerCase() + ' ' + d0.tithi : '') + '</div>' +
         moonReadoutHTML(d0, days.length);
       $('moon-min').addEventListener('click', function (e) {
         e.stopPropagation();

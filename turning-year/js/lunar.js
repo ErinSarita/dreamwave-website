@@ -174,9 +174,23 @@
       var nxt = TZ.startOfDay(tz, cp.year, cp.month, cp.day + 1);
       var mid = new Date((cur.getTime() + nxt.getTime()) / 2);
       var ph = A.moonPhase(A.jdeFromJD(A.jdFromDate(mid)));
+      /* The tithi running at the start of the local day. A tithi is the time
+       * the moon takes to gain 12 degrees of elongation from the sun, so there
+       * are exactly thirty in a lunation, but they are not days: the moon's
+       * speed varies with its elliptical orbit, so one runs anywhere from
+       * about 19 to 26 hours. Thirty of them against 29 or 30 civil days means
+       * a tithi is occasionally skipped or repeated across a month, which is
+       * a real feature of the reckoning and not an error here.
+       *
+       * Read at the day's midpoint, which is where this app samples every
+       * other phase, so the number always agrees with the face drawn beside
+       * it. The traditional rule reads it at sunrise. Reading it at the day's
+       * start instead put tithi 30 on day one of most months, because the day
+       * holding the new moon opens before the conjunction does. */
       out.push({
         date: cur, end: nxt, iso: TZ.formatDate(tz, cur, 'iso'),
         dayInMonth: i + 1,
+        tithi: Math.floor(((ph.age % 360) + 360) % 360 / 12) + 1,
         moonIllumination: ph.illumination, moonAge: ph.age,
         moonPhaseName: ph.name, moonEvent: null
       });
