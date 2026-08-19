@@ -785,10 +785,19 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
  * way in both themes: the swell always lighter than the ring behind it.
  * Reading the fill from --moon failed that in daylight, where --moon is a
  * dark navy and the fullest part of the month came out as the darkest. */
-.cal-ring { fill: var(--night); opacity: .18; }
-.cal-tick { stroke: var(--ink-3); stroke-width: 1; opacity: .5; }
-.cal-date { font-size: 11px; fill: var(--ink-3); }
-body[data-theme="day"] .cal-ring { opacity: .13; }
+/* The solar reckoning, outermost, cut into a wedge per day. Alternate wedges
+ * carry a wash so the divisions read at a glance rather than needing the eye
+ * to follow a tick. */
+.cal-ring { fill: var(--night); opacity: .16; }
+.cal-wedge { fill: var(--night); opacity: .16; }
+.cal-tick { stroke: var(--ink-3); stroke-width: 1; opacity: .45; }
+.cal-solar { font-size: 12px; fill: var(--ink-2); }
+.cal-date { font-size: 10px; fill: var(--ink-3); }
+body[data-theme="day"] .cal-ring, body[data-theme="day"] .cal-wedge { opacity: .11; }
+
+/* The lunar reckoning inside it. */
+.lun-tick { stroke: var(--moon); stroke-width: 1; opacity: .3; }
+.lun-hours { font-size: 8.5px; fill: var(--ink-3); opacity: .85; }
 
 .mb-bg { fill: var(--night); opacity: .32; }
 .mb-base { stroke: var(--line); stroke-width: 1; opacity: .55; }

@@ -667,7 +667,14 @@
      * changes the box, since the mark chasing the pointer would flicker. */
     var focus = focusISO || selectedISO();
     $('moonwheel').innerHTML = MoonView.render(m, days, {
-      tz: ctx.tz, selectedISO: focus, todayISO: todayISO()
+      tz: ctx.tz, selectedISO: focus, todayISO: todayISO(),
+      /* The outer ring needs the day of the solar cycle for each date it
+       * draws, and a lunation reaching past a solstice will contain dates the
+       * cycle on screen does not hold, which simply go unnumbered. */
+      solarDayFor: function (iso) {
+        var dd = cycle.dayByISO[iso];
+        return dd ? dd.n : null;
+      }
     });
     $('moon-head').innerHTML = moonHeadHTML(m, days);
     $('moon-prev').disabled = false;      // the chain has no ends

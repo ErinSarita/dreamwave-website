@@ -16,20 +16,26 @@
   var MoonGlyph = global.MoonGlyph, TZ = global.TZ, A = global.Astro;
   var CX = 500, CY = 500;
   var R = {
-    hitOut: 486, hitIn: 210,
-    calOut: 486, calIn: 448, dateLabel: 467,   // the calendar ring
-    dayNum: 428,                                // lunar day numbers
-    glyph: 388, glyphR: 17,
-    illumOut: 352, illumIn: 268,
-    eventTick: 262, eventLabel: 246,
-    hub: 214
+    /* Outermost is the solar reckoning, since it is the frame the rest is
+     * being compared against: the day of the year on the rim, the ordinary
+     * date beneath it, in one banded ring divided at every local midnight. */
+    calOut: 500, solarNum: 488, dateLabel: 466, calIn: 450,
+    /* Then the lunar reckoning: its number, and how long that lunar day runs. */
+    lunNum: 436, lunHours: 418,
+    hitOut: 448, hitIn: 196,
+    /* The face rides in and out with the moon's distance as well as swelling,
+     * the way the year wheel's moon ring does. */
+    glyphBase: 370, glyphSwing: 17,
+    illumOut: 330, illumIn: 250,
+    eventTick: 244, eventLabel: 228,
+    hub: 200
   };
   /* How far the glyph is allowed to swell and shrink with distance. The real
    * change in the moon's apparent width between perigee and apogee is about
    * 14 per cent, which at this size is a pixel and a half and invisible, so
    * it is drawn at roughly four times that. Stated in the About, because an
    * exaggerated scale that is not declared is just a wrong one. */
-  var GLYPH_MIN = 13, GLYPH_MAX = 22;
+  var GLYPH_MIN = 12, GLYPH_MAX = 20;
   var PERIGEE = 356500, APOGEE = 406700;
 
   function polar(r, a) {
@@ -142,27 +148,42 @@
 
     parts.push('<path class="cal-ring" d="' + annulus(R.calIn, R.calOut) +
                '" fill-rule="evenodd"/>');
+    // one wedge per solar day, cut at its own midnights
+    for (var mi = 0; mi <= mids.length; mi++) {
+      var from = mi === 0 ? 0 : angAt(A.jdFromDate(mids[mi - 1]));
+      var to = mi === mids.length ? 360 : angAt(A.jdFromDate(mids[mi]));
+      if (mi % 2) {
+        parts.push('<path class="cal-wedge" d="' + sector(R.calIn, R.calOut, from, to) + '"/>');
+      }
+      if (to - from < 4) continue;                 // no room to write in
+      var when = mi === 0 ? A.dateFromJD(t0) : mids[mi - 1];
+      var cp2 = TZ.civilParts(tz, when);
+      var iso2 = TZ.formatDate(tz, when, 'iso');
+      var mid = (from + to) / 2;
+
+      // the day of the solar cycle, on the rim
+      var sn = opts.solarDayFor ? opts.solarDayFor(iso2) : null;
+      if (sn) {
+        var sp3 = polar(R.solarNum, mid);
+        parts.push('<text class="cal-solar" x="' + f(sp3[0]) + '" y="' + f(sp3[1]) +
+          '" text-anchor="middle" dominant-baseline="middle" transform="rotate(' +
+          f(tangent(mid)) + ' ' + f(sp3[0]) + ' ' + f(sp3[1]) + ')">' + sn + '</text>');
+      }
+      // and the ordinary date beneath it
+      var txt = (mi === 0 || cp2.day === 1)
+        ? TZ.MONTHS_SHORT[cp2.month - 1] + ' ' + cp2.day : String(cp2.day);
+      var lp2 = polar(R.dateLabel, mid);
+      parts.push('<text class="cal-date" x="' + f(lp2[0]) + '" y="' + f(lp2[1]) +
+        '" text-anchor="middle" dominant-baseline="middle" transform="rotate(' +
+        f(tangent(mid)) + ' ' + f(lp2[0]) + ' ' + f(lp2[1]) + ')">' + esc(txt) + '</text>');
+    }
+    // the dividers ride on top of the wedges
     mids.forEach(function (m) {
       var a = angAt(A.jdFromDate(m));
       var q1 = polar(R.calIn, a), q2 = polar(R.calOut, a);
       parts.push('<path class="cal-tick" d="M' + f(q1[0]) + ' ' + f(q1[1]) +
                  'L' + f(q2[0]) + ' ' + f(q2[1]) + '"/>');
     });
-    // the date sits between its own two midnights
-    for (var mi = 0; mi <= mids.length; mi++) {
-      var from = mi === 0 ? 0 : angAt(A.jdFromDate(mids[mi - 1]));
-      var to = mi === mids.length ? 360 : angAt(A.jdFromDate(mids[mi]));
-      if (to - from < 4) continue;                 // no room to write in
-      var when = mi === 0 ? A.dateFromJD(t0) : mids[mi - 1];
-      var cp2 = TZ.civilParts(tz, when);
-      var txt = (mi === 0 || cp2.day === 1)
-        ? TZ.MONTHS_SHORT[cp2.month - 1] + ' ' + cp2.day : String(cp2.day);
-      var mid = (from + to) / 2;
-      var lp2 = polar(R.dateLabel, mid);
-      parts.push('<text class="cal-date" x="' + f(lp2[0]) + '" y="' + f(lp2[1]) +
-        '" text-anchor="middle" dominant-baseline="middle" transform="rotate(' +
-        f(tangent(mid)) + ' ' + f(lp2[0]) + ' ' + f(lp2[1]) + ')">' + esc(txt) + '</text>');
-    }
 
     /* -- one day at a time ------------------------------------------------ */
     days.forEach(function (d, i) {
@@ -191,7 +212,11 @@
        * sit side by side: the widest segments carry the smallest faces. */
       var near = Math.max(0, Math.min(1, (APOGEE - (d.moonDistanceKm || 384400)) / (APOGEE - PERIGEE)));
       var gr = GLYPH_MIN + near * (GLYPH_MAX - GLYPH_MIN);
-      var g = polar(R.glyph, a);
+      /* Nearer the Earth is drawn nearer the centre, the same way the year
+       * wheel draws it, so the face swings in and out over the month as well
+       * as swelling. Two readings of one quantity, which is what makes an
+       * eight-pixel change legible at a glance. */
+      var g = polar(R.glyphBase + (0.5 - near) * 2 * R.glyphSwing, a);
       parts.push('<g transform="translate(' + f(g[0] - gr) + ' ' + f(g[1] - gr) + ')">' +
         '<circle cx="' + f(gr) + '" cy="' + f(gr) + '" r="' + f(gr) + '" fill="var(--moon-shadow)"/>' +
         '<path d="' + MoonGlyph.litPath(gr, gr, gr, d.moonAge) + '" fill="var(--moon-lit)"/>' +
@@ -201,8 +226,22 @@
       /* The date is no longer written per lunar day: it lives on the calendar
        * ring outside, at its own real position, which is the whole point of
        * drawing the two against each other. */
+      // a divider at each lunar day boundary, so the segments read as wedges
+      var v1 = polar(R.hitIn + 6, edgeIn(i)), v2 = polar(R.hitOut, edgeIn(i));
+      parts.push('<path class="lun-tick" d="M' + f(v1[0]) + ' ' + f(v1[1]) +
+                 'L' + f(v2[0]) + ' ' + f(v2[1]) + '"/>');
+
+      // how long this lunar day runs, which is the thing the width is showing
+      if (d.hours) {
+        var hp = polar(R.lunHours, a);
+        parts.push('<text class="lun-hours" x="' + f(hp[0]) + '" y="' + f(hp[1]) +
+          '" text-anchor="middle" dominant-baseline="middle" transform="rotate(' +
+          f(tangent(a)) + ' ' + f(hp[0]) + ' ' + f(hp[1]) + ')">' +
+          d.hours.toFixed(1) + 'h</text>');
+      }
+
       // where this lunar day sits in the lunation
-      var np = polar(R.dayNum, a);
+      var np = polar(R.lunNum, a);
       parts.push('<text x="' + f(np[0]) + '" y="' + f(np[1]) + '" text-anchor="middle" ' +
         'dominant-baseline="middle" font-size="10.5" fill="var(--ink-3)" ' +
         'transform="rotate(' + f(tangent(a)) + ' ' + f(np[0]) + ' ' + f(np[1]) + ')">' +
