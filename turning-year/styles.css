@@ -841,7 +841,20 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
  * holding the wording of the station that opens it. One flat tint, with the
  * cuts coloured by the kind of station they mark. */
 .ring-wedge { fill: var(--night); opacity: .3; }
-.ring-cut { stroke-width: 2; opacity: .9; }
+.ring-cut { stroke-width: 2.4; opacity: 1; }
+
+/* A station is a day, not a span. Its wording therefore begins on the cut and
+ * runs forward into the span that follows, rather than floating in the middle
+ * of it: the wedge is winter, the cut is the solstice. Which side the text
+ * runs from depends on whether the label is flipped for readability, and that
+ * is decided at runtime from the wheel's rotation, so the anchor is set here
+ * rather than baked into the markup. */
+.arc-start { text-anchor: start; }
+.rot.flip .arc-start { text-anchor: end; }
+
+/* The day sits on the intersection itself, and reads as the strongest thing
+ * in the ring, since it is the one exact fact among the names. */
+.station-day { font-size: 15px; font-weight: 600; letter-spacing: .01em; }
 
 .season-band { stroke: var(--night-2); opacity: .85; }
 .season-tick { stroke-width: 1.6; opacity: .75; }

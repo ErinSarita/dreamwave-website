@@ -12,7 +12,7 @@
      * station to the next, carrying that station's wording. It has to stop
      * short of 532, where the Dipper glyphs begin. */
     ringOut: 530, ringIn: 484,
-    stationLabel: 494, subDy: 13, subDy2: 25, stationGlyph: 458, stationTick0: 422, stationTick1: 444,
+    stationLabel: 496, subDy: 14, stationDay: 521, stationGlyph: 458, stationTick0: 422, stationTick1: 444,
     skyClock: 600, skyClockR: 68,
     monthOut: 446, monthIn: 424, monthLabel: 435,
     /* Tall enough to hold the station marks as well as its own wording: the
@@ -565,18 +565,31 @@
       parts.push('<path class="ring-cut" stroke="' + colour + '" d="M' + fmt(e1[0]) + ' ' +
                  fmt(e1[1]) + 'L' + fmt(e2[0]) + ' ' + fmt(e2[1]) + '"/>');
 
+      /* The wording begins at the cut rather than floating in the middle of
+       * the wedge, so a name reads as belonging to the point it opens on. The
+       * anchor is set from CSS, because whether a ring label is flipped for
+       * readability is decided at runtime from the wheel's own rotation: start
+       * when upright, end when flipped, which in both cases runs the text
+       * forward into its own wedge. */
       var subNames = s.alt + (s.term ? ' · ' + s.term.hanzi + ' ' + s.term.pinyin : '');
       var lines = [
         { r: R.stationLabel, cls: 'station-label', txt: s.name },
-        { r: R.stationLabel + R.subDy, cls: 'station-sub', txt: subNames },
-        { r: R.stationLabel + R.subDy2, cls: 'station-sub', txt: 'from day ' + s.dayNumber }
+        { r: R.stationLabel + R.subDy, cls: 'station-sub', txt: subNames }
       ];
       lines.forEach(function (ln) {
-        var q = polar(ln.r, wMid);
-        parts.push(rotLabel(wMid, q[0], q[1],
-          '<text class="' + ln.cls + '" x="' + fmt(q[0]) + '" y="' + fmt(q[1]) +
-          '" text-anchor="middle" dominant-baseline="middle">' + esc(ln.txt) + '</text>'));
+        var q = polar(ln.r, ang);
+        parts.push(rotLabel(ang, q[0], q[1],
+          '<text class="' + ln.cls + ' arc-start" x="' + fmt(q[0]) + '" y="' + fmt(q[1]) +
+          '" dominant-baseline="middle">' + esc(ln.txt) + '</text>'));
       });
+
+      /* The day itself sits on the intersection, centred across the cut, so
+       * the number and the line it names are plainly the same place. */
+      var dq = polar(R.stationDay, ang);
+      parts.push(rotLabel(ang, dq[0], dq[1],
+        '<text class="station-day" x="' + fmt(dq[0]) + '" y="' + fmt(dq[1]) +
+        '" text-anchor="middle" dominant-baseline="middle" fill="' + colour + '">' +
+        s.dayNumber + '</text>'));
 
       if (opts.layers.traditional && s.traditional) {
         var ta = dayAngle(cycle, s.traditional.dayNumber);
