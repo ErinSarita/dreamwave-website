@@ -899,3 +899,33 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
 .season-label {
   font-size: 13px; letter-spacing: .3em; fill: var(--ink-2); font-weight: 500;
 }
+
+/* ---------------------------------------------------- phone control strip
+ * At 375 the top strip cannot hold the menu, the crumbs and both control
+ * clusters on one line: measured, the crumbs and the tool icons overlapped by
+ * 25 pixels, and the zoom stack sat on the lunation view's next arrow by 33.
+ *
+ * Two rows instead. The menu and the crumbs take the first, the crumbs
+ * stretching into whatever the menu leaves and scrolling if the trail is long.
+ * The two control clusters take the second, one at each edge. Everything the
+ * views draw then begins below both, which is what the scene padding buys.
+ */
+@media (max-width: 560px) {
+  .panel-toggle { top: 12px; left: 10px; width: 36px; height: 36px; }
+
+  .crumbs {
+    top: 14px; left: 54px; right: 10px; transform: none;
+    max-width: none; width: auto; justify-content: flex-start;
+  }
+
+  .top-tools { top: 58px; left: 10px; right: auto; padding: 4px; gap: 4px; }
+  .zoom-controls {
+    top: 58px; right: 10px; bottom: auto;
+    flex-direction: row; padding: 4px; gap: 4px;
+  }
+  .tool-btn, .zoom-controls button { width: 32px; height: 32px; }
+
+  /* Clear of both rows. */
+  .scene { padding-top: 106px; }
+  .scene-moon { padding-top: 106px; }
+}
