@@ -810,16 +810,20 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .pf-opt { position: relative; cursor: pointer; }
 .pf-opt input { position: absolute; opacity: 0; pointer-events: none; }
 .pf-opt span {
-  display: block; padding: 4px 8px; border-radius: 999px; font-size: 11.5px;
-  text-align: center;
-  border: 1px solid var(--line); color: var(--ink-3);
-  transition: background .15s, color .15s, border-color .15s;
+  display: flex; align-items: center; justify-content: center;
+  padding: 3px 0; border-radius: 8px; line-height: 0;
+  border: 1px solid transparent; background: transparent;
+  opacity: .3; filter: grayscale(1);
+  transition: opacity .15s, border-color .15s, background .15s, filter .15s;
 }
 .pf-opt input:checked + span {
-  background: var(--moon); border-color: var(--moon); color: var(--bg); font-weight: 500;
+  opacity: 1; filter: none;
+  border-color: var(--line); background: var(--bg-2);
 }
 .pf-opt input:focus-visible + span { outline: 2px solid var(--sun); outline-offset: 1px; }
-.pf-opt:hover input:not(:checked) + span { color: var(--ink-1); border-color: var(--ink-3); }
+.pf-opt:hover input:not(:checked) + span { opacity: .6; }
+/* The station key in the corner list, matching the wheel's shapes. */
+.st-sw { width: 16px; height: 16px; flex: 0 0 auto; }
 
 /* The lunation ring's band of light. Radius carries the illumination, so the
  * colour only has to say "this is the lit part", and it must say it the same

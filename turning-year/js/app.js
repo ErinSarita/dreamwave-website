@@ -388,8 +388,11 @@
     cS.disabled = !cycle;
     cM.disabled = !cycle;
     cD.disabled = !cycle;
-    if (cycle && state.season !== null) cS.textContent = cycle.seasons[state.season].from.name;
-    else cS.textContent = 'Season';
+    /* The word alone. Naming the station here spelled out "Summer Solstice"
+     * in a trail that already has three other levels in it, and on a phone
+     * that is most of the width. Which season is showing is plain from the
+     * wheel. */
+    cS.textContent = 'Season';
     cM.textContent = 'Lunation';
     cD.textContent = state.day ? 'Day ' + state.day : 'Day';
   }
@@ -845,19 +848,43 @@
       });
   }
 
-  /* All eight, in the order the moon walks them. */
+  /* All eight, in the order the moon walks them, with the elongation each one
+   * sits at. The chip is the moon's own shape at that elongation rather than
+   * its name: eight names will not fit the panel, eight faces will, and a
+   * picture of a waxing crescent says waxing crescent faster than the words
+   * do. Drawn, not typed, for the same reason the wheel's marks are: a moon
+   * character arrives as colour emoji on half the machines that meet it. */
   var PHASE_FILTERS = [
-    ['New Moon', 'New'], ['Waxing Crescent', 'Waxing crescent'],
-    ['First Quarter', 'First quarter'], ['Waxing Gibbous', 'Waxing gibbous'],
-    ['Full Moon', 'Full'], ['Waning Gibbous', 'Waning gibbous'],
-    ['Last Quarter', 'Last quarter'], ['Waning Crescent', 'Waning crescent']
+    ['New Moon', 'New moon', 0], ['Waxing Crescent', 'Waxing crescent', 45],
+    ['First Quarter', 'First quarter', 90], ['Waxing Gibbous', 'Waxing gibbous', 135],
+    ['Full Moon', 'Full moon', 180], ['Waning Gibbous', 'Waning gibbous', 225],
+    ['Last Quarter', 'Last quarter', 270], ['Waning Crescent', 'Waning crescent', 315]
   ];
   function phaseFilterHTML() {
     return '<div class="phase-filter" role="group" aria-label="Which phases to list">' +
       PHASE_FILTERS.map(function (p) {
-        return '<label class="pf-opt"><input type="checkbox" data-phase="' + p[0] + '"' +
-               (state.moonPhases[p[0]] ? ' checked' : '') + '><span>' + p[1] + '</span></label>';
+        return '<label class="pf-opt" title="' + esc(p[1]) + '">' +
+               '<input type="checkbox" data-phase="' + p[0] + '" aria-label="' + esc(p[1]) + '"' +
+               (state.moonPhases[p[0]] ? ' checked' : '') + '>' +
+               '<span>' + MoonGlyph.svg(p[2], 22) + '</span></label>';
       }).join('') + '</div>';
+  }
+
+  /* The same key the wheel uses: each station's own colour, and the shape
+   * that says which kind it is. A disc stands for a solstice, a ring for an
+   * equinox, a diamond for a midseason. */
+  function stationSwatch(s) {
+    var c = 'var(--st-' + s.offset + ')';
+    if (s.kind === 'solstice') {
+      return '<svg class="st-sw" viewBox="0 0 16 16" aria-hidden="true">' +
+             '<circle cx="8" cy="8" r="6" fill="' + c + '"/></svg>';
+    }
+    if (s.kind === 'equinox') {
+      return '<svg class="st-sw" viewBox="0 0 16 16" aria-hidden="true">' +
+             '<circle cx="8" cy="8" r="5.2" fill="none" stroke="' + c + '" stroke-width="2.4"/></svg>';
+    }
+    return '<svg class="st-sw" viewBox="0 0 16 16" aria-hidden="true">' +
+           '<path d="M8 1.6L14.4 8L8 14.4L1.6 8Z" fill="' + c + '"/></svg>';
   }
 
   function stationListItems() {
@@ -867,7 +894,7 @@
         n: s.dayNumber, name: s.name,
         date: TZ.formatDate(cycle.tz, d.date),
         sub: s.alt,
-        glyph: '<i class="sw ' + (s.kind === 'cross-quarter' ? 'sw-cq' : 'sw-sol') + '"></i>'
+        glyph: stationSwatch(s)
       };
     });
   }
