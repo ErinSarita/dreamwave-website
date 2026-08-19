@@ -8,7 +8,11 @@
 
   var CX = 500, CY = 500;
   var R = {
-    stationLabel: 492, subDy: 15, subDy2: 27, stationGlyph: 458, stationTick0: 422, stationTick1: 444,
+    /* The eight-wedge ring outside everything: one piece per span from a
+     * station to the next, carrying that station's wording. It has to stop
+     * short of 532, where the Dipper glyphs begin. */
+    ringOut: 530, ringIn: 484,
+    stationLabel: 494, subDy: 13, subDy2: 25, stationGlyph: 458, stationTick0: 422, stationTick1: 444,
     skyClock: 600, skyClockR: 68,
     monthOut: 446, monthIn: 424, monthLabel: 435,
     /* Tall enough to hold the station marks as well as its own wording: the
@@ -97,11 +101,24 @@
    * than one hard line — or a band spanning the whole gap between the two. */
   var FROST_WINDOW_DAYS = 15;
 
-  var STATION_GLYPH = {
-    'winter-solstice': '☄', 'summer-solstice': '☀',
-    'spring-equinox': '◑', 'autumn-equinox': '◐',
-    imbolc: '✦', beltane: '✦', lughnasadh: '✦', samhain: '✦'
-  };
+  /* The four cardinal points of the ecliptic, by their own signs. These are
+   * the real astronomical markers: the spring equinox is the first point of
+   * Aries and the autumn one the first point of Libra, and the tropics of
+   * Cancer and Capricorn are named for the solstices they mark.
+   *
+   * Chosen by longitude rather than by name, so a southern cycle gets the
+   * right symbol: its winter solstice is the June one, at longitude 90, which
+   * is Cancer whatever the season is called locally.
+   *
+   * The half-filled circles that were here before meant "half light, half
+   * dark", which is what an equinox is, but on a wheel carrying thirteen
+   * months of real moon phases they simply read as moons. */
+  var ECLIPTIC_GLYPH = { 0: '\u2648', 90: '\u264B', 180: '\u264E', 270: '\u2651' };
+  function stationGlyph(s) {
+    var lon = Math.round(((s.longitude % 360) + 360) % 360 / 90) * 90 % 360;
+    if (Math.abs(A.norm180(s.longitude - lon)) < 1) return ECLIPTIC_GLYPH[lon] || '\u2726';
+    return '\u2726';
+  }
 
   function render(cycle, opts) {
     var parts = [];
@@ -501,8 +518,8 @@
     }
 
     /* -- the eight stations ------------------------------------------------ */
-    cycle.stations.forEach(function (s) {
-      if (!s.dayNumber) return;
+    var stationsInOrder = cycle.stations.filter(function (x) { return x.dayNumber; });
+    stationsInOrder.forEach(function (s, si) {
       var ang = dayAngle(cycle, s.dayNumber);
       var colour = s.kind === 'solstice' ? 'var(--solstice)'
                  : s.kind === 'equinox' ? 'var(--equinox)' : 'var(--cross)';
@@ -525,21 +542,38 @@
       var g = polar(R.stationGlyph, ang);
       parts.push('<text x="' + fmt(g[0]) + '" y="' + fmt(g[1]) + '" text-anchor="middle" ' +
                  'dominant-baseline="central" font-size="15" fill="' + colour + '">' +
-                 (STATION_GLYPH[s.key] || '✦') + '</text>');
+                 stationGlyph(s) + '</text>');
 
-      /* Each line gets its own radius rather than a y-offset from the first.
-       * Offsetting in y and then rotating sends the offset inward on half the
-       * wheel, which was driving the day numbers down to radius 460, well
-       * inside the season band. Placed radially they can only ever go out. */
+      /* The wording sits in its own wedge, running from this station to the
+       * next, the way a month's name sits inside its month. So the eight
+       * spans of the year each become a piece of one ring, named for the
+       * station that opens it, while the tick and the glyph stay back on the
+       * exact day at the wedge's leading edge.
+       *
+       * Each line takes its own radius. Offsetting in y and rotating sends
+       * the offset inward on half the wheel, which is what used to drag the
+       * day numbers in over the season band. */
+      var nextSt = stationsInOrder[(si + 1) % stationsInOrder.length];
+      var aNext = nextSt && nextSt.dayNumber ? dayEdge(cycle, nextSt.dayNumber) : ang + 45;
+      var sweep = ((aNext - ang) % 360 + 360) % 360;
+      if (sweep < 1) sweep = 45;
+      var wMid = ang + sweep / 2;
+
+      parts.push('<path class="ring-wedge" d="' +
+                 sector(R.ringIn, R.ringOut, ang, ang + sweep) + '"/>');
+      var e1 = polar(R.ringIn, ang), e2 = polar(R.ringOut, ang);
+      parts.push('<path class="ring-cut" stroke="' + colour + '" d="M' + fmt(e1[0]) + ' ' +
+                 fmt(e1[1]) + 'L' + fmt(e2[0]) + ' ' + fmt(e2[1]) + '"/>');
+
       var subNames = s.alt + (s.term ? ' · ' + s.term.hanzi + ' ' + s.term.pinyin : '');
       var lines = [
         { r: R.stationLabel, cls: 'station-label', txt: s.name },
         { r: R.stationLabel + R.subDy, cls: 'station-sub', txt: subNames },
-        { r: R.stationLabel + R.subDy2, cls: 'station-sub', txt: 'Day ' + s.dayNumber }
+        { r: R.stationLabel + R.subDy2, cls: 'station-sub', txt: 'from day ' + s.dayNumber }
       ];
       lines.forEach(function (ln) {
-        var q = polar(ln.r, ang);
-        parts.push(rotLabel(ang, q[0], q[1],
+        var q = polar(ln.r, wMid);
+        parts.push(rotLabel(wMid, q[0], q[1],
           '<text class="' + ln.cls + '" x="' + fmt(q[0]) + '" y="' + fmt(q[1]) +
           '" text-anchor="middle" dominant-baseline="middle">' + esc(ln.txt) + '</text>'));
       });

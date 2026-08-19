@@ -837,6 +837,12 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
  * the other only divides it. */
 /* Brighter than the months below it, and set apart from them: the months are
  * a soft neutral, this is the sky's own division and reads warmer. */
+/* The outermost ring: eight wedges, one per span between stations, each
+ * holding the wording of the station that opens it. One flat tint, with the
+ * cuts coloured by the kind of station they mark. */
+.ring-wedge { fill: var(--night); opacity: .3; }
+.ring-cut { stroke-width: 2; opacity: .9; }
+
 .season-band { stroke: var(--night-2); opacity: .85; }
 .season-tick { stroke-width: 1.6; opacity: .75; }
 .season-tick.is-cardinal { stroke-width: 2.6; opacity: 1; }
