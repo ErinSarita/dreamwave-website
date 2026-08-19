@@ -683,14 +683,11 @@
         /* The seasonal label already carries the word, so pairing it with a
          * running count read "Lunation 1 · Winter Lunation 1". Full and new
          * now name the lunation once and say which of the two this is. */
-        var name;
-        if (d.moonEvent === 'Full Moon') {
-          name = (d.fullMoonSeasonLabel || 'Lunation') + ' \u00B7 full';
-        } else if (d.moonEvent === 'New Moon') {
-          name = (d.newMoonSeasonLabel || 'Lunation') + ' \u00B7 new';
-        } else {
-          name = d.moonEvent;
-        }
+        /* The seasonal label now names the phase itself, so the old "· full"
+         * and "· new" suffixes would say it twice. */
+        var name = d.moonEvent === 'Full Moon' ? (d.fullMoonSeasonLabel || d.moonEvent)
+                 : d.moonEvent === 'New Moon'  ? (d.newMoonSeasonLabel || d.moonEvent)
+                 : d.moonEvent;
         return {
           n: d.n, name: name,
           date: TZ.formatDate(cycle.tz, d.date),
