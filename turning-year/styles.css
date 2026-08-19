@@ -364,7 +364,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 #wheel text, #dayclock text { font-family: var(--sans); fill: var(--ink-2); }
 .tick-label { font-size: 13px; fill: var(--ink-3); }
 .station-label { font-family: var(--serif); font-size: 15px; fill: var(--ink); }
-.station-sub { font-size: 10.5px; fill: var(--ink-3); }
+.station-sub { font-size: 9.5px; fill: var(--ink-3); }
 .month-label { font-size: 11px; fill: var(--ink-3); letter-spacing: .1em; }
 /* Moon-cycle numbers show at every zoom level, unlike the solar terms: being
    able to see where the moons fall across the whole year is the point of
@@ -837,28 +837,14 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
  * the other only divides it. */
 /* Brighter than the months below it, and set apart from them: the months are
  * a soft neutral, this is the sky's own division and reads warmer. */
-/* The outermost ring: eight wedges, one per span between stations, each
- * holding the wording of the station that opens it. One flat tint, with the
- * cuts coloured by the kind of station they mark. */
-.ring-wedge { fill: var(--night); opacity: .3; }
-.ring-cut { stroke-width: 2.4; opacity: 1; }
-
-/* A station is a day, not a span. Its wording therefore begins on the cut and
- * runs forward into the span that follows, rather than floating in the middle
- * of it: the wedge is winter, the cut is the solstice. Which side the text
- * runs from depends on whether the label is flipped for readability, and that
- * is decided at runtime from the wheel's rotation, so the anchor is set here
- * rather than baked into the markup. */
-.arc-start { text-anchor: start; }
-.rot.flip .arc-start { text-anchor: end; }
-
-/* The day sits on the intersection itself, and reads as the strongest thing
- * in the ring, since it is the one exact fact among the names. */
+/* The station wording carries no shading and no line of its own: the season
+ * band below already draws the divider, so this sits above it, centred on the
+ * same angle rather than crossed by it. The day is the strongest thing in the
+ * column, being the one exact fact among the names. */
 .station-day { font-size: 15px; font-weight: 600; letter-spacing: .01em; }
 
 .season-band { stroke: var(--night-2); opacity: .85; }
-.season-tick { stroke-width: 1.6; opacity: .75; }
-.season-tick.is-cardinal { stroke-width: 2.6; opacity: 1; }
+.season-tick { stroke-width: 2.4; opacity: 1; }
 .season-label {
   font-size: 13px; letter-spacing: .3em; fill: var(--ink-2); font-weight: 500;
 }

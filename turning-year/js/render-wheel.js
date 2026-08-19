@@ -12,14 +12,18 @@
      * station to the next, carrying that station's wording. It has to stop
      * short of 532, where the Dipper glyphs begin. */
     ringOut: 530, ringIn: 484,
-    stationLabel: 496, subDy: 14, stationDay: 521, stationGlyph: 458, stationTick0: 422, stationTick1: 444,
+    /* Pulled in from 493/509/523: a long tangential label bulges outward at
+     * its corners, roughly w squared over 8R, which for the two-hundred-pixel
+     * sub line is another ten on top of its own height. That was carrying it
+     * to 541, under the Dipper glyphs at 532. */
+    stationDay: 488, stationLabel: 502, subDy: 13, stationGlyph: 458, stationTick0: 422, stationTick1: 444,
     skyClock: 600, skyClockR: 68,
     monthOut: 446, monthIn: 424, monthLabel: 435,
     /* Tall enough to hold the station marks as well as its own wording: the
      * glyph sits at 458 and the season name at 464, so the band has to span
      * roughly 449 to 472 before either touches a rim. The station names sit
      * outside at 492 and still clear the Dipper glyphs at 532. */
-    seasonOut: 481, seasonIn: 447, seasonLabel: 464,
+    seasonOut: 476, seasonIn: 447, seasonLabel: 463,
     bandOut: 418, bandIn: 262,
     moonRing: 240, moonR: 1.95, moonSwing: 11,
     moonPieIn: 224, moonPieOut: 257, moonNumR: 217, moonSeasonR: 205,
@@ -458,13 +462,15 @@
         var a = dayEdge(cycle, st.dayNumber);
         /* Coloured by what the cut is: the same three colours the stations
          * themselves use, so a divider and its mark read as one thing. */
-        var cardinal = st.kind === 'solstice' || st.kind === 'equinox';
+        /* Eight cuts of equal weight, so the ring reads as eight sections.
+         * A season's midpoint opens the second half of it just as the solstice
+         * opens the first, and the wheel should not imply one matters less.
+         * Each keeps the colour of the station it marks. */
         var tc = st.kind === 'solstice' ? 'var(--solstice)'
                : st.kind === 'equinox' ? 'var(--equinox)' : 'var(--cross)';
         var p1 = polar(R.seasonIn, a), p2 = polar(R.seasonOut, a);
-        parts.push('<path class="season-tick' + (cardinal ? ' is-cardinal' : '') +
-                   '" stroke="' + tc + '" d="M' + fmt(p1[0]) + ' ' + fmt(p1[1]) +
-                   'L' + fmt(p2[0]) + ' ' + fmt(p2[1]) + '"/>');
+        parts.push('<path class="season-tick" stroke="' + tc + '" d="M' + fmt(p1[0]) +
+                   ' ' + fmt(p1[1]) + 'L' + fmt(p2[0]) + ' ' + fmt(p2[1]) + '"/>');
       });
       // the season's own name sits across its quarter, between two cardinals
       var cards = cycle.stations.filter(function (st) {
@@ -553,43 +559,24 @@
        * Each line takes its own radius. Offsetting in y and rotating sends
        * the offset inward on half the wheel, which is what used to drag the
        * day numbers in over the season band. */
-      var nextSt = stationsInOrder[(si + 1) % stationsInOrder.length];
-      var aNext = nextSt && nextSt.dayNumber ? dayEdge(cycle, nextSt.dayNumber) : ang + 45;
-      var sweep = ((aNext - ang) % 360 + 360) % 360;
-      if (sweep < 1) sweep = 45;
-      var wMid = ang + sweep / 2;
-
-      parts.push('<path class="ring-wedge" d="' +
-                 sector(R.ringIn, R.ringOut, ang, ang + sweep) + '"/>');
-      var e1 = polar(R.ringIn, ang), e2 = polar(R.ringOut, ang);
-      parts.push('<path class="ring-cut" stroke="' + colour + '" d="M' + fmt(e1[0]) + ' ' +
-                 fmt(e1[1]) + 'L' + fmt(e2[0]) + ' ' + fmt(e2[1]) + '"/>');
-
-      /* The wording begins at the cut rather than floating in the middle of
-       * the wedge, so a name reads as belonging to the point it opens on. The
-       * anchor is set from CSS, because whether a ring label is flipped for
-       * readability is decided at runtime from the wheel's own rotation: start
-       * when upright, end when flipped, which in both cases runs the text
-       * forward into its own wedge. */
+      /* No shading and no line of its own out here. The season band below
+       * already carries the divider for this station, so the wording simply
+       * sits above it on the same angle: centred on the line rather than
+       * crossed by it. A station is a day, and this is that day's own column,
+       * read outward from the mark. */
       var subNames = s.alt + (s.term ? ' · ' + s.term.hanzi + ' ' + s.term.pinyin : '');
       var lines = [
+        { r: R.stationDay, cls: 'station-day', txt: String(s.dayNumber), colour: colour },
         { r: R.stationLabel, cls: 'station-label', txt: s.name },
         { r: R.stationLabel + R.subDy, cls: 'station-sub', txt: subNames }
       ];
       lines.forEach(function (ln) {
         var q = polar(ln.r, ang);
         parts.push(rotLabel(ang, q[0], q[1],
-          '<text class="' + ln.cls + ' arc-start" x="' + fmt(q[0]) + '" y="' + fmt(q[1]) +
-          '" dominant-baseline="middle">' + esc(ln.txt) + '</text>'));
+          '<text class="' + ln.cls + '" x="' + fmt(q[0]) + '" y="' + fmt(q[1]) +
+          '" text-anchor="middle" dominant-baseline="middle"' +
+          (ln.colour ? ' fill="' + ln.colour + '"' : '') + '>' + esc(ln.txt) + '</text>'));
       });
-
-      /* The day itself sits on the intersection, centred across the cut, so
-       * the number and the line it names are plainly the same place. */
-      var dq = polar(R.stationDay, ang);
-      parts.push(rotLabel(ang, dq[0], dq[1],
-        '<text class="station-day" x="' + fmt(dq[0]) + '" y="' + fmt(dq[1]) +
-        '" text-anchor="middle" dominant-baseline="middle" fill="' + colour + '">' +
-        s.dayNumber + '</text>'));
 
       if (opts.layers.traditional && s.traditional) {
         var ta = dayAngle(cycle, s.traditional.dayNumber);
