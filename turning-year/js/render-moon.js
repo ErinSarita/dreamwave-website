@@ -385,7 +385,7 @@
     var word = opts.countdown ? 'left of' : 'into';
     /* Position round the whole cycle in the moon's own unit: the elongation
      * over twelve, so 0 at the new moon and exactly 30 at the next. */
-    var deg = opts.elongation, pos = deg / 12;
+    var deg = opts.elongation;
 
     /* The hand, and the lunation's own dial outside everything else. Both are
      * drawn on the wheel's angle rather than on elongation, so they land on
@@ -443,9 +443,8 @@
     p.push('<rect id="moon-clock-hit" x=' + q(CX - 92) + ' y=' + q(CY + 66) +
            ' width="184" height="112" fill="transparent" style="cursor:pointer"><title>' +
            'Lunar day ' + info.n + ' runs ' + info.hours.toFixed(2) + ' hours. ' +
-           'The ring round the face fills once across it. The figure below ' +
-           'counts lunar days completed, from 0 at the new moon to 30 at the ' +
-           'next, so ' + (info.n - 1) + ' complete means this is day ' + info.n + '. ' +
+           'The ring round the face fills once across it. The outer ring is ' +
+           'the whole lunation, 360 degrees from one new moon to the next. ' +
            (opts.countdown ? 'Counting down. Click to count up.'
                            : 'Counting up. Click to count down.') +
            '</title></rect>');
@@ -461,16 +460,14 @@
     p.push('<line x1=' + q(CX - 84) + ' y1=' + q(CY + 116) + ' x2=' + q(CX + 84) +
            ' y2=' + q(CY + 116) + ' stroke="var(--line-soft)" stroke-width="1"/>');
 
-    /* The number that always lands on the same total. Hours cannot do this: a
-     * lunation runs anywhere from 702 to 716 of them. Degrees can, because
-     * 360 of them is what a lunation is. So the count climbs the angle rather
-     * than the clock, and reaches 30.0000 at every new moon without fail. */
+    /* Where this moment stands in the whole cycle, given as the angle alone.
+     * A fractional day count said the same thing, but it counts days finished
+     * while the heading above counts the day you are in, so the two sat side
+     * by side looking one apart. The angle carries no such trap: it is the
+     * quantity a lunation is actually made of, 360 of them every time. */
     p.push('<text x=' + q(CX) + ' y=' + q(CY + 142) + ' text-anchor="middle" ' +
-           'font-family="var(--mono)" font-size="22" fill="var(--moon)">' + pos.toFixed(4) +
-           '<tspan font-size="12" fill="var(--ink-3)"> of 30 complete</tspan></text>');
-    p.push('<text x=' + q(CX) + ' y=' + q(CY + 161) + ' text-anchor="middle" ' +
-           'font-size="10" fill="var(--ink-3)">' + deg.toFixed(2) +
-           '° round the lunation</text>');
+           'font-family="var(--mono)" font-size="15" fill="var(--moon)">' + deg.toFixed(2) +
+           '°<tspan font-size="10" fill="var(--ink-3)"> of 360 round the lunation</tspan></text>');
 
     return p.join('');
   }
