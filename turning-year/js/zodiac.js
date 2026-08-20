@@ -278,13 +278,20 @@
     }
 
     /* -- where the ring meets the ground -------------------------------- */
-    [['rises', best[0]], ['sets', best[best.length - 1]]].forEach(function (m) {
-      if (!m[1]) return;
-      var q = skyPolar(0, m[1].az);
+    /* Which end is which is decided by the bearing, not by the order the arc
+     * was walked in. Longitude increases from the setting point towards the
+     * rising one, because the zodiac rises in sign order, so reading the ends
+     * off the array puts them the wrong way round. An easterly bearing is a
+     * rising point; a westerly one is setting. That is true whichever way the
+     * sampling happened to run. */
+    [best[0], best[best.length - 1]].forEach(function (end) {
+      if (!end) return;
+      var rising = norm360(end.az) < 180;
+      var q = skyPolar(0, end.az);
       parts.push('<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="4" fill="var(--today)"/>');
       parts.push('<text x="' + f(q[0]) + '" y="' + f(q[1] - 12) + '" text-anchor="middle" ' +
         'font-size="9.5" fill="var(--today)">' +
-        (m[0] === 'rises' ? 'ecliptic rises' : 'ecliptic sets') + '</text>');
+        (rising ? 'ecliptic rises' : 'ecliptic sets') + '</text>');
     });
 
     /* -- and the bodies riding on it ------------------------------------ */
