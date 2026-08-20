@@ -39,7 +39,7 @@
   /* The face in the hub, and the dial that rings it. The face sits a little
    * above centre to leave room for the readout below; the dial clears its
    * edge by twelve and still stands clear of the first line of text. */
-  var FACE_CY = 440, FACE_R = 62, DIAL_R = 71;
+  var FACE_CY = 452, FACE_R = 62, DIAL_R = 71;
   /* The lunation's own dial, outside everything else. It has to sit past the
    * solar ring at 500, and inside the 1080 box, so it rides at 512. It is
    * measured on the wheel's angle rather than on elongation, so its leading
@@ -326,12 +326,17 @@
       '<path d="' + MoonGlyph.litPath(BIG, BIG, BIG, focus.moonAge) + '" fill="var(--moon-lit)"/>' +
       '<circle cx="' + BIG + '" cy="' + BIG + '" r="' + BIG +
         '" fill="none" stroke="var(--line)" stroke-width="1.5"/></g>');
-    parts.push('<text x="500" y="' + (CY + 46) + '" text-anchor="middle" font-size="26" ' +
-      'font-family="var(--mono)" fill="var(--moon)">' +
+    /* The name of the phase leads, above the face and set largest: it is what
+     * the picture is, and a reader coming to the middle of the wheel should
+     * meet a word before a number. The figures fall away underneath it in
+     * decreasing weight. */
+    parts.push('<text x="500" y="366" text-anchor="middle" font-size="22" ' +
+      'font-weight="600" font-family="var(--serif)" fill="var(--moon)">' +
+      esc(focus.moonPhaseName) + '</text>');
+    parts.push('<text x="500" y="546" text-anchor="middle" font-size="12.5" ' +
+      'font-family="var(--mono)" fill="var(--ink-3)">' +
       Math.round(focus.moonIllumination * 100) + '% lit</text>');
-    parts.push('<text x="500" y="' + (CY + 72) + '" text-anchor="middle" font-size="14" ' +
-      'fill="var(--ink-2)">' + esc(focus.moonPhaseName) + '</text>');
-    parts.push('<text x="500" y="' + (CY + 98) + '" text-anchor="middle" font-size="12" ' +
+    parts.push('<text x="500" y="566" text-anchor="middle" font-size="11" ' +
       'fill="var(--ink-3)">' + esc(TZ.formatDate(tz, focus.date, 'short')) +
       ' &#183; lunar day ' + focus.dayInMonth + ' of ' + N + '</text>');
 
@@ -368,25 +373,22 @@
     function pad(v) { return (v < 10 ? '0' : '') + v; }
     var count = pad(hh) + ':' + pad(mm) + ':' + pad(ss % 60);
     var word = opts.countdown ? 'left of' : 'into';
-    /* Position round the whole cycle, measured in the moon's own unit: the
-     * elongation over twelve, so 0 at the new moon and exactly 30 at the
-     * next. Four decimals moves every eight seconds or so, which is enough to
-     * see it running without turning into a blur of digits. */
+    /* Position round the whole cycle in the moon's own unit: the elongation
+     * over twelve, so 0 at the new moon and exactly 30 at the next. */
     var deg = opts.elongation, pos = deg / 12;
 
+    /* The hand, and the lunation's own dial outside everything else. Both are
+     * drawn on the wheel's angle rather than on elongation, so they land on
+     * the segment boundaries underneath them. Neither is drawn against a
+     * wheel that does not hold this moment. */
     if (opts.onThisWheel) {
-      var a = opts.angle;
-      var q1 = polar(R.hub + 5, a), q2 = polar(R.hitOut, a);
-      p.push('<line x1="' + f(q1[0]) + '" y1="' + f(q1[1]) + '" x2="' + f(q2[0]) +
-             '" y2="' + f(q2[1]) + '" stroke="var(--today)" stroke-width="2" ' +
-             'stroke-linecap="round" opacity=".85"/>');
-      p.push('<circle cx="' + f(q2[0]) + '" cy="' + f(q2[1]) + '" r="4.5" fill="var(--today)"/>');
-    }
+      var q1 = polar(R.hub + 5, opts.angle), q2 = polar(R.hitOut, opts.angle);
+      p.push('<line x1=' + q(f(q1[0])) + ' y1=' + q(f(q1[1])) + ' x2=' + q(f(q2[0])) +
+             ' y2=' + q(f(q2[1])) + ' stroke="var(--today)" stroke-width="2" ' +
+             'stroke-linecap="round" opacity=".85" pointer-events="none"/>');
+      p.push('<circle cx=' + q(f(q2[0])) + ' cy=' + q(f(q2[1])) +
+             ' r="4.5" fill="var(--today)" pointer-events="none"/>');
 
-    /* The whole lunation as one turn: filled behind, open ahead. Only drawn
-     * against the wheel that holds this moment, since a fraction of a cycle
-     * the wheel does not cover would be a fraction of nothing. */
-    if (opts.onThisWheel) {
       var cf = Math.max(0, Math.min(1, opts.angle / 360));
       p.push('<circle cx=' + q(CX) + ' cy=' + q(CY) + ' r=' + q(CYCLE_R) + ' fill="none" ' +
              'stroke="var(--line)" stroke-width="4" pointer-events="none"/>');
@@ -396,63 +398,68 @@
                ' 0 ' + (cf > 0.5 ? 1 : 0) + ' 1 ' + f(c1[0]) + ' ' + f(c1[1])) +
                ' fill="none" stroke="var(--moon)" stroke-width="4" stroke-linecap="round" ' +
                'pointer-events="none"/>');
-        p.push('<circle cx=' + q(f(c1[0])) + ' cy=' + q(f(c1[1])) + ' r="5.5" ' +
-               'fill="var(--today)" pointer-events="none"/>');
+        p.push('<circle cx=' + q(f(c1[0])) + ' cy=' + q(f(c1[1])) +
+               ' r="5.5" fill="var(--today)" pointer-events="none"/>');
       }
-      p.push('<circle cx=' + q(CX) + ' cy=' + q(CY - CYCLE_R) + ' r="2.2" ' +
-             'fill="var(--ink-3)" pointer-events="none"/>');
+      p.push('<circle cx=' + q(CX) + ' cy=' + q(CY - CYCLE_R) +
+             ' r="2.2" fill="var(--ink-3)" pointer-events="none"/>');
     }
 
-    /* The lunar day as one whole turn of the ring, whatever its hours come
-     * to. A day of 20 and a day of 27 both fill it exactly once, which is the
-     * only honest way to draw a unit that changes length: the ring measures
-     * the day against itself rather than against a fixed number of hours. */
+    /* The lunar day as one whole turn of the ring round the face, whatever
+     * its hours come to. A day of 20 and a day of 27 both fill it exactly
+     * once, which is the only honest way to draw a unit that changes length:
+     * the ring measures the day against itself. */
     function fpolar(r, a) {
       var t = (a - 90) * Math.PI / 180;
       return [CX + r * Math.cos(t), FACE_CY + r * Math.sin(t)];
     }
-    p.push('<circle cx=' + q(CX) + ' cy=' + q(FACE_CY) + ' r=' + q(DIAL_R) +
-           ' fill="none" stroke="var(--line)" stroke-width="4"/>');
+    p.push('<circle cx=' + q(CX) + ' cy=' + q(FACE_CY) + ' r=' + q(DIAL_R) + ' fill="none" ' +
+           'stroke="var(--line)" stroke-width="4" pointer-events="none"/>');
     if (frac > 0.9995) {
-      p.push('<circle cx=' + q(CX) + ' cy=' + q(FACE_CY) + ' r=' + q(DIAL_R) +
-             ' fill="none" stroke="var(--moon)" stroke-width="4"/>');
+      p.push('<circle cx=' + q(CX) + ' cy=' + q(FACE_CY) + ' r=' + q(DIAL_R) + ' fill="none" ' +
+             'stroke="var(--moon)" stroke-width="4" pointer-events="none"/>');
     } else if (frac > 0.0005) {
       var a0 = fpolar(DIAL_R, 0), a1 = fpolar(DIAL_R, frac * 360);
       p.push('<path d=' + q('M ' + f(a0[0]) + ' ' + f(a0[1]) + ' A ' + DIAL_R + ' ' + DIAL_R +
              ' 0 ' + (frac > 0.5 ? 1 : 0) + ' 1 ' + f(a1[0]) + ' ' + f(a1[1])) +
-             ' fill="none" stroke="var(--moon)" stroke-width="4" stroke-linecap="round"/>');
-      p.push('<circle cx=' + q(f(a1[0])) + ' cy=' + q(f(a1[1])) + ' r="4.5" fill="var(--moon)"/>');
+             ' fill="none" stroke="var(--moon)" stroke-width="4" stroke-linecap="round" ' +
+             'pointer-events="none"/>');
+      p.push('<circle cx=' + q(f(a1[0])) + ' cy=' + q(f(a1[1])) +
+             ' r="4.5" fill="var(--moon)" pointer-events="none"/>');
     }
-    /* Where the ring closes, so the turn has a visible top. */
-    p.push('<circle cx=' + q(CX) + ' cy=' + q(FACE_CY - DIAL_R) + ' r="1.8" fill="var(--ink-3)"/>');
+    p.push('<circle cx=' + q(CX) + ' cy=' + q(FACE_CY - DIAL_R) +
+           ' r="1.8" fill="var(--ink-3)" pointer-events="none"/>');
 
-    p.push('<rect id="moon-clock-hit" x="' + (CX - 92) + '" y="' + (CY + 122) + '" width="184" ' +
-           'height="66" fill="transparent" style="cursor:pointer"><title>' +
+    p.push('<rect id="moon-clock-hit" x=' + q(CX - 92) + ' y=' + q(CY + 74) +
+           ' width="184" height="100" fill="transparent" style="cursor:pointer"><title>' +
            'Lunar day ' + info.n + ' runs ' + info.hours.toFixed(2) + ' hours. ' +
-           'The ring fills once across it. ' +
+           'The ring round the face fills once across it. ' +
            (opts.countdown ? 'Counting down. Click to count up.'
                            : 'Counting up. Click to count down.') +
            '</title></rect>');
-    p.push('<line x1="' + (CX - 84) + '" y1="' + (CY + 112) + '" x2="' + (CX + 84) +
-           '" y2="' + (CY + 112) + '" stroke="var(--line-soft)" stroke-width="1"/>');
 
-    /* The number that always lands on the same total. Hours cannot do this:
-     * a lunation runs anywhere from 702 to 716 of them. Degrees can, because
+    /* The day clock sits with the ring that draws it, just under the face, so
+     * the number and the arc read as one thing. Below the rule is the larger
+     * cycle: where this moment stands in the whole lunation. */
+    p.push('<text x=' + q(CX) + ' y=' + q(CY + 88) + ' text-anchor="middle" ' +
+           'font-size="11" fill="var(--ink-3)">' +
+           (opts.onThisWheel ? count + ' ' + word + ' lunar day ' + info.n
+                             : 'now is in another lunation') + '</text>');
+
+    p.push('<line x1=' + q(CX - 84) + ' y1=' + q(CY + 106) + ' x2=' + q(CX + 84) +
+           ' y2=' + q(CY + 106) + ' stroke="var(--line-soft)" stroke-width="1"/>');
+
+    /* The number that always lands on the same total. Hours cannot do this: a
+     * lunation runs anywhere from 702 to 716 of them. Degrees can, because
      * 360 of them is what a lunation is. So the count climbs the angle rather
      * than the clock, and reaches 30.0000 at every new moon without fail. */
-    p.push('<text x="' + CX + '" y="' + (CY + 142) + '" text-anchor="middle" ' +
+    p.push('<text x=' + q(CX) + ' y=' + q(CY + 136) + ' text-anchor="middle" ' +
            'font-family="var(--mono)" font-size="24" fill="var(--moon)">' + pos.toFixed(4) +
            '<tspan font-size="12" fill="var(--ink-3)"> of 30</tspan></text>');
-    p.push('<text x="' + CX + '" y="' + (CY + 163) + '" text-anchor="middle" font-size="10.5" ' +
-           'fill="var(--ink-3)">' + deg.toFixed(2) + '\u00B0 round the lunation</text>');
+    p.push('<text x=' + q(CX) + ' y=' + q(CY + 157) + ' text-anchor="middle" ' +
+           'font-size="10.5" fill="var(--ink-3)">' + deg.toFixed(2) +
+           '° round the lunation</text>');
 
-    if (opts.onThisWheel) {
-      p.push('<text x="' + CX + '" y="' + (CY + 181) + '" text-anchor="middle" font-size="10.5" ' +
-             'fill="var(--ink-3)">' + count + ' ' + word + ' lunar day ' + info.n + '</text>');
-    } else {
-      p.push('<text x="' + CX + '" y="' + (CY + 181) + '" text-anchor="middle" font-size="10.5" ' +
-             'fill="var(--ink-3)" opacity=".8">now is in another lunation</text>');
-    }
     return p.join('');
   }
 
