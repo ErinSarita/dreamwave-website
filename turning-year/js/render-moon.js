@@ -36,6 +36,17 @@
    * 14 per cent, which at this size is a pixel and a half and invisible, so
    * it is drawn at roughly four times that. Stated in the About, because an
    * exaggerated scale that is not declared is just a wrong one. */
+  /* The face in the hub, and the dial that rings it. The face sits a little
+   * above centre to leave room for the readout below; the dial clears its
+   * edge by twelve and still stands clear of the first line of text. */
+  var FACE_CY = 446, FACE_R = 62, DIAL_R = 74;
+  /* The lunation's own dial, outside everything else. It has to sit past the
+   * solar ring at 500, and inside the 1080 box, so it rides at 512. It is
+   * measured on the wheel's angle rather than on elongation, so its leading
+   * edge lands exactly on the segment boundary underneath it and exactly
+   * where the hand points. */
+  var CYCLE_R = 512;
+
   var GLYPH_MIN = 12, GLYPH_MAX = 20;
   var PERIGEE = 356500, APOGEE = 406700;
 
@@ -44,6 +55,7 @@
     return [CX + r * Math.cos(t), CY + r * Math.sin(t)];
   }
   function f(n) { return Math.round(n * 100) / 100; }
+  function q(v) { return '"' + v + '"'; }
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
@@ -308,8 +320,8 @@
     if (!focus) focus = days[Math.floor(N / 2)];
 
     parts.push('<circle cx="500" cy="500" r="' + R.hub + '" fill="var(--bg)" opacity=".72"/>');
-    var BIG = 62;
-    parts.push('<g transform="translate(' + (CX - BIG) + ' ' + (CY - BIG - 46) + ')">' +
+    var BIG = FACE_R;
+    parts.push('<g transform="translate(' + (CX - BIG) + ' ' + (FACE_CY - BIG) + ')">' +
       '<circle cx="' + BIG + '" cy="' + BIG + '" r="' + BIG + '" fill="var(--moon-shadow)"/>' +
       '<path d="' + MoonGlyph.litPath(BIG, BIG, BIG, focus.moonAge) + '" fill="var(--moon-lit)"/>' +
       '<circle cx="' + BIG + '" cy="' + BIG + '" r="' + BIG +
@@ -371,10 +383,55 @@
       p.push('<circle cx="' + f(q2[0]) + '" cy="' + f(q2[1]) + '" r="4.5" fill="var(--today)"/>');
     }
 
+    /* The whole lunation as one turn: filled behind, open ahead. Only drawn
+     * against the wheel that holds this moment, since a fraction of a cycle
+     * the wheel does not cover would be a fraction of nothing. */
+    if (opts.onThisWheel) {
+      var cf = Math.max(0, Math.min(1, opts.angle / 360));
+      p.push('<circle cx=' + q(CX) + ' cy=' + q(CY) + ' r=' + q(CYCLE_R) + ' fill="none" ' +
+             'stroke="var(--line)" stroke-width="4" pointer-events="none"/>');
+      if (cf > 0.0005) {
+        var c0 = polar(CYCLE_R, 0), c1 = polar(CYCLE_R, cf * 360);
+        p.push('<path d=' + q('M ' + f(c0[0]) + ' ' + f(c0[1]) + ' A ' + CYCLE_R + ' ' + CYCLE_R +
+               ' 0 ' + (cf > 0.5 ? 1 : 0) + ' 1 ' + f(c1[0]) + ' ' + f(c1[1])) +
+               ' fill="none" stroke="var(--moon)" stroke-width="4" stroke-linecap="round" ' +
+               'pointer-events="none"/>');
+        p.push('<circle cx=' + q(f(c1[0])) + ' cy=' + q(f(c1[1])) + ' r="5.5" ' +
+               'fill="var(--today)" pointer-events="none"/>');
+      }
+      p.push('<circle cx=' + q(CX) + ' cy=' + q(CY - CYCLE_R) + ' r="2.2" ' +
+             'fill="var(--ink-3)" pointer-events="none"/>');
+    }
+
+    /* The lunar day as one whole turn of the ring, whatever its hours come
+     * to. A day of 20 and a day of 27 both fill it exactly once, which is the
+     * only honest way to draw a unit that changes length: the ring measures
+     * the day against itself rather than against a fixed number of hours. */
+    function fpolar(r, a) {
+      var t = (a - 90) * Math.PI / 180;
+      return [CX + r * Math.cos(t), FACE_CY + r * Math.sin(t)];
+    }
+    p.push('<circle cx=' + q(CX) + ' cy=' + q(FACE_CY) + ' r=' + q(DIAL_R) +
+           ' fill="none" stroke="var(--line)" stroke-width="4"/>');
+    if (frac > 0.9995) {
+      p.push('<circle cx=' + q(CX) + ' cy=' + q(FACE_CY) + ' r=' + q(DIAL_R) +
+             ' fill="none" stroke="var(--moon)" stroke-width="4"/>');
+    } else if (frac > 0.0005) {
+      var a0 = fpolar(DIAL_R, 0), a1 = fpolar(DIAL_R, frac * 360);
+      p.push('<path d=' + q('M ' + f(a0[0]) + ' ' + f(a0[1]) + ' A ' + DIAL_R + ' ' + DIAL_R +
+             ' 0 ' + (frac > 0.5 ? 1 : 0) + ' 1 ' + f(a1[0]) + ' ' + f(a1[1])) +
+             ' fill="none" stroke="var(--moon)" stroke-width="4" stroke-linecap="round"/>');
+      p.push('<circle cx=' + q(f(a1[0])) + ' cy=' + q(f(a1[1])) + ' r="4.5" fill="var(--moon)"/>');
+    }
+    /* Where the ring closes, so the turn has a visible top. */
+    p.push('<circle cx=' + q(CX) + ' cy=' + q(FACE_CY - DIAL_R) + ' r="1.8" fill="var(--ink-3)"/>');
+
     p.push('<rect id="moon-clock-hit" x="' + (CX - 92) + '" y="' + (CY + 122) + '" width="184" ' +
            'height="66" fill="transparent" style="cursor:pointer"><title>' +
-           (opts.countdown ? 'Counting down to the next lunar day. Click to count up.'
-                           : 'Counting up from the start of this lunar day. Click to count down.') +
+           'Lunar day ' + info.n + ' runs ' + info.hours.toFixed(2) + ' hours. ' +
+           'The ring fills once across it. ' +
+           (opts.countdown ? 'Counting down. Click to count up.'
+                           : 'Counting up. Click to count down.') +
            '</title></rect>');
     p.push('<line x1="' + (CX - 84) + '" y1="' + (CY + 112) + '" x2="' + (CX + 84) +
            '" y2="' + (CY + 112) + '" stroke="var(--line-soft)" stroke-width="1"/>');
