@@ -401,6 +401,35 @@
       }
     });
 
+    /* ---- the other wanderers ------------------------------------------------
+     * Same geometry as the sun and moon: angle is the hour, radius is height
+     * above the horizon. Sampled every twentieth step rather than at all 720,
+     * because a planet moves at most a degree and a half in a whole day and
+     * the curve is smooth at that spacing. */
+    if (opts.planets && global.Planets) {
+      var PL = global.Planets, step = 20;
+      PL.ORDER.forEach(function (nm) {
+        var dstr = '', best = null;
+        for (var i = 0; i < s.length; i += step) {
+          var pjd = A.jdFromDate(new Date(s[i].t));
+          var pos = PL.position(nm, A.jdeFromJD(pjd));
+          var alt = A.altitudeOf(pos.ra, pos.dec, pjd, cycle.lat, cycle.lon);
+          var q = polar(altR(alt), s[i].angle);
+          dstr += (dstr ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1]);
+          if (!best || alt > best.alt) best = { alt: alt, angle: s[i].angle };
+        }
+        parts.push('<path d="' + dstr + '" fill="none" stroke="' + PLANET_COLOUR[nm] +
+                   '" stroke-width="1.4" opacity=".9" pointer-events="none"/>');
+        if (best && best.alt > 0) {
+          var g = polar(altR(best.alt) + 13, best.angle);
+          parts.push('<text x="' + f(g[0]) + '" y="' + f(g[1]) + '" text-anchor="middle" ' +
+                     'dominant-baseline="middle" font-size="13" fill="' + PLANET_COLOUR[nm] +
+                     '" pointer-events="none"><title>' + nm + '</title>' +
+                     PL.GLYPH[nm] + '</text>');
+        }
+      });
+    }
+
     /* ---- earth, centred on this place, at this moment ------------------------ */
     if (Globe && opts.globe !== false) {
       var globeInstant = (opts.now && opts.now >= win.start && opts.now < win.end) ? opts.now : day.solarNoon;
@@ -442,6 +471,14 @@
     var total = Math.round(hours * 60);
     return Math.floor(total / 60) + ' h ' + TZ.pad(total % 60) + ' m';
   }
+
+  /* Muted enough to sit under the sun and moon rather than compete with
+   * them, and distinct enough to tell apart. Fixed rather than themed: these
+   * five need to stay separable from each other in both palettes. */
+  var PLANET_COLOUR = {
+    Mercury: '#8fa3b8', Venus: '#c98fb9', Mars: '#d1685a',
+    Jupiter: '#c9a24a', Saturn: '#8d8ab5'
+  };
 
   var SEASON_CURVE = {
     'winter-solstice': { color: 'var(--solstice)', dash: '',      label: 'Winter Solstice' },

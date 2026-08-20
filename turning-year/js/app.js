@@ -33,6 +33,9 @@
      * counts down is a timer, and reading time as it accumulates is how
      * every clock anyone uses already works. */
     lunarCountdown: false,
+    /* The planets and the two angles, off by default: the day clock is about
+     * the sun and moon first, and five more curves on it is a choice. */
+    showPlanets: false,
     moonPhases: { 'New Moon': true, 'Waxing Crescent': true, 'First Quarter': true,
                   'Waxing Gibbous': true, 'Full Moon': true, 'Waning Gibbous': true,
                   'Last Quarter': true, 'Waning Crescent': true }
@@ -49,6 +52,7 @@
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
         panelMin: state.panelMin, moonMin: state.moonMin,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
+        showPlanets: state.showPlanets,
         moonPhases: state.moonPhases
       }));
     } catch (e) { /* private mode; the site still works, it just forgets */ }
@@ -70,6 +74,7 @@
       if (typeof o.moonMin === 'boolean') state.moonMin = o.moonMin;
       if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
       if (typeof o.lunarCountdown === 'boolean') state.lunarCountdown = o.lunarCountdown;
+      if (typeof o.showPlanets === 'boolean') state.showPlanets = o.showPlanets;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
         if (typeof o.moonPhases[k] === 'boolean') state.moonPhases[k] = o.moonPhases[k];
       });
@@ -509,11 +514,73 @@
     if (dayRingTimer) { clearInterval(dayRingTimer); dayRingTimer = null; }
   }
 
+  /* Where each body stands along the ecliptic, named twice over.
+   *
+   * The sign is the tropical one: twelve equal cuts from the equinox, which is
+   * what a birth chart uses. The constellation is the patch of sky the body is
+   * actually in front of. They disagree by nearly a whole sign now, because
+   * the signs were named around 130 BCE and the equinox has precessed about
+   * thirty degrees away from the stars since. Giving one without the other
+   * would be picking a side; giving both makes the drift visible, which is
+   * the more interesting fact and the one this site is otherwise about.
+   *
+   * The Ascendant and Midheaven close the list because they are the only
+   * entries that move on this dial's timescale, sweeping the whole zodiac
+   * once a day. House cusps are a convention rather than a measurement, so
+   * they are not here. */
+  function planetsMarkup(d, out) {
+    if (!global.Planets) return '';
+    var head = '<label class="tog d-planets-tog"><input type="checkbox" id="planet-tog"' +
+      (state.showPlanets ? ' checked' : '') + '><span>Planets &amp; angles</span></label>';
+    if (!state.showPlanets) return '<div class="d-planets">' + head + '</div>';
+
+    var when = (d.n === todayNumber()) ? new Date() : (d.solarNoon || d.date);
+    var jd = A.jdFromDate(when), jde = A.jdeFromJD(jd);
+    var T = (jde - 2451545) / 36525, pre = Planets.precession(T);
+
+    function row(glyph, name, lon, colour) {
+      var sg = Planets.signOf(lon);
+      var con = Planets.constellationOf(((lon - pre) % 360 + 360) % 360);
+      return '<div class="d-pl">' +
+        '<i class="d-pl-g" style="color:' + colour + '">' + glyph + '</i>' +
+        '<span class="d-pl-n">' + name + '</span>' +
+        '<b>' + sg.name + ' ' + sg.degree.toFixed(1) + '&#176;</b>' +
+        '<span class="d-pl-c">in ' + con + '</span></div>';
+    }
+
+    var rows = '';
+    var sun = A.sunPosition(jde);
+    rows += row('\u2609', 'Sun', A.norm360(sun.longitude), 'var(--sun-bright)');
+    var mp = A.moonPosition(jde);
+    rows += row('\u263D', 'Moon', A.norm360(mp.longitude), 'var(--moon)');
+    Planets.ORDER.forEach(function (nm) {
+      var p = Planets.position(nm, jde);
+      rows += row(Planets.GLYPH[nm], nm, p.longitude, PLANET_COLOUR[nm]);
+    });
+    var an = Planets.angles(jd, jde, cycle.lat, cycle.lon);
+    rows += '<div class="d-pl-rule"></div>';
+    rows += row('\u2191', 'Ascendant', an.ascendant, 'var(--today)');
+    rows += row('\u22A5', 'Midheaven', an.midheaven, 'var(--today)');
+
+    return '<div class="d-planets">' + head +
+      '<div class="d-pl-list">' + rows + '</div>' +
+      '<p class="d-pl-note">Sign is tropical, measured from the equinox. ' +
+      '<b>In</b> is the constellation actually behind it. They sit about a ' +
+      'sign apart because the equinox has precessed ' + pre.toFixed(1) +
+      '&#176; from the stars since the signs were named.</p></div>';
+  }
+
+  var PLANET_COLOUR = {
+    Mercury: '#8fa3b8', Venus: '#c98fb9', Mars: '#d1685a',
+    Jupiter: '#c9a24a', Saturn: '#8d8ab5'
+  };
+
   function drawDay() {
     var d = cycle.days[state.day - 1];
     if (!d) return;
     var out = DayView.render(cycle, d, { hour12: state.hour12, useDST: state.useDST,
-      now: new Date(), placeName: state.place ? (state.place.name || state.place.label) : '' });
+      now: new Date(), placeName: state.place ? (state.place.name || state.place.label) : '',
+      planets: state.showPlanets });
     $('dayclock').innerHTML = out.svg + '<g id="day-clock-ring"></g>';
     startDayRing();
 
@@ -556,6 +623,7 @@
         '<div class="d-dark"><b>' + (d.sunAlwaysDown ? '24 h' : d.sunAlwaysUp ? '0 h' : DayView.hm(d.nightHours)) + '</b>dark</div>' +
       '</div>' +
       timesMarkup(d, out.darkMidpoint, out) +
+      planetsMarkup(d, out) +
       clockShiftMarkup(d) +
       noteMarkup(d.iso);
 
@@ -563,6 +631,12 @@
       state.panelMin = !state.panelMin;
       save(); drawDay();
     });
+    if ($('planet-tog')) {
+      $('planet-tog').addEventListener('change', function () {
+        state.showPlanets = this.checked;
+        save(); drawDay();
+      });
+    }
     $('day-info').addEventListener('click', function (e) {
       e.stopPropagation();
       dayInfoOpen = !dayInfoOpen;

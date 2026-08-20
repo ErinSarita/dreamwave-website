@@ -366,6 +366,35 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .day-panel .d-peak b { font-family: var(--mono); font-weight: 500; color: var(--ink); white-space: nowrap; }
 .day-panel .d-peak .pk-at { font-family: var(--mono); color: var(--ink-3); min-width: 40px;
   text-align: right; flex: 0 0 auto; }
+/* The planets, folded into the day panel behind their own switch. A grid so
+ * the glyph, the name, the sign and the constellation line up down the
+ * column rather than wandering with the length of each word. */
+.day-panel .d-planets {
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft);
+  text-align: left;
+}
+.day-panel .d-planets-tog { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.day-panel .d-pl-list { margin-top: 8px; }
+.day-panel .d-pl {
+  display: grid; grid-template-columns: 18px 1fr auto; align-items: baseline;
+  column-gap: 8px; row-gap: 0; font-size: 11.5px; padding: 2px 0;
+}
+.day-panel .d-pl-g { font-style: normal; font-size: 13px; line-height: 1; text-align: center; }
+.day-panel .d-pl-n { color: var(--ink-2); }
+.day-panel .d-pl b {
+  font-family: var(--mono); font-weight: 500; color: var(--ink); white-space: nowrap;
+}
+.day-panel .d-pl-c {
+  grid-column: 2 / 4; color: var(--ink-3); font-size: 10.5px; margin-top: -1px;
+}
+.day-panel .d-pl-rule {
+  height: 1px; background: var(--line-soft); margin: 7px 0 6px;
+}
+.day-panel .d-pl-note {
+  margin: 9px 0 0; font-size: 10.5px; line-height: 1.45; color: var(--ink-3);
+}
+.day-panel .d-pl-note b { font-family: inherit; font-weight: 500; color: var(--ink-2); }
+
 .day-panel .d-peak-note { font-size: 11px; color: var(--ink-3); margin-top: 5px; line-height: 1.35; }
 .day-panel .d-moonblock .d-moon-row { justify-content: flex-start; margin-top: 0; margin-bottom: 6px; }
 .day-panel .d-moon-row {
