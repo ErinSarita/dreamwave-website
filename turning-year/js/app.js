@@ -1341,9 +1341,13 @@
       });
     }
 
-    /* Two places are the same place if they sit within a few kilometres of
-     * each other, whichever list they came from. */
+    /* Two entries are the same place if they sit within a few kilometres of
+     * each other, or if they carry the same name in the same region. A
+     * gazetteer often holds a village twice, as the settlement and as the
+     * parish around it, far enough apart to pass a distance test and
+     * indistinguishable to a reader looking at a list. */
     function same(a, b) {
+      if (a.label.toLowerCase() === b.label.toLowerCase()) return true;
       return Math.abs(a.lat - b.lat) < 0.05 && Math.abs(a.lon - b.lon) < 0.05;
     }
 
