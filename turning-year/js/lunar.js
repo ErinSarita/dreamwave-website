@@ -230,6 +230,35 @@
     return A.jdFromJDE(elongationAt(K0 + SYNODIC * (k + (n - 1) / 30), (n - 1) * 12));
   }
 
+  /* Which lunar day a given instant falls in, and how far through it we are.
+   *
+   * This one is the same for everybody. A tithi is defined by the angle
+   * between the moon and the sun, and that angle is a fact about the three
+   * bodies rather than about where you are standing, so the instant lunar day
+   * 8 begins is one instant for the whole earth. Two people on opposite sides
+   * of the planet cross into it together, while their solar clocks read
+   * fourteen hours apart. The elongation used is geocentric, measured from the
+   * earth's centre, which is what makes it exactly shared: measured from your
+   * own feet it would swing by up to a degree with parallax.
+   *
+   * Universal, and uneven: these days run 20 to 27 hours. Shared clock, and
+   * an unequal one. */
+  function tithiAt(date) {
+    var jd = A.jdFromDate(date);
+    var k = kAt(jd);
+    var elong = A.moonPhase(A.jdeFromJD(jd)).age;      // 0 to 360
+    var n = Math.min(30, Math.floor(elong / 12) + 1);
+    var startJD = tithiStartJD(k, n), endJD = tithiStartJD(k, n + 1);
+    return {
+      k: k, n: n, elongation: elong,
+      startJD: startJD, endJD: endJD,
+      hours: (endJD - startJD) * 24,
+      fraction: (jd - startJD) / (endJD - startJD),
+      msRemaining: (endJD - jd) * 86400000,
+      event: TITHI_EVENT[n] || null
+    };
+  }
+
   var TITHI_EVENT = { 1: 'New Moon', 8: 'First Quarter', 16: 'Full Moon', 23: 'Last Quarter' };
 
   function tithisOf(k, ctx) {
@@ -323,7 +352,8 @@
   global.Lunar = {
     SYNODIC: SYNODIC, newMoonJD: newMoonJD, fullMoonJD: fullMoonJD,
     kAt: kAt, month: month, cycleOf: cycleOf, daysOf: daysOf, quarterJD: quarterJD,
-    tithisOf: tithisOf, tithiStartJD: tithiStartJD, apsidesIn: apsidesIn,
+    tithisOf: tithisOf, tithiStartJD: tithiStartJD, tithiAt: tithiAt,
+    apsidesIn: apsidesIn,
     phaseMarksOf: phaseMarksOf,
     anchorLongitudeFor: anchorLongitudeFor, SEASONS: SEASONS
   };

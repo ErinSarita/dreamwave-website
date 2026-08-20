@@ -296,6 +296,8 @@
     if (dayZoom) dayZoom.reset();
     if (moonZoom) moonZoom.reset();
     state.level = level;
+    /* The clock ticks only while its wheel is on the stage. */
+    if (level !== 'moon') stopMoonClock();
     if (level === 'year') { state.season = null; state.day = null; state.lunationK = null; }
     if (level === 'season') state.lunationK = null;
     if (level === 'season' && state.season === null) {
@@ -722,6 +724,53 @@
       '</div>';
   }
 
+  /* ------------------------------------------------------- the lunar clock
+   *
+   * A lunar day is the same lunar day everywhere on earth at a given instant,
+   * because it is defined by the angle between the moon and the sun rather
+   * than by anything local. So this clock reads the same in every timezone,
+   * which no solar clock does. It runs uneven, 20 to 27 hours a day, and the
+   * countdown is to the moment the angle next crosses a multiple of twelve
+   * degrees.
+   *
+   * Solving for the boundaries costs eighty evaluations of the moon's
+   * position, for two numbers that change once a day, so they are held until
+   * this instant crosses one of them. Per tick it is then arithmetic. */
+  var moonClockTimer = null, tithiHeld = null;
+
+  function currentTithi() {
+    var jd = A.jdFromDate(new Date());
+    if (!tithiHeld || jd < tithiHeld.startJD || jd >= tithiHeld.endJD) {
+      tithiHeld = Lunar.tithiAt(new Date());
+    }
+    var span = tithiHeld.endJD - tithiHeld.startJD;
+    return {
+      k: tithiHeld.k, n: tithiHeld.n,
+      startJD: tithiHeld.startJD, endJD: tithiHeld.endJD,
+      fraction: (jd - tithiHeld.startJD) / span,
+      msRemaining: (tithiHeld.endJD - jd) * 86400000
+    };
+  }
+
+  function tickMoonClock() {
+    var g = $('moon-clock');
+    if (!g || !MoonView.frame) { stopMoonClock(); return; }
+    var info = currentTithi();
+    var fr = MoonView.frame;
+    var ang = 360 * (A.jdFromDate(new Date()) - fr.t0) / fr.span;
+    g.innerHTML = MoonView.clock(info, {
+      onThisWheel: ang >= 0 && ang <= 360, angle: ang
+    });
+  }
+  function startMoonClock() {
+    stopMoonClock();
+    tickMoonClock();
+    moonClockTimer = setInterval(tickMoonClock, 1000);
+  }
+  function stopMoonClock() {
+    if (moonClockTimer) { clearInterval(moonClockTimer); moonClockTimer = null; }
+  }
+
   function drawMoon(focusISO) {
     if (!state.place) return;
     if (state.lunationK === null) state.lunationK = lunationKOfDay(state.day || todayNumber() || 1);
@@ -747,6 +796,7 @@
         return dd ? dd.n : null;
       }
     });
+    startMoonClock();
     $('moon-head').innerHTML = moonHeadHTML(m, days);
     $('moon-prev').disabled = false;      // the chain has no ends
     $('moon-next').disabled = false;

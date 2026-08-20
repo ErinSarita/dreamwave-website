@@ -87,6 +87,9 @@
      * long one broad, and the ring becomes a clock of the whole lunation. */
     var t0 = days[0].startJD, span = days[N - 1].endJD - t0;
     function angAt(jd) { return 360 * (jd - t0) / span; }
+    /* Kept for the running clock, which redraws its hand between renders and
+     * needs the same mapping from an instant to an angle on this wheel. */
+    global.MoonView.frame = { t0: t0, span: span, k: month.k };
     function edgeIn(i)  { return angAt(days[i].startJD); }
     function edgeOut(i) { return angAt(days[i].endJD); }
     function angleOf(i) { return (edgeIn(i) + edgeOut(i)) / 2; }
@@ -320,6 +323,8 @@
       'fill="var(--ink-3)">' + esc(TZ.formatDate(tz, focus.date, 'short')) +
       ' &#183; lunar day ' + focus.dayInMonth + ' of ' + N + '</text>');
 
+    parts.push('<g id="moon-clock"></g>');
+
     /* -- doors back to the day view ---------------------------------------- */
     days.forEach(function (d, i) {
       var a = angleOf(i);
@@ -334,5 +339,47 @@
     return parts.join('');
   }
 
-  global.MoonView = { render: render };
+  /* The running clock in the hub, and the hand out on the wheel.
+   *
+   * The hand only appears when this instant falls inside the lunation on
+   * screen, since a hand pointing at a moment the wheel does not cover would
+   * be pointing at nothing. The countdown shows regardless: it is a clock, and
+   * a clock tells you the time wherever you happen to be looking. */
+  function clock(info, opts) {
+    var p = [], frac = Math.max(0, Math.min(1, info.fraction));
+    var ms = Math.max(0, info.msRemaining);
+    var ss = Math.floor(ms / 1000);
+    var hh = Math.floor(ss / 3600), mm = Math.floor(ss % 3600 / 60);
+    function pad(v) { return (v < 10 ? '0' : '') + v; }
+    var count = pad(hh) + ':' + pad(mm) + ':' + pad(ss % 60);
+
+    if (opts.onThisWheel) {
+      var a = opts.angle;
+      var q1 = polar(R.hub + 5, a), q2 = polar(R.hitOut, a);
+      p.push('<line x1="' + f(q1[0]) + '" y1="' + f(q1[1]) + '" x2="' + f(q2[0]) +
+             '" y2="' + f(q2[1]) + '" stroke="var(--today)" stroke-width="2" ' +
+             'stroke-linecap="round" opacity=".85"/>');
+      p.push('<circle cx="' + f(q2[0]) + '" cy="' + f(q2[1]) + '" r="4.5" fill="var(--today)"/>');
+    }
+
+    p.push('<line x1="' + (CX - 84) + '" y1="' + (CY + 114) + '" x2="' + (CX + 84) +
+           '" y2="' + (CY + 114) + '" stroke="var(--line-soft)" stroke-width="1"/>');
+    p.push('<text x="' + CX + '" y="' + (CY + 144) + '" text-anchor="middle" font-size="24" ' +
+           'font-family="var(--mono)" fill="var(--moon)">' + count + '</text>');
+    p.push('<text x="' + CX + '" y="' + (CY + 166) + '" text-anchor="middle" font-size="11" ' +
+           'fill="var(--ink-3)">left of lunar day ' + info.n + ' of 30</text>');
+
+    if (opts.onThisWheel) {
+      p.push('<rect x="' + (CX - 70) + '" y="' + (CY + 177) + '" width="140" height="3" ' +
+             'rx="1.5" fill="var(--line)"/>');
+      p.push('<rect x="' + (CX - 70) + '" y="' + (CY + 177) + '" width="' + f(140 * frac) +
+             '" height="3" rx="1.5" fill="var(--moon)"/>');
+    } else {
+      p.push('<text x="' + CX + '" y="' + (CY + 184) + '" text-anchor="middle" font-size="10.5" ' +
+             'fill="var(--ink-3)" opacity=".8">now falls outside this lunation</text>');
+    }
+    return p.join('');
+  }
+
+  global.MoonView = { render: render, clock: clock, frame: null };
 })(typeof window !== 'undefined' ? window : globalThis);
