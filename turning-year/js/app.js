@@ -754,7 +754,9 @@
     return {
       k: tithiHeld.k, n: tithiHeld.n,
       startJD: tithiHeld.startJD, endJD: tithiHeld.endJD,
+      hours: span * 24,
       fraction: (jd - tithiHeld.startJD) / span,
+      msElapsed: (jd - tithiHeld.startJD) * 86400000,
       msRemaining: (tithiHeld.endJD - jd) * 86400000
     };
   }

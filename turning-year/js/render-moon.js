@@ -350,8 +350,7 @@
     /* Counting up by default. An uneven day argues for a countdown, since
      * five hours in reads differently in a 20-hour day than a 27-hour one,
      * but a clock that counts down is a timer. Time is read as it gathers. */
-    var elapsed = Math.max(0, info.hours * 3600000 - info.msRemaining);
-    var ms = opts.countdown ? Math.max(0, info.msRemaining) : elapsed;
+    var ms = Math.max(0, opts.countdown ? info.msRemaining : info.msElapsed);
     var ss = Math.floor(ms / 1000);
     var hh = Math.floor(ss / 3600), mm = Math.floor(ss % 3600 / 60);
     function pad(v) { return (v < 10 ? '0' : '') + v; }
