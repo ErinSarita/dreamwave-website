@@ -565,9 +565,10 @@
     return '<div class="d-planets">' + head +
       '<div class="d-pl-list">' + rows + '</div>' +
       '<p class="d-pl-note">Sign is tropical, measured from the equinox. ' +
-      '<b>In</b> is the constellation actually behind it. They sit about a ' +
-      'sign apart because the equinox has precessed ' + pre.toFixed(1) +
-      '&#176; from the stars since the signs were named.</p></div>';
+      '<b>In</b> is the constellation actually behind it. The two run nearly a ' +
+      'sign apart: the constellation Aries now begins ' + (28.7 - pre).toFixed(1) +
+      '&#176; past the equinox, where the sign Aries begins at 0&#176; by ' +
+      'definition.</p></div>';
   }
 
   var PLANET_COLOUR = {
