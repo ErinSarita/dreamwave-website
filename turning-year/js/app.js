@@ -27,6 +27,12 @@
     panelMin: false,    // day panel collapsed to a single line
     moonMin: false,     // lunation readout collapsed to a single line
     readoutMin: false,  // year readout collapsed to a single line
+    /* The lunar clock counts up from the start of the lunar day, the way a
+     * clock does. Counting down suits an uneven unit better, since the hours
+     * elapsed mean less when the day can run 20 or 27, but a clock that
+     * counts down is a timer, and reading time as it accumulates is how
+     * every clock anyone uses already works. */
+    lunarCountdown: false,
     moonPhases: { 'New Moon': true, 'Waxing Crescent': true, 'First Quarter': true,
                   'Waxing Gibbous': true, 'Full Moon': true, 'Waning Gibbous': true,
                   'Last Quarter': true, 'Waning Crescent': true }
@@ -42,7 +48,7 @@
         place: state.place, layers: state.layers, frost: state.frost,
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
         panelMin: state.panelMin, moonMin: state.moonMin,
-        readoutMin: state.readoutMin,
+        readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
         moonPhases: state.moonPhases
       }));
     } catch (e) { /* private mode; the site still works, it just forgets */ }
@@ -63,6 +69,7 @@
       if (typeof o.panelMin === 'boolean') state.panelMin = o.panelMin;
       if (typeof o.moonMin === 'boolean') state.moonMin = o.moonMin;
       if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
+      if (typeof o.lunarCountdown === 'boolean') state.lunarCountdown = o.lunarCountdown;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
         if (typeof o.moonPhases[k] === 'boolean') state.moonPhases[k] = o.moonPhases[k];
       });
@@ -759,7 +766,17 @@
     var fr = MoonView.frame;
     var ang = 360 * (A.jdFromDate(new Date()) - fr.t0) / fr.span;
     g.innerHTML = MoonView.clock(info, {
-      onThisWheel: ang >= 0 && ang <= 360, angle: ang
+      onThisWheel: ang >= 0 && ang <= 360, angle: ang,
+      countdown: state.lunarCountdown
+    });
+    /* The face is a shortcut to the same switch the panel carries. Rebuilt
+     * every second, so the listener goes on with it. */
+    var hit = $('moon-clock-hit');
+    if (hit) hit.addEventListener('click', function (e) {
+      e.stopPropagation();
+      state.lunarCountdown = !state.lunarCountdown;
+      $('lunar-countdown').checked = state.lunarCountdown;
+      save(); tickMoonClock();
     });
   }
   function startMoonClock() {
@@ -1396,6 +1413,13 @@
 
     $('frost-last').addEventListener('change', frostChanged);
     $('frost-first').addEventListener('change', frostChanged);
+
+    $('lunar-countdown').checked = state.lunarCountdown;
+    $('lunar-countdown').addEventListener('change', function () {
+      state.lunarCountdown = this.checked;
+      save();
+      if (state.level === 'moon') tickMoonClock();
+    });
 
     $('ethos-btn').addEventListener('click', function () { $('ethos').hidden = false; });
     $('ethos-close').addEventListener('click', function () { $('ethos').hidden = true; });

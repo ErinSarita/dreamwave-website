@@ -347,11 +347,16 @@
    * a clock tells you the time wherever you happen to be looking. */
   function clock(info, opts) {
     var p = [], frac = Math.max(0, Math.min(1, info.fraction));
-    var ms = Math.max(0, info.msRemaining);
+    /* Counting up by default. An uneven day argues for a countdown, since
+     * five hours in reads differently in a 20-hour day than a 27-hour one,
+     * but a clock that counts down is a timer. Time is read as it gathers. */
+    var elapsed = Math.max(0, info.hours * 3600000 - info.msRemaining);
+    var ms = opts.countdown ? Math.max(0, info.msRemaining) : elapsed;
     var ss = Math.floor(ms / 1000);
     var hh = Math.floor(ss / 3600), mm = Math.floor(ss % 3600 / 60);
     function pad(v) { return (v < 10 ? '0' : '') + v; }
     var count = pad(hh) + ':' + pad(mm) + ':' + pad(ss % 60);
+    var word = opts.countdown ? 'left of' : 'into';
 
     if (opts.onThisWheel) {
       var a = opts.angle;
@@ -362,12 +367,17 @@
       p.push('<circle cx="' + f(q2[0]) + '" cy="' + f(q2[1]) + '" r="4.5" fill="var(--today)"/>');
     }
 
+    p.push('<rect id="moon-clock-hit" x="' + (CX - 92) + '" y="' + (CY + 122) + '" width="184" ' +
+           'height="66" fill="transparent" style="cursor:pointer"><title>' +
+           (opts.countdown ? 'Counting down to the next lunar day. Click to count up.'
+                           : 'Counting up from the start of this lunar day. Click to count down.') +
+           '</title></rect>');
     p.push('<line x1="' + (CX - 84) + '" y1="' + (CY + 114) + '" x2="' + (CX + 84) +
            '" y2="' + (CY + 114) + '" stroke="var(--line-soft)" stroke-width="1"/>');
     p.push('<text x="' + CX + '" y="' + (CY + 144) + '" text-anchor="middle" font-size="24" ' +
            'font-family="var(--mono)" fill="var(--moon)">' + count + '</text>');
     p.push('<text x="' + CX + '" y="' + (CY + 166) + '" text-anchor="middle" font-size="11" ' +
-           'fill="var(--ink-3)">left of lunar day ' + info.n + ' of 30</text>');
+           'fill="var(--ink-3)">' + word + ' lunar day ' + info.n + ' of 30</text>');
 
     if (opts.onThisWheel) {
       p.push('<rect x="' + (CX - 70) + '" y="' + (CY + 177) + '" width="140" height="3" ' +
