@@ -161,6 +161,30 @@
     return { ascendant: asc, midheaven: mc, lst: lst };
   }
 
+  /* An ecliptic point as a place on the sky, so the Ascendant and Midheaven
+   * can be pointed at like anything else. */
+  function toEquatorial(lonOfDate, latEcl, eps) {
+    var sl = sin(lonOfDate), cl = cos(lonOfDate);
+    var b = latEcl || 0, sb = sin(b), cb = cos(b);
+    return {
+      ra: norm360(Math.atan2(sl * cos(eps) - (sb / cb) * sin(eps), cl) * R2D),
+      dec: Math.asin(sb * cos(eps) + cb * sin(eps) * sl) * R2D
+    };
+  }
+
+  var POINTS = ['N','NNE','NE','ENE','E','ESE','SE','SSE',
+                'S','SSW','SW','WSW','W','WNW','NW','NNW'];
+
+  /* Which way to face, and how far up. The dial can say when a body is up and
+   * how high it climbs, because its angle is spent on the hour and its radius
+   * on the altitude. It has no room left to say north or west. This does. */
+  function lookAt(ra, dec, jd, lat, lon) {
+    var alt = A.altitudeOf(ra, dec, jd, lat, lon);
+    var az = A.azimuthOf(ra, dec, jd, lat, lon);
+    return { altitude: alt, azimuth: az, up: alt > 0,
+             compass: POINTS[Math.round(norm360(az) / 22.5) % 16] };
+  }
+
   function all(jde) {
     return ORDER.map(function (n) { return position(n, jde); });
   }
@@ -168,6 +192,7 @@
   global.Planets = {
     ORDER: ORDER, GLYPH: GLYPH, position: position, all: all,
     signOf: signOf, constellationOf: constellationOf, angles: angles,
+    lookAt: lookAt, toEquatorial: toEquatorial,
     helio: helio,
     precession: precession
   };

@@ -534,36 +534,58 @@
       (state.showPlanets ? ' checked' : '') + '><span>Planets &amp; angles</span></label>';
     if (!state.showPlanets) return '<div class="d-planets">' + head + '</div>';
 
-    var when = (d.n === todayNumber()) ? new Date() : (d.solarNoon || d.date);
+    var isToday = (d.n === todayNumber());
+    var when = isToday ? new Date() : (d.solarNoon || d.date);
     var jd = A.jdFromDate(when), jde = A.jdeFromJD(jd);
     var T = (jde - 2451545) / 36525, pre = Planets.precession(T);
+    var eps = A.sunPosition(jde).obliquity;
 
-    function row(glyph, name, lon, colour) {
+    /* Each row says two different things. Where the body sits along the
+     * ecliptic, which is a fact about the solar system and holds all day; and
+     * where to point your face, which is a fact about this minute and this
+     * spot of ground. The dial can show the first and can show how high a
+     * body climbs, but its angle is spent on the hour, so it can never say
+     * north or west. That is what the second line is for.
+     *
+     * The bearing is only shown for today, because "look south-west" means
+     * nothing about a Tuesday in March. */
+    function row(glyph, name, lon, colour, eq) {
       var sg = Planets.signOf(lon);
       var con = Planets.constellationOf(((lon - pre) % 360 + 360) % 360);
+      var where = '';
+      if (eq && isToday) {
+        var L = Planets.lookAt(eq.ra, eq.dec, jd, cycle.lat, cycle.lon);
+        where = L.up
+          ? ' &#183; <em>' + L.altitude.toFixed(0) + '&#176; up, look ' + L.compass + '</em>'
+          : ' &#183; <em class="d-pl-down">below the horizon</em>';
+      }
       return '<div class="d-pl">' +
         '<i class="d-pl-g" style="color:' + colour + '">' + glyph + '</i>' +
         '<span class="d-pl-n">' + name + '</span>' +
         '<b>' + sg.name + ' ' + sg.degree.toFixed(1) + '&#176;</b>' +
-        '<span class="d-pl-c">in ' + con + '</span></div>';
+        '<span class="d-pl-c">in ' + con + where + '</span></div>';
     }
 
     var rows = '';
     var sun = A.sunPosition(jde);
-    rows += row('\u2609', 'Sun', A.norm360(sun.longitude), 'var(--sun-bright)');
+    rows += row('\u2609', 'Sun', A.norm360(sun.longitude), 'var(--sun-bright)', sun);
     var mp = A.moonPosition(jde);
-    rows += row('\u263D', 'Moon', A.norm360(mp.longitude), 'var(--moon)');
+    rows += row('\u263D', 'Moon', A.norm360(mp.longitude), 'var(--moon)', mp);
     Planets.ORDER.forEach(function (nm) {
       var p = Planets.position(nm, jde);
-      rows += row(Planets.GLYPH[nm], nm, p.longitude, PLANET_COLOUR[nm]);
+      rows += row(Planets.GLYPH[nm], nm, p.longitude, PLANET_COLOUR[nm], p);
     });
     var an = Planets.angles(jd, jde, cycle.lat, cycle.lon);
     rows += '<div class="d-pl-rule"></div>';
-    rows += row('\u2191', 'Ascendant', an.ascendant, 'var(--today)');
-    rows += row('\u22A5', 'Midheaven', an.midheaven, 'var(--today)');
+    rows += row('\u2191', 'Ascendant', an.ascendant, 'var(--today)',
+                Planets.toEquatorial(an.ascendant, 0, eps));
+    rows += row('\u22A5', 'Midheaven', an.midheaven, 'var(--today)',
+                Planets.toEquatorial(an.midheaven, 0, eps));
 
     return '<div class="d-planets">' + head +
       '<div class="d-pl-list">' + rows + '</div>' +
+      (isToday ? '' : '<p class="d-pl-note">Bearings are shown for today only: ' +
+        'which way to look has no meaning for another date.</p>') +
       '<p class="d-pl-note">Sign is tropical, measured from the equinox. ' +
       '<b>In</b> is the constellation actually behind it. The two run nearly a ' +
       'sign apart: the constellation Aries now begins ' + (28.7 - pre).toFixed(1) +
