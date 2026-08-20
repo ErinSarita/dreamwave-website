@@ -39,7 +39,7 @@
   /* The face in the hub, and the dial that rings it. The face sits a little
    * above centre to leave room for the readout below; the dial clears its
    * edge by twelve and still stands clear of the first line of text. */
-  var FACE_CY = 446, FACE_R = 62, DIAL_R = 74;
+  var FACE_CY = 440, FACE_R = 62, DIAL_R = 71;
   /* The lunation's own dial, outside everything else. It has to sit past the
    * solar ring at 500, and inside the 1080 box, so it rides at 512. It is
    * measured on the wheel's angle rather than on elongation, so its leading
