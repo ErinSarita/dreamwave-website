@@ -570,6 +570,9 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .compare-card { width: min(94vw, 700px); }
 /* Longer lines than the reference sections, and no subheadings to break them,
  * so the measure is held in and the leading opened out. */
+.zodiac-card { width: min(96vw, 760px); }
+#zodiac-svg { width: 100%; height: auto; display: block; margin: 14px 0 4px; }
+
 .ethos-card { width: min(94vw, 560px); }
 .ethos-card p { font-size: 14.5px; line-height: 1.72; margin: 0 0 14px; }
 .ethos-card p:last-of-type { margin-bottom: 0; }

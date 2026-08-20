@@ -203,6 +203,22 @@
   </main>
 </div>
 
+<div class="modal" id="zodiac" hidden>
+  <div class="modal-card zodiac-card" role="dialog" aria-modal="true" aria-labelledby="zodiac-h">
+    <button class="close" id="zodiac-close" aria-label="Close">&times;</button>
+    <h2 id="zodiac-h">Along the ecliptic</h2>
+    <p>Every other wheel here spends its angle on time. This one spends it on
+    position along the ecliptic, so the planets can be read against the zodiac
+    directly. <strong>Outside</strong> are the twelve signs, equal thirty-degree
+    cuts from the equinox, as a birth chart uses them. <strong>Inside</strong>
+    is the sky itself: the thirteen constellations the ecliptic really crosses,
+    at their real and very unequal widths.</p>
+    <svg id="zodiac-svg" viewBox="0 0 700 700" role="img"
+         aria-label="The planets placed along the ecliptic against the signs and constellations"></svg>
+    <p class="meta" id="zodiac-meta"></p>
+  </div>
+</div>
+
 <div class="modal" id="ethos" hidden>
   <div class="modal-card ethos-card" role="dialog" aria-modal="true" aria-labelledby="ethos-h">
     <button class="close" id="ethos-close" aria-label="Close">&times;</button>
@@ -671,6 +687,7 @@
 <script src="js/globe.js"></script>
 <script src="js/render-wheel.js"></script>
 <script src="js/planets.js"></script>
+<script src="js/zodiac.js"></script>
 <script src="js/render-day.js"></script>
 <script src="js/render-moon.js"></script>
 <script src="js/spiral.js"></script>

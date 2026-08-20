@@ -151,6 +151,9 @@
 
   A.darkBracket = darkBracket;
 
+  /* Planets register themselves here once planets.js has loaded, so the same
+   * rise and set solver serves every body rather than being copied. */
+  A.addBody = function (name, fn) { BODIES[name] = fn; };
   A.greenwichSiderealTime = greenwichSiderealTime;
   A.altitudeOf = altitudeOf;
   A.azimuthOf = azimuthOf;

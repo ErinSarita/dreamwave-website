@@ -586,6 +586,7 @@
       '<div class="d-pl-list">' + rows + '</div>' +
       (isToday ? '' : '<p class="d-pl-note">Bearings are shown for today only: ' +
         'which way to look has no meaning for another date.</p>') +
+      '<button class="mr-info-more" id="zodiac-open">See these on the zodiac wheel</button>' +
       '<p class="d-pl-note">Sign is tropical, measured from the equinox. ' +
       '<b>In</b> is the constellation actually behind it. The two run nearly a ' +
       'sign apart: the constellation Aries now begins ' + (28.7 - pre).toFixed(1) +
@@ -597,6 +598,29 @@
     Mercury: '#8fa3b8', Venus: '#c98fb9', Mars: '#d1685a',
     Jupiter: '#c9a24a', Saturn: '#8d8ab5'
   };
+
+  /* The ecliptic wheel, in its own window because its angle means something
+   * different from every other dial on the site. */
+  function openZodiac() {
+    if (!global.Zodiac) return;
+    var d = cycle.days[state.day - 1];
+    var isToday = d && d.n === todayNumber();
+    var when = isToday ? new Date() : ((d && (d.solarNoon || d.date)) || new Date());
+    var out = Zodiac.render({
+      lat: cycle.lat, lon: cycle.lon, when: when,
+      placeName: state.place ? (state.place.name || state.place.label) : '',
+      stamp: TZ.formatDate(cycle.tz, when) +
+        (isToday ? ' · ' + Clock.time(cycle, when, state.useDST, state.hour12) : ' · midday')
+    });
+    $('zodiac-svg').innerHTML = out.svg;
+    $('zodiac-meta').textContent =
+      'The two rings sit ' + out.precession.toFixed(1) + '° apart from where they ' +
+      'started, which is how far the equinox has precessed from the stars since J2000. ' +
+      'Measured from when the signs were named, the gap is nearly a whole sign. ' +
+      'Ascendant and Midheaven are marked on the rim; house cusps are a convention ' +
+      'rather than a measurement and are not drawn.';
+    $('zodiac').hidden = false;
+  }
 
   function drawDay() {
     var d = cycle.days[state.day - 1];
@@ -654,6 +678,12 @@
       state.panelMin = !state.panelMin;
       save(); drawDay();
     });
+    if ($('zodiac-open')) {
+      $('zodiac-open').addEventListener('click', function (e) {
+        e.stopPropagation();
+        openZodiac();
+      });
+    }
     if ($('planet-tog')) {
       $('planet-tog').addEventListener('change', function () {
         state.showPlanets = this.checked;
@@ -1615,6 +1645,11 @@
       }
     });
 
+    $('zodiac-close').addEventListener('click', function () { $('zodiac').hidden = true; });
+    $('zodiac').addEventListener('click', function (e) {
+      if (e.target === $('zodiac')) $('zodiac').hidden = true;
+    });
+
     $('about-btn').addEventListener('click', function () { $('about').hidden = false; });
     $('about-close').addEventListener('click', function () { $('about').hidden = true; });
     $('about').addEventListener('click', function (e) {
@@ -1694,6 +1729,7 @@
     document.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.key === 'Escape') {
+        if (!$('zodiac').hidden) { $('zodiac').hidden = true; return; }
         if (!$('ethos').hidden) { $('ethos').hidden = true; return; }
         if (!$('about').hidden) { $('about').hidden = true; return; }
         if (!$('compare').hidden) { $('compare').hidden = true; return; }

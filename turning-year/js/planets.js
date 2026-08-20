@@ -189,6 +189,18 @@
     return ORDER.map(function (n) { return position(n, jde); });
   }
 
+  /* Give the rise/set solver an adapter per planet. The standard horizon
+   * altitude for a point source is the refraction figure the sun uses without
+   * its semidiameter: -0.5667 degrees. */
+  if (A && A.addBody) {
+    ORDER.forEach(function (nm) {
+      A.addBody(nm, function (jd, h0) {
+        var p = position(nm, A.jdeFromJD(jd));
+        return { ra: p.ra, dec: p.dec, h0: h0 === undefined ? -0.5667 : h0, pos: p };
+      });
+    });
+  }
+
   global.Planets = {
     ORDER: ORDER, GLYPH: GLYPH, position: position, all: all,
     signOf: signOf, constellationOf: constellationOf, angles: angles,

@@ -406,27 +406,31 @@
      * above the horizon. Sampled every twentieth step rather than at all 720,
      * because a planet moves at most a degree and a half in a whole day and
      * the curve is smooth at that spacing. */
+    /* Five full altitude curves said too much at once: nested near-parallel
+     * loops that read as orbits when they are nothing of the kind. What a
+     * person standing outside needs from this dial is when a planet clears the
+     * horizon and when it goes back under, so only those two moments are
+     * marked, on their own quiet rings. Rises ride the outer of the two, sets
+     * the inner, and the times and bearings are spelled out in the panel. */
     if (opts.planets && global.Planets) {
-      var PL = global.Planets, step = 20;
+      var PL = global.Planets;
       PL.ORDER.forEach(function (nm) {
-        var dstr = '', best = null;
-        for (var i = 0; i < s.length; i += step) {
-          var pjd = A.jdFromDate(new Date(s[i].t));
-          var pos = PL.position(nm, A.jdeFromJD(pjd));
-          var alt = A.altitudeOf(pos.ra, pos.dec, pjd, cycle.lat, cycle.lon);
-          var q = polar(altR(alt), s[i].angle);
-          dstr += (dstr ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1]);
-          if (!best || alt > best.alt) best = { alt: alt, angle: s[i].angle };
-        }
-        parts.push('<path d="' + dstr + '" fill="none" stroke="' + PLANET_COLOUR[nm] +
-                   '" stroke-width="1.4" opacity=".9" pointer-events="none"/>');
-        if (best && best.alt > 0) {
-          var g = polar(altR(best.alt) + 13, best.angle);
-          parts.push('<text x="' + f(g[0]) + '" y="' + f(g[1]) + '" text-anchor="middle" ' +
-                     'dominant-baseline="middle" font-size="13" fill="' + PLANET_COLOUR[nm] +
-                     '" pointer-events="none"><title>' + nm + '</title>' +
-                     PL.GLYPH[nm] + '</text>');
-        }
+        var rs = A.riseSet(nm, win.start ? A.jdFromDate(win.start) : null, 1,
+                           cycle.lat, cycle.lon);
+        [['rise', rs && rs.rise, 352], ['set', rs && rs.set, 330]].forEach(function (ev) {
+          if (!ev[1]) return;
+          var a = angleOf(A.dateFromJD(ev[1]));
+          if (a === null || a < 0 || a > 360) return;
+          var q = polar(ev[2], a);
+          var look = PL.lookAt(PL.position(nm, A.jdeFromJD(ev[1])).ra,
+                               PL.position(nm, A.jdeFromJD(ev[1])).dec,
+                               ev[1], cycle.lat, cycle.lon);
+          parts.push('<text x="' + f(q[0]) + '" y="' + f(q[1]) + '" text-anchor="middle" ' +
+            'dominant-baseline="middle" font-size="12" fill="' + PLANET_COLOUR[nm] + '"' +
+            (ev[0] === 'set' ? ' opacity=".62"' : '') + '><title>' + nm + ' ' + ev[0] +
+            's ' + Clock.time(cycle, A.dateFromJD(ev[1]), useDST, opts.hour12) +
+            ', ' + look.compass + '</title>' + PL.GLYPH[nm] + '</text>');
+        });
       });
     }
 
