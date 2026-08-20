@@ -8,6 +8,10 @@
   var A = global.Astro, TZ = global.TZ, Globe = global.Globe, Clock = global.Clock;
   var CX = 500, CY = 500;
   var R = {
+    /* The day's own dial, outside everything: one turn is the whole span of
+     * this date, so it closes exactly at midnight however many hours the date
+     * actually ran. */
+    cycleRing: 512,
     eventLabel: 486, hourNum: 462, tickOut: 454, tickIn: 444,
     sunOut: 440, sunIn: 402,
     moonOut: 394, moonIn: 362, moonLabel: 378,
@@ -20,6 +24,9 @@
     return [CX + r * Math.cos(t), CY + r * Math.sin(t)];
   }
   function f(n) { return Math.round(n * 100) / 100; }
+  function esc(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
   function sector(r1, r2, a1, a2) {
     if (a2 - a1 >= 359.999) {
       return 'M' + (CX - r2) + ' ' + CY + 'a' + r2 + ' ' + r2 + ' 0 1 1 ' + (2 * r2) + ' 0' +
@@ -404,6 +411,21 @@
       }
     }
 
+    /* Whose sky this is. It sits under the globe rather than across it, so
+     * the dot marking this place at the centre stays uncovered. */
+    var placeName = (opts.placeName || '').trim();
+    if (placeName) {
+      parts.push('<text x="500" y="' + (CY + 168) + '" text-anchor="middle" font-size="12.5" ' +
+        'fill="var(--ink-2)">' + esc(placeName) + '</text>');
+      parts.push('<text x="500" y="' + (CY + 184) + '" text-anchor="middle" font-size="10" ' +
+        'font-family="var(--mono)" fill="var(--ink-3)">' +
+        Math.abs(cycle.lat).toFixed(2) + '\u00B0' + (cycle.lat < 0 ? 'S' : 'N') + ' ' +
+        Math.abs(cycle.lon).toFixed(2) + '\u00B0' + (cycle.lon < 0 ? 'W' : 'E') + '</text>');
+    }
+
+    /* Kept for the running ring, which redraws between renders. */
+    global.DayView.frame = { start: win.start.getTime(), end: win.end.getTime() };
+
     return { svg: parts.join(''), samples: s, anyMoon: anyMoon,
              darkMidpoint: darkMidpoint, marks: marks,
              moonHigh: moonHigh, moonNow: moonNow };
@@ -480,5 +502,31 @@
     return { svg: parts.join(''), width: W, height: H, curves: curves };
   }
 
-  global.DayView = { render: render, renderCompare: renderCompare, hm: hm, R: R };
+  /* The day as one turn of a ring, filled behind and open ahead, drawn on the
+   * same span the hour numerals are drawn on. On the two changeover days that
+   * span is 23 or 25 hours, and the ring still closes exactly at midnight,
+   * because it measures the date against itself rather than against 24. */
+  function clock(nowMs) {
+    var fr = global.DayView.frame;
+    if (!fr || nowMs < fr.start || nowMs >= fr.end) return '';
+    var frac = (nowMs - fr.start) / (fr.end - fr.start);
+    var p = [];
+    p.push('<circle cx="500" cy="500" r="' + R.cycleRing + '" fill="none" ' +
+           'stroke="var(--line)" stroke-width="4" pointer-events="none"/>');
+    if (frac > 0.0005) {
+      var c0 = polar(R.cycleRing, 0), c1 = polar(R.cycleRing, frac * 360);
+      p.push('<path d="M ' + f(c0[0]) + ' ' + f(c0[1]) + ' A ' + R.cycleRing + ' ' + R.cycleRing +
+             ' 0 ' + (frac > 0.5 ? 1 : 0) + ' 1 ' + f(c1[0]) + ' ' + f(c1[1]) +
+             '" fill="none" stroke="var(--sun)" stroke-width="4" stroke-linecap="round" ' +
+             'pointer-events="none"/>');
+      p.push('<circle cx="' + f(c1[0]) + '" cy="' + f(c1[1]) + '" r="5.5" ' +
+             'fill="var(--today)" pointer-events="none"/>');
+    }
+    p.push('<circle cx="500" cy="' + (CY - R.cycleRing) + '" r="2.2" ' +
+           'fill="var(--ink-3)" pointer-events="none"/>');
+    return p.join('');
+  }
+
+  global.DayView = {
+    clock: clock, frame: null, render: render, renderCompare: renderCompare, hm: hm, R: R };
 })(typeof window !== 'undefined' ? window : globalThis);

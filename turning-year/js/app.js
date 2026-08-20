@@ -303,8 +303,9 @@
     if (dayZoom) dayZoom.reset();
     if (moonZoom) moonZoom.reset();
     state.level = level;
-    /* The clock ticks only while its wheel is on the stage. */
+    /* Each ring ticks only while its own face is on the stage. */
     if (level !== 'moon') stopMoonClock();
+    if (level !== 'day') stopDayRing();
     if (level === 'year') { state.season = null; state.day = null; state.lunationK = null; }
     if (level === 'season') state.lunationK = null;
     if (level === 'season' && state.season === null) {
@@ -490,11 +491,31 @@
       '</div>';
   }
 
+  /* The day's outer ring, redrawn on its own so the whole clock face does not
+   * have to be. A minute is plenty: the ring turns a quarter of a degree in
+   * that time, and rebuilding 720 samples every second would be absurd. */
+  var dayRingTimer = null;
+  function tickDayRing() {
+    var g = $('day-clock-ring');
+    if (!g) { stopDayRing(); return; }
+    g.innerHTML = DayView.clock(Date.now());
+  }
+  function startDayRing() {
+    stopDayRing();
+    tickDayRing();
+    dayRingTimer = setInterval(tickDayRing, 60000);
+  }
+  function stopDayRing() {
+    if (dayRingTimer) { clearInterval(dayRingTimer); dayRingTimer = null; }
+  }
+
   function drawDay() {
     var d = cycle.days[state.day - 1];
     if (!d) return;
-    var out = DayView.render(cycle, d, { hour12: state.hour12, useDST: state.useDST, now: new Date() });
-    $('dayclock').innerHTML = out.svg;
+    var out = DayView.render(cycle, d, { hour12: state.hour12, useDST: state.useDST,
+      now: new Date(), placeName: state.place ? (state.place.name || state.place.label) : '' });
+    $('dayclock').innerHTML = out.svg + '<g id="day-clock-ring"></g>';
+    startDayRing();
 
     var stationHTML = '';
     if (d.station) stationHTML += '<div class="d-station">' + d.station.name +
@@ -1291,28 +1312,68 @@
     if (rebuildAfter !== false) rebuild(function () { setLevel(state.level); });
   }
 
+  /* Anywhere on earth, by three routes. The built-in list answers instantly
+   * and offline. Coordinates typed straight in need nothing at all. Anything
+   * else goes to an open geocoder a third of a second after typing stops, and
+   * its answers are appended to whatever the list already found, so the fast
+   * path is never held up waiting for the slow one. */
   function wirePlaceSearch() {
     var input = $('place-input'), list = $('place-results');
-    function close() { list.hidden = true; list.innerHTML = ''; }
-    input.addEventListener('input', function () {
-      var res = Places.search(input.value, 10);
+    var shown = [], seq = 0, timer = null;
+    function close() { list.hidden = true; list.innerHTML = ''; shown = []; }
+
+    function draw(res) {
+      shown = res;
       if (!res.length) { close(); return; }
       list.innerHTML = res.map(function (p, i) {
-        return '<li data-i="' + i + '">' + p.name + '<small>' + p.region + ' · ' + p.tz + '</small></li>';
+        return '<li data-i="' + i + '">' + esc(p.name) +
+          '<small>' + esc(p.region) + (p.coords ? '' : ' · ' + esc(p.tz)) + '</small></li>';
       }).join('');
       list.hidden = false;
       Array.prototype.forEach.call(list.children, function (li) {
         li.addEventListener('mousedown', function (e) {
           e.preventDefault();
-          var p = res[+li.getAttribute('data-i')];
+          var p = shown[+li.getAttribute('data-i')];
           close();
           state.level = 'year'; state.season = null; state.day = null;
           setPlace(p);
         });
       });
+    }
+
+    /* Two places are the same place if they sit within a few kilometres of
+     * each other, whichever list they came from. */
+    function same(a, b) {
+      return Math.abs(a.lat - b.lat) < 0.05 && Math.abs(a.lon - b.lon) < 0.05;
+    }
+
+    input.addEventListener('input', function () {
+      var q = input.value;
+      if (timer) { clearTimeout(timer); timer = null; }
+
+      var coord = Places.parseCoords(q);
+      if (coord) { draw([coord]); return; }
+
+      var local = Places.search(q, 6);
+      draw(local);
+
+      if (q.trim().length < 2) return;
+      var mine = ++seq;
+      timer = setTimeout(function () {
+        Places.lookup(q, 8).then(function (remote) {
+          if (mine !== seq || input.value !== q) return;      // a later keystroke won
+          var merged = local.slice();
+          remote.forEach(function (r) {
+            for (var i = 0; i < merged.length; i++) if (same(merged[i], r)) return;
+            merged.push(r);
+          });
+          if (merged.length) draw(merged);
+          else draw([]);
+        });
+      }, 320);
     });
     input.addEventListener('focus', function () { input.select(); });
-    input.addEventListener('blur', function () { setTimeout(close, 120); });
+    input.addEventListener('blur', function () { setTimeout(close, 140); });
   }
 
   function wireGeo() {

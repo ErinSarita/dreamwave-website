@@ -184,5 +184,64 @@
     return best;
   }
 
-  global.Places = { all: PLACES, search: search, nearest: nearest };
+  /* Coordinates typed straight in, so anywhere at all can be reached with no
+   * lookup and no network: "53.12, -9.15" or "53.12 N 9.15 W". The zone is
+   * borrowed from the nearest listed place, which is a guess and is labelled
+   * as one; a searched place carries its own zone and needs no guessing. */
+  function parseCoords(q) {
+    var m = String(q || '').trim().match(
+      /^\s*(-?\d+(?:\.\d+)?)\s*°?\s*([NnSs])?\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*°?\s*([EeWw])?\s*$/);
+    if (!m) return null;
+    var lat = parseFloat(m[1]), lon = parseFloat(m[3]);
+    if (m[2] && /[Ss]/.test(m[2])) lat = -Math.abs(lat);
+    if (m[4] && /[Ww]/.test(m[4])) lon = -Math.abs(lon);
+    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    var near = nearest(lat, lon);
+    return {
+      name: Math.abs(lat).toFixed(4) + '°' + (lat < 0 ? 'S' : 'N') + ' ' +
+            Math.abs(lon).toFixed(4) + '°' + (lon < 0 ? 'W' : 'E'),
+      region: near ? 'zone taken from ' + near.name : 'zone unknown',
+      lat: lat, lon: lon, tz: near ? near.tz : TZLOCAL(),
+      label: lat.toFixed(3) + ', ' + lon.toFixed(3), coords: true
+    };
+  }
+  function TZLOCAL() {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; }
+    catch (e) { return 'UTC'; }
+  }
+
+  /* Anywhere else on earth, from an open geocoder that needs no key and hands
+   * back the IANA zone along with the coordinates, which is the one thing a
+   * latitude and longitude cannot tell you. The built-in list above still
+   * answers first and still answers alone if this is unreachable, so the page
+   * keeps working with no network at all.
+   *
+   * The text typed here is sent to geocoding-api.open-meteo.com to be looked
+   * up. Nothing else about the visitor is sent, and nothing is sent until
+   * something is typed. */
+  var cache = {};
+  function lookup(q, limit) {
+    q = String(q || '').trim();
+    if (q.length < 2) return Promise.resolve([]);
+    if (cache[q]) return Promise.resolve(cache[q]);
+    if (typeof fetch !== 'function') return Promise.resolve([]);
+    var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' +
+      encodeURIComponent(q) + '&count=' + (limit || 8) + '&language=en&format=json';
+    return fetch(url).then(function (r) {
+      return r.ok ? r.json() : { results: [] };
+    }).then(function (d) {
+      var out = (d && d.results ? d.results : []).filter(function (r) {
+        return r && isFinite(r.latitude) && isFinite(r.longitude) && r.timezone;
+      }).map(function (r) {
+        var region = [r.admin1, r.country].filter(Boolean).join(', ') || r.country_code || '';
+        return { name: r.name, region: region, lat: r.latitude, lon: r.longitude,
+                 tz: r.timezone, label: r.name + (region ? ', ' + region : ''), remote: true };
+      });
+      cache[q] = out;
+      return out;
+    })['catch'](function () { return []; });
+  }
+
+  global.Places = { all: PLACES, search: search, nearest: nearest,
+                    parseCoords: parseCoords, lookup: lookup };
 })(typeof window !== 'undefined' ? window : globalThis);
