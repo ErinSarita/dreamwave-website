@@ -764,10 +764,14 @@
     if (!g || !MoonView.frame) { stopMoonClock(); return; }
     var info = currentTithi();
     var fr = MoonView.frame;
-    var ang = 360 * (A.jdFromDate(new Date()) - fr.t0) / fr.span;
+    var jd = A.jdFromDate(new Date());
+    var ang = 360 * (jd - fr.t0) / fr.span;
+    /* The boundaries are held between crossings, but the angle itself has to
+     * be fresh: it is the thing being counted. One evaluation a second. */
+    var elong = A.moonPhase(A.jdeFromJD(jd)).age;
     g.innerHTML = MoonView.clock(info, {
       onThisWheel: ang >= 0 && ang <= 360, angle: ang,
-      countdown: state.lunarCountdown
+      countdown: state.lunarCountdown, elongation: elong
     });
     /* The face is a shortcut to the same switch the panel carries. Rebuilt
      * every second, so the listener goes on with it. */

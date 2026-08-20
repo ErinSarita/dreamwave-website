@@ -357,6 +357,11 @@
     function pad(v) { return (v < 10 ? '0' : '') + v; }
     var count = pad(hh) + ':' + pad(mm) + ':' + pad(ss % 60);
     var word = opts.countdown ? 'left of' : 'into';
+    /* Position round the whole cycle, measured in the moon's own unit: the
+     * elongation over twelve, so 0 at the new moon and exactly 30 at the
+     * next. Four decimals moves every eight seconds or so, which is enough to
+     * see it running without turning into a blur of digits. */
+    var deg = opts.elongation, pos = deg / 12;
 
     if (opts.onThisWheel) {
       var a = opts.angle;
@@ -372,21 +377,25 @@
            (opts.countdown ? 'Counting down to the next lunar day. Click to count up.'
                            : 'Counting up from the start of this lunar day. Click to count down.') +
            '</title></rect>');
-    p.push('<line x1="' + (CX - 84) + '" y1="' + (CY + 114) + '" x2="' + (CX + 84) +
-           '" y2="' + (CY + 114) + '" stroke="var(--line-soft)" stroke-width="1"/>');
-    p.push('<text x="' + CX + '" y="' + (CY + 144) + '" text-anchor="middle" font-size="24" ' +
-           'font-family="var(--mono)" fill="var(--moon)">' + count + '</text>');
-    p.push('<text x="' + CX + '" y="' + (CY + 166) + '" text-anchor="middle" font-size="11" ' +
-           'fill="var(--ink-3)">' + word + ' lunar day ' + info.n + ' of 30</text>');
+    p.push('<line x1="' + (CX - 84) + '" y1="' + (CY + 112) + '" x2="' + (CX + 84) +
+           '" y2="' + (CY + 112) + '" stroke="var(--line-soft)" stroke-width="1"/>');
+
+    /* The number that always lands on the same total. Hours cannot do this:
+     * a lunation runs anywhere from 702 to 716 of them. Degrees can, because
+     * 360 of them is what a lunation is. So the count climbs the angle rather
+     * than the clock, and reaches 30.0000 at every new moon without fail. */
+    p.push('<text x="' + CX + '" y="' + (CY + 142) + '" text-anchor="middle" ' +
+           'font-family="var(--mono)" font-size="24" fill="var(--moon)">' + pos.toFixed(4) +
+           '<tspan font-size="12" fill="var(--ink-3)"> of 30</tspan></text>');
+    p.push('<text x="' + CX + '" y="' + (CY + 163) + '" text-anchor="middle" font-size="10.5" ' +
+           'fill="var(--ink-3)">' + deg.toFixed(2) + '\u00B0 round the lunation</text>');
 
     if (opts.onThisWheel) {
-      p.push('<rect x="' + (CX - 70) + '" y="' + (CY + 177) + '" width="140" height="3" ' +
-             'rx="1.5" fill="var(--line)"/>');
-      p.push('<rect x="' + (CX - 70) + '" y="' + (CY + 177) + '" width="' + f(140 * frac) +
-             '" height="3" rx="1.5" fill="var(--moon)"/>');
+      p.push('<text x="' + CX + '" y="' + (CY + 181) + '" text-anchor="middle" font-size="10.5" ' +
+             'fill="var(--ink-3)">' + count + ' ' + word + ' lunar day ' + info.n + '</text>');
     } else {
-      p.push('<text x="' + CX + '" y="' + (CY + 184) + '" text-anchor="middle" font-size="10.5" ' +
-             'fill="var(--ink-3)" opacity=".8">now falls outside this lunation</text>');
+      p.push('<text x="' + CX + '" y="' + (CY + 181) + '" text-anchor="middle" font-size="10.5" ' +
+             'fill="var(--ink-3)" opacity=".8">now is in another lunation</text>');
     }
     return p.join('');
   }
