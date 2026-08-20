@@ -620,6 +620,14 @@
       'planet is so often listed in one and standing in front of the other. Ascendant ' +
       'and Midheaven are marked on the rim; house cusps are a convention rather than a ' +
       'measurement and are not drawn.';
+    var skyOut = Zodiac.sky({ lat: cycle.lat, lon: cycle.lon, when: when });
+    $('sky-svg').innerHTML = skyOut.svg;
+    $('sky-meta').textContent =
+      'Exactly half the ring is up at any moment, never more and never less: ' +
+      skyOut.arcDegrees + ' degrees of it, from horizon to horizon. ' +
+      skyOut.visible + ' of the seven bodies are above the horizon right now. ' +
+      'The whole arc swings round once a day as the earth turns, so a ' +
+      'constellation low in the east now will be overhead in six hours.';
     $('zodiac').hidden = false;
   }
 

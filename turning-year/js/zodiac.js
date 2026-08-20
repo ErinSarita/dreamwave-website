@@ -180,5 +180,143 @@
     return { svg: parts.join(''), precession: pre };
   }
 
-  global.Zodiac = { render: render };
+  /* ------------------------------------------------------- the same ring,
+   * as it actually stands over your head.
+   *
+   * The flat wheel above is the zodiac laid out end to end. This is that ring
+   * seen from underneath it, which is where we live. The horizon is the rim,
+   * straight up is the middle, and the ecliptic crosses it as an arc rather
+   * than a circle, because you only ever get half of it: the half from where
+   * it rises in the east, over the meridian, down to where it sets in the
+   * west. The other half is under your feet.
+   *
+   * North is at the top and east is on the LEFT, which looks wrong on paper
+   * and is right in the sky: this is a picture of what is above you, so it is
+   * handed the same way as holding a map over your head rather than laying it
+   * on a table.
+   */
+  var SR = { rim: 292, ring30: 195, ring60: 97 };
+  function altR(alt) { return SR.rim * (1 - alt / 90); }
+  /* Azimuth runs the other way round the page from a compass rose on a map,
+   * for the same reason the east is on the left. */
+  function skyPolar(alt, az) { return polar(altR(alt), norm360(-az)); }
+
+  function sky(opts) {
+    var when = opts.when || new Date();
+    var jd = A.jdFromDate(when), jde = A.jdeFromJD(jd);
+    var T = (jde - 2451545) / 36525, pre = P.precession(T);
+    var eps = A.sunPosition(jde).obliquity;
+    var lat = opts.lat, lon = opts.lon;
+    var parts = [];
+
+    function at(lonEcl) {
+      var e = P.toEquatorial(norm360(lonEcl), 0, eps);
+      return { alt: A.altitudeOf(e.ra, e.dec, jd, lat, lon),
+               az: A.azimuthOf(e.ra, e.dec, jd, lat, lon) };
+    }
+
+    /* -- the ground you are standing on --------------------------------- */
+    parts.push('<circle cx="' + CX + '" cy="' + CY + '" r="' + SR.rim +
+      '" fill="var(--bg-2)" fill-opacity=".5" stroke="var(--line)" stroke-width="1.5"/>');
+    [[SR.ring30, '30°'], [SR.ring60, '60°']].forEach(function (r) {
+      parts.push('<circle cx="' + CX + '" cy="' + CY + '" r="' + r[0] + '" fill="none" ' +
+        'stroke="var(--line-soft)" stroke-width=".8" stroke-dasharray="3 5"/>');
+      parts.push('<text x="' + (CX + 4) + '" y="' + f(CY - r[0] + 12) + '" font-size="9" ' +
+        'fill="var(--ink-3)">' + r[1] + '</text>');
+    });
+    parts.push('<circle cx="' + CX + '" cy="' + CY + '" r="2.5" fill="var(--ink-3)"/>');
+    parts.push('<text x="' + CX + '" y="' + (CY + 18) + '" text-anchor="middle" ' +
+      'font-size="9" letter-spacing="1.2" fill="var(--ink-3)">ZENITH</text>');
+
+    [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(function (c) {
+      var q = polar(SR.rim + 20, norm360(-c[1]));
+      parts.push('<text x="' + f(q[0]) + '" y="' + f(q[1]) + '" text-anchor="middle" ' +
+        'dominant-baseline="middle" font-size="15" font-family="var(--serif)" ' +
+        'fill="var(--ink-2)">' + c[0] + '</text>');
+    });
+
+    /* -- the visible half of the ecliptic ------------------------------- */
+    var run = [], best = [];
+    for (var l = 0; l <= 720; l++) {
+      var s0 = at(l);
+      if (s0.alt > 0) { run.push({ lon: l % 360, alt: s0.alt, az: s0.az }); }
+      else { if (run.length > best.length) best = run; run = []; }
+    }
+    if (run.length > best.length) best = run;
+    if (best.length > 361) best = best.slice(0, 361);
+
+    var d = '';
+    best.forEach(function (pt, i) {
+      var q = skyPolar(pt.alt, pt.az);
+      d += (i ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1]);
+    });
+    parts.push('<path d="' + d + '" fill="none" stroke="var(--sun)" stroke-width="2" ' +
+      'opacity=".65"/>');
+
+    /* -- the constellations, on the arc, at their real widths ----------- */
+    for (var j = 0; j < BANDS.length; j++) {
+      var b1 = norm360(BANDS[j][0] + pre);
+      var b2 = norm360(BANDS[(j + 1) % BANDS.length][0] + pre);
+      var width = norm360(b2 - b1);
+      var seg = best.filter(function (pt) { return norm360(pt.lon - b1) < width; });
+      if (seg.length < 2) continue;
+      var sd = '';
+      seg.forEach(function (pt, i) {
+        var q = skyPolar(pt.alt, pt.az);
+        sd += (i ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1]);
+      });
+      parts.push('<path d="' + sd + '" fill="none" stroke="' +
+        (j % 2 ? 'var(--moon)' : 'var(--equinox)') +
+        '" stroke-width="7" opacity=".28" stroke-linecap="butt"><title>' +
+        esc(BANDS[j][1]) + ', ' + width.toFixed(1) + '° wide</title></path>');
+      var mid = seg[Math.floor(seg.length / 2)];
+      var mq = skyPolar(mid.alt, mid.az);
+      if (seg.length > 6) {
+        parts.push('<text x="' + f(mq[0]) + '" y="' + f(mq[1] - 12) + '" text-anchor="middle" ' +
+          'font-size="10" fill="var(--ink-2)">' + esc(BANDS[j][1]) + '</text>');
+      }
+    }
+
+    /* -- where the ring meets the ground -------------------------------- */
+    [['rises', best[0]], ['sets', best[best.length - 1]]].forEach(function (m) {
+      if (!m[1]) return;
+      var q = skyPolar(0, m[1].az);
+      parts.push('<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="4" fill="var(--today)"/>');
+      parts.push('<text x="' + f(q[0]) + '" y="' + f(q[1] - 12) + '" text-anchor="middle" ' +
+        'font-size="9.5" fill="var(--today)">' +
+        (m[0] === 'rises' ? 'ecliptic rises' : 'ecliptic sets') + '</text>');
+    });
+
+    /* -- and the bodies riding on it ------------------------------------ */
+    var COL = { Mercury: '#8fa3b8', Venus: '#c98fb9', Mars: '#d1685a',
+                Jupiter: '#c9a24a', Saturn: '#8d8ab5' };
+    var list = [];
+    var sun = A.sunPosition(jde);
+    list.push({ g: '☉', n: 'Sun', ra: sun.ra, dec: sun.dec, c: 'var(--sun-bright)' });
+    var moon = A.moonPosition(jde);
+    list.push({ g: '☽', n: 'Moon', ra: moon.ra, dec: moon.dec, c: 'var(--moon)' });
+    P.ORDER.forEach(function (nm) {
+      var pp = P.position(nm, jde);
+      list.push({ g: P.GLYPH[nm], n: nm, ra: pp.ra, dec: pp.dec, c: COL[nm] });
+    });
+
+    var shown = 0;
+    list.forEach(function (b) {
+      var alt = A.altitudeOf(b.ra, b.dec, jd, lat, lon);
+      if (alt <= 0) return;
+      shown++;
+      var az = A.azimuthOf(b.ra, b.dec, jd, lat, lon);
+      var q = skyPolar(alt, az);
+      parts.push('<g><title>' + esc(b.n) + ' · ' + alt.toFixed(0) + '° up · bearing ' +
+        az.toFixed(0) + '°</title>' +
+        '<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="12" fill="var(--bg)" ' +
+        'stroke="' + b.c + '" stroke-width="1.4"/>' +
+        '<text x="' + f(q[0]) + '" y="' + f(q[1] + 0.5) + '" text-anchor="middle" ' +
+        'dominant-baseline="middle" font-size="13" fill="' + b.c + '">' + b.g + '</text></g>');
+    });
+
+    return { svg: parts.join(''), visible: shown, arcDegrees: best.length };
+  }
+
+  global.Zodiac = { render: render, sky: sky };
 })(typeof window !== 'undefined' ? window : globalThis);
