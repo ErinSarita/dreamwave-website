@@ -614,11 +614,12 @@
     });
     $('zodiac-svg').innerHTML = out.svg;
     $('zodiac-meta').textContent =
-      'The two rings sit ' + out.precession.toFixed(1) + '° apart from where they ' +
-      'started, which is how far the equinox has precessed from the stars since J2000. ' +
-      'Measured from when the signs were named, the gap is nearly a whole sign. ' +
-      'Ascendant and Midheaven are marked on the rim; house cusps are a convention ' +
-      'rather than a measurement and are not drawn.';
+      'The two rings run about ' + (28.7 - out.precession).toFixed(0) + '° out of step: ' +
+      'the constellation Aries now begins that far past the equinox, where the sign ' +
+      'Aries begins at 0° by definition. That is nearly a whole sign, and it is why a ' +
+      'planet is so often listed in one and standing in front of the other. Ascendant ' +
+      'and Midheaven are marked on the rim; house cusps are a convention rather than a ' +
+      'measurement and are not drawn.';
     $('zodiac').hidden = false;
   }
 

@@ -55,8 +55,10 @@
 
   var SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra',
                'Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
-  var SIGN_GLYPH = ['♈','♉','♊','♋','♌','♍',
-                    '♎','♏','♐','♑','♒','♓'];
+  /* No sign glyphs. The zodiac characters are emoji-presentation by default
+   * in most fonts and arrive as coloured tiles, which is the same thing that
+   * was pulled off the season markers on the year wheel. Names read better
+   * anyway at this size. */
   var BANDS = [
     [351.6, 'Pisces'], [28.7, 'Aries'], [53.4, 'Taurus'], [90.4, 'Gemini'],
     [118.0, 'Cancer'], [138.0, 'Leo'], [174.0, 'Virgo'], [217.8, 'Libra'],
@@ -78,8 +80,7 @@
       parts.push('<path d="' + sector(R.signIn, R.signOut, a1, a2) +
         '" fill="var(--bg-2)" fill-opacity="' + (i % 2 ? '.85' : '.45') +
         '" stroke="var(--line-soft)" stroke-width=".8"/>');
-      parts.push(tangential(R.signLabel, a1 + 15,
-        SIGN_GLYPH[i] + '  ' + SIGNS[i], 12, 'var(--ink-2)'));
+      parts.push(tangential(R.signLabel, a1 + 15, SIGNS[i], 12.5, 'var(--ink-2)', '500'));
     }
 
     /* -- the thirteen constellations, at the widths they really have ------
@@ -93,9 +94,15 @@
         '" fill="var(--panel)" fill-opacity="' + (j % 2 ? '.9' : '.55') +
         '" stroke="var(--line-soft)" stroke-width=".8"><title>' +
         esc(BANDS[j][1]) + ', ' + span.toFixed(1) + '° of the ecliptic</title></path>');
-      if (span > 9) {
-        parts.push(tangential(R.conLabel, s1 + span / 2,
-          BANDS[j][1] + (span < 22 ? '' : ''), span < 16 ? 8.5 : 10.5, 'var(--ink-3)'));
+      /* Scorpius gets seven degrees of ecliptic and cannot hold its own name
+       * at any readable size, so the narrow bands are abbreviated and the
+       * full name stays in the tooltip. */
+      var SHORT = { Capricornus: 'Capr', Sagittarius: 'Sagitt', Ophiuchus: 'Ophi',
+                    Scorpius: 'Scorp', Aquarius: 'Aquar' };
+      var label = span < 20 ? (SHORT[BANDS[j][1]] || BANDS[j][1]) : BANDS[j][1];
+      if (span > 5) {
+        parts.push(tangential(R.conLabel, s1 + span / 2, label,
+          span < 14 ? 9 : 11, 'var(--ink-2)'));
       }
     }
 
