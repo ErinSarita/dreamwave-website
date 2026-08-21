@@ -531,90 +531,96 @@
     if (dayRingTimer) { clearInterval(dayRingTimer); dayRingTimer = null; }
   }
 
-  /* Where each body stands along the ecliptic, named twice over.
+  /* When each planet clears the horizon and when it goes back under, and
+   * which way to face for both. This is the one planetary question that is
+   * genuinely about your patch of ground: the sign a planet is in reads the
+   * same from anywhere on earth, but its rising time and bearing are yours
+   * alone, and change with every degree of latitude.
    *
-   * The sign is the tropical one: twelve equal cuts from the equinox, which is
-   * what a birth chart uses. The constellation is the patch of sky the body is
-   * actually in front of. They disagree by nearly a whole sign now, because
-   * the signs were named around 130 BCE and the equinox has precessed about
-   * thirty degrees away from the stars since. Giving one without the other
-   * would be picking a side; giving both makes the drift visible, which is
-   * the more interesting fact and the one this site is otherwise about.
-   *
-   * The Ascendant and Midheaven close the list because they are the only
-   * entries that move on this dial's timescale, sweeping the whole zodiac
-   * once a day. House cusps are a convention rather than a measurement, so
-   * they are not here. */
+   * Where a planet stands along the zodiac now lives on the system map and
+   * the ecliptic wheel, where the angle actually means longitude. Keeping it
+   * here as well said the same thing twice in a view that cannot draw it.
+   */
   function planetsMarkup(d, out) {
     if (!global.Planets) return '';
     var head = '<label class="tog d-planets-tog"><input type="checkbox" id="planet-tog"' +
-      (state.showPlanets ? ' checked' : '') + '><span>Planets &amp; angles</span></label>';
+      (state.showPlanets ? ' checked' : '') + '><span>Planet rise &amp; set</span></label>';
     if (!state.showPlanets) return '<div class="d-planets">' + head + '</div>';
 
-    var isToday = haveRealInstant(d);
-    var when = momentFor(d);
-    var jd = A.jdFromDate(when), jde = A.jdeFromJD(jd);
-    var T = (jde - 2451545) / 36525, pre = Planets.precession(T);
-    var eps = A.sunPosition(jde).obliquity;
-
-    /* Each row says two different things. Where the body sits along the
-     * ecliptic, which is a fact about the solar system and holds all day; and
-     * where to point your face, which is a fact about this minute and this
-     * spot of ground. The dial can show the first and can show how high a
-     * body climbs, but its angle is spent on the hour, so it can never say
-     * north or west. That is what the second line is for.
-     *
-     * The bearing is only shown for today, because "look south-west" means
-     * nothing about a Tuesday in March. */
-    function row(glyph, name, lon, colour, eq) {
-      var sg = Planets.signOf(lon);
-      var con = Planets.constellationOf(((lon - pre) % 360 + 360) % 360);
-      var where = '';
-      if (eq && isToday) {
-        var L = Planets.lookAt(eq.ra, eq.dec, jd, cycle.lat, cycle.lon);
-        where = L.up
-          ? ' &#183; <em>' + L.altitude.toFixed(0) + '&#176; up, look ' + L.compass + '</em>'
-          : ' &#183; <em class="d-pl-down">below the horizon</em>';
-      }
-      return '<div class="d-pl">' +
-        '<i class="d-pl-g" style="color:' + colour + '">' + glyph + '</i>' +
-        '<span class="d-pl-n">' + name + '</span>' +
-        '<b>' + sg.name + ' ' + sg.degree.toFixed(1) + '&#176;</b>' +
-        '<span class="d-pl-c">in ' + con + where + '</span></div>';
-    }
-
+    var jdStart = A.jdFromDate(d.date);
+    var live = haveRealInstant(d) ? momentFor(d) : null;
     var rows = '';
-    var sun = A.sunPosition(jde);
-    rows += row('\u2609', 'Sun', A.norm360(sun.longitude), 'var(--sun-bright)', sun);
-    var mp = A.moonPosition(jde);
-    rows += row('\u263D', 'Moon', A.norm360(mp.longitude), 'var(--moon)', mp);
+
     Planets.ORDER.forEach(function (nm) {
-      var p = Planets.position(nm, jde);
-      rows += row(Planets.GLYPH[nm], nm, p.longitude, PLANET_COLOUR[nm], p);
+      var rs = A.riseSet(nm, jdStart, 1, cycle.lat, cycle.lon);
+      function leg(word, jdEv) {
+        if (!jdEv) return '';
+        var pp = Planets.position(nm, A.jdeFromJD(jdEv));
+        var L = Planets.lookAt(pp.ra, pp.dec, jdEv, cycle.lat, cycle.lon);
+        return word + ' ' + Clock.time(cycle, A.dateFromJD(jdEv), state.useDST, state.hour12) +
+          ' <em>' + L.compass + '</em>';
+      }
+      var legs = [leg('rises', rs && rs.rise), leg('sets', rs && rs.set)]
+        .filter(Boolean).join(' &#183; ');
+      if (!legs) legs = '<em class="d-pl-down">stays ' +
+        ((rs && rs.maxAlt > 0) ? 'up all day' : 'below the horizon') + '</em>';
+
+      var nowLine = '';
+      if (live) {
+        var pn = Planets.position(nm, A.jdeFromJD(A.jdFromDate(live)));
+        var Ln = Planets.lookAt(pn.ra, pn.dec, A.jdFromDate(live), cycle.lat, cycle.lon);
+        nowLine = Ln.up
+          ? '<b>' + Ln.altitude.toFixed(0) + '&#176; up, ' + Ln.compass + '</b>'
+          : '<b class="d-pl-down">under</b>';
+      }
+      rows += '<div class="d-pl">' +
+        '<i class="d-pl-g" style="color:' + PLANET_COLOUR[nm] + '">' +
+        Planets.GLYPH[nm] + '</i>' +
+        '<span class="d-pl-n">' + nm + '</span>' + nowLine +
+        '<span class="d-pl-c">' + legs + '</span></div>';
     });
-    var an = Planets.angles(jd, jde, cycle.lat, cycle.lon);
-    rows += '<div class="d-pl-rule"></div>';
-    rows += row('\u2191', 'Ascendant', an.ascendant, 'var(--today)',
-                Planets.toEquatorial(an.ascendant, 0, eps));
-    rows += row('\u22A5', 'Midheaven', an.midheaven, 'var(--today)',
-                Planets.toEquatorial(an.midheaven, 0, eps));
 
     return '<div class="d-planets">' + head +
       '<div class="d-pl-list">' + rows + '</div>' +
-      (isToday ? '' : '<p class="d-pl-note">Bearings are shown for today only: ' +
-        'which way to look has no meaning for another date.</p>') +
-      '<button class="mr-info-more" id="zodiac-open">See these on the zodiac wheel</button>' +
-      '<p class="d-pl-note">Sign is tropical, measured from the equinox. ' +
-      '<b>In</b> is the constellation actually behind it. The two run nearly a ' +
-      'sign apart: the constellation Aries now begins ' + (28.7 - pre).toFixed(1) +
-      '&#176; past the equinox, where the sign Aries begins at 0&#176; by ' +
-      'definition.</p></div>';
+      '<p class="d-pl-note">Times and bearings are for ' +
+      esc(state.place ? (state.place.name || state.place.label) : 'this place') +
+      '. Move the place and they all change, which is the whole difference ' +
+      'between this and where a planet sits in the zodiac.' +
+      (live ? '' : ' Add a time beside the date to see where each one stands at a given moment.') +
+      '</p></div>';
   }
 
   var PLANET_COLOUR = {
     Mercury: '#8fa3b8', Venus: '#c98fb9', Mars: '#d1685a',
     Jupiter: '#c9a24a', Saturn: '#8d8ab5'
   };
+
+  /* What the map is, for someone opening it cold. Kept in the readout's own
+   * corner rather than printed under the dial, because it is read once and
+   * then wanted out of the way. */
+  var orbitsInfoOpen = false;
+  function orbitsInfoHTML() {
+    return '<div class="mr-info-panel">' +
+      '<p>You are looking down on the solar system from above the north pole. ' +
+      'The sun is at the middle and every planet is where it really is today. ' +
+      'The rings are drawn to <b>true scale</b>, which is why the inner four ' +
+      'crowd together: that is the shape of the thing. Zoom in on them.</p>' +
+      '<p>The <b>dashed lines run from the earth</b> outward through each ' +
+      'planet to the band of signs at the edge. That is the whole trick of it. ' +
+      'A planet is not <i>in</i> a sign the way a coin is in a pocket: it is ' +
+      'simply that when you stand on the earth and look toward Saturn, the ' +
+      'stretch of sky behind it is the one called Aries. Move the earth round ' +
+      'its orbit and the same planet appears against a different stretch.</p>' +
+      '<p>The sun gets a line too, and it is the one that passes through the ' +
+      'middle. That is why the sun always appears in the sign opposite where ' +
+      'the earth is standing.</p>' +
+      '<p><b>Sign</b> and <b>in</b> differ by about a whole sign. The signs ' +
+      'are twelve equal cuts from the equinox; the constellations are the real ' +
+      'and unequal patches of sky, and the equinox has slid roughly thirty ' +
+      'degrees away from them since the signs were named.</p>' +
+      '<button class="mr-info-more" id="zodiac-open">Open the ecliptic wheel</button>' +
+      '</div>';
+  }
 
   /* Which instant the sky is being read for.
    *
@@ -708,14 +714,19 @@
       rows += orow(Planets.GLYPH[nm], nm, pp.longitude, PLANET_COLOUR[nm], pp.distanceAU);
     });
 
-    $('orrery-readout').className = 'readout' + (state.orbitsMin ? ' min' : '');
+    $('orrery-readout').className = 'readout' + (state.orbitsMin ? ' min' : '') +
+      (orbitsInfoOpen ? ' info' : '');
     $('orrery-readout').innerHTML =
+      '<button class="mr-info" id="orbits-info" aria-expanded="' + orbitsInfoOpen +
+        '" aria-label="What this map is showing" ' +
+        'title="What this map is showing">i</button>' +
       '<button class="panel-min" id="orbits-min" aria-label="' +
         (state.orbitsMin ? 'Expand the system details' : 'Minimise the system details') +
         '" title="' + (state.orbitsMin ? 'Expand' : 'Minimise') + '">' +
         (state.orbitsMin ? '\u25B4' : '\u25BE') + '</button>' +
       '<div class="r-mini">The system &#183; ' +
         TZ.formatDate(cycle.tz, when, 'short') + '</div>' +
+      (orbitsInfoOpen ? orbitsInfoHTML() : '') +
       '<div class="r-lab">Seen from ' +
         esc(state.place ? (state.place.name || state.place.label) : 'the earth') + '</div>' +
       '<div class="r-date">' + esc(momentLabel(when)) + '</div>' +
@@ -731,6 +742,17 @@
       state.orbitsMin = !state.orbitsMin;
       save(); drawOrbits();
     });
+    $('orbits-info').addEventListener('click', function (e) {
+      e.stopPropagation();
+      orbitsInfoOpen = !orbitsInfoOpen;
+      drawOrbits();
+    });
+    if ($('zodiac-open')) {
+      $('zodiac-open').addEventListener('click', function (e) {
+        e.stopPropagation();
+        openZodiac();
+      });
+    }
   }
 
   function drawDay() {
@@ -789,12 +811,6 @@
       state.panelMin = !state.panelMin;
       save(); drawDay();
     });
-    if ($('zodiac-open')) {
-      $('zodiac-open').addEventListener('click', function (e) {
-        e.stopPropagation();
-        openZodiac();
-      });
-    }
     if ($('planet-tog')) {
       $('planet-tog').addEventListener('change', function () {
         state.showPlanets = this.checked;

@@ -581,6 +581,12 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .scene-orbits .readout { width: min(340px, calc(100% - 32px)); text-align: left; }
 .scene-orbits .readout .r-lab,
 .scene-orbits .readout .r-date { text-align: center; }
+/* The info corner needs its own pointer-events: the readout takes none so a
+ * hover passes through to whatever is behind it. */
+.readout .mr-info { pointer-events: auto; }
+.readout.info { max-height: min(74dvh, 620px); overflow-y: auto; }
+.readout .mr-info-panel { margin: 26px 0 12px; }
+.readout .mr-info-panel b { color: var(--sun-bright); }
 .readout .o-list { margin-top: 10px; }
 .readout .o-pl {
   display: grid; grid-template-columns: 18px 1fr auto; align-items: baseline;
