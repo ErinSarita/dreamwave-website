@@ -906,7 +906,7 @@
           '<div class="tp-now-lab">' + live + ' &#183; the ' + esc(w.branch) + ' watch</div>' +
           '<div class="tp-now-organ">' + esc(w.organ) + '</div>' +
           '<div class="tp-now-best">' + esc(w.best) + '</div>' +
-          (w.avoid ? '<div class="tp-now-avoid">Rather not: ' + esc(w.avoid) + '</div>' : '') +
+          (w.avoid ? '<div class="tp-now-avoid">Easier another hour: ' + esc(w.avoid) + '</div>' : '') +
           '</div>';
       }
       organs +=
