@@ -780,12 +780,45 @@
       var sm = new Date(d.solarNoon.getTime() - 12 * 3600000);
       var ph = ((when.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24;
       var w = BC.watchAt(ph);
+      /* And where the three curves stand at this instant. Modelled, not
+       * measured: the shapes come from the published phase relationships, so
+       * the timing is meaningful and the exact percentage is not a reading of
+       * anyone's blood. Direction matters more than level, so each line says
+       * whether it is climbing or falling. */
+      var mOn = d.sunset ? ((d.sunset.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24 + 1 : 19;
+      var mOff = d.sunrise ? ((d.sunrise.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24 + 1 : 6.5;
+      var LEVELS = [
+        ['melatonin', 'var(--moon)', function (x) { return BC.melatonin(x, mOn, mOff); }],
+        ['cortisol', 'var(--sun-bright)', BC.cortisol],
+        ['core temperature', 'var(--equinox)', BC.temperature]
+      ];
+      var levels = LEVELS.map(function (L) {
+        var v = Math.max(0, Math.min(1, L[2](ph)));
+        var ahead = Math.max(0, Math.min(1, L[2](ph + 0.5)));
+        var dir = ahead - v > 0.012 ? 'climbing'
+                : v - ahead > 0.012 ? 'falling' : 'level';
+        var word = v > 0.85 ? (dir === 'level' ? 'at its peak' : dir)
+                 : v < 0.1 ? (dir === 'climbing' ? 'starting to climb' : 'near its floor')
+                 : dir;
+        return '<div class="tp-lv">' +
+          '<span class="tp-lv-n">' + L[0] + '</span>' +
+          '<span class="tp-lv-bar"><i style="width:' + Math.round(v * 100) +
+            '%;background:' + L[1] + '"></i></span>' +
+          '<span class="tp-lv-v">' + Math.round(v * 100) + '%</span>' +
+          '<span class="tp-lv-d">' + word + '</span></div>';
+      }).join('');
+
       now = '<div class="tp-now">' +
         '<div class="tp-now-lab">' + (haveRealInstant(d) ? 'Right now' : 'At midday') +
         ' &#183; the ' + esc(w.branch) + ' watch</div>' +
         '<div class="tp-now-organ">' + esc(w.organ) + '</div>' +
         '<div class="tp-now-best">' + esc(w.best) + '</div>' +
         (w.avoid ? '<div class="tp-now-avoid">Rather not: ' + esc(w.avoid) + '</div>' : '') +
+        '<div class="tp-levels">' + levels + '</div>' +
+        '<p class="tp-lv-note">Modelled from the published phase relationships, ' +
+        'not measured from you. The shape and the timing are the meaningful ' +
+        'part; treat the percentage as where you sit between that curve\'s own ' +
+        'low and high, rather than as a number from a blood test.</p>' +
         '</div>';
     }
     return '<label class="tog tp-switch"><input type="checkbox" id="body-tog"' +
