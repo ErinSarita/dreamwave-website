@@ -448,7 +448,7 @@
      * from the real sun. The horary cycle is traditionally reckoned by solar
      * time and the body entrains to light, so both bands are hung on solar
      * midnight and solar noon instead. */
-    if (opts.body && global.BodyClock) {
+    if ((opts.bio || opts.organs) && global.BodyClock) {
       var BC = global.BodyClock;
       var noonT = day.solarNoon || (marks.solarNoon && marks.solarNoon.t);
       if (noonT) {
@@ -460,6 +460,7 @@
           return new Date(solarMidnight.getTime() + ph * 3600000);
         };
 
+        if (opts.organs) {
         /* The twelve watches, two solar hours each.
          *
          * Solar midnight is not clock midnight, so the zi watch that straddles
@@ -504,8 +505,10 @@
             'dominant-baseline="middle" font-size="11" font-style="italic" ' +
             'fill="var(--sun)" pointer-events="none">' + m[1] + '</text>');
         });
+        }
 
         /* the measured curves, each across the full outer band */
+        if (opts.bio) {
         /* Melatonin is hung on this day's own dusk and dawn rather than on a
          * fixed hour: it begins climbing about an hour after the light goes
          * and is finished about an hour after it returns, so the band widens
@@ -530,6 +533,7 @@
           parts.push('<path d="' + d + '" fill="none" stroke="' + cv[1] +
             '" stroke-width="1.6" opacity=".85"><title>' + cv[0] + '</title></path>');
         });
+        }
       }
     }
 

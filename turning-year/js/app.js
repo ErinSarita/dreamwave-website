@@ -36,7 +36,11 @@
     /* The planets and the two angles, off by default: the day clock is about
      * the sun and moon first, and five more curves on it is a choice. */
     showPlanets: false,
-    showBody: false,    // the body layer on the day dial
+    /* Two separate layers now. They were one switch, which forced the
+     * measured curves and the traditional watches on together; they are
+     * different kinds of claim and deserve to be looked at one at a time. */
+    showBio: false,
+    showOrgans: false,
     orbitsMin: false,   // the system readout collapsed to a single line
     /* A chosen instant, when someone wants a particular moment rather than
      * now: a birth time, an eclipse, a date in 1969. Held as an ISO string so
@@ -58,7 +62,8 @@
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
         panelMin: state.panelMin, moonMin: state.moonMin,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
-        showPlanets: state.showPlanets, showBody: state.showBody,
+        showPlanets: state.showPlanets,
+        showBio: state.showBio, showOrgans: state.showOrgans,
         orbitsMin: state.orbitsMin,
         moment: state.moment,
         moonPhases: state.moonPhases
@@ -83,7 +88,11 @@
       if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
       if (typeof o.lunarCountdown === 'boolean') state.lunarCountdown = o.lunarCountdown;
       if (typeof o.showPlanets === 'boolean') state.showPlanets = o.showPlanets;
-      if (typeof o.showBody === 'boolean') state.showBody = o.showBody;
+      /* Anyone carrying the old single setting gets the measured band, which
+       * is the half that needs no framing to read. */
+      if (typeof o.showBody === 'boolean') { state.showBio = o.showBody; }
+      if (typeof o.showBio === 'boolean') state.showBio = o.showBio;
+      if (typeof o.showOrgans === 'boolean') state.showOrgans = o.showOrgans;
       if (typeof o.orbitsMin === 'boolean') state.orbitsMin = o.orbitsMin;
       if (typeof o.moment === 'string' || o.moment === null) state.moment = o.moment;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
@@ -774,150 +783,151 @@
    */
   function bodyPanelHTML(d) {
     var BC = global.BodyClock;
-    var now = '';
+    var ph = null, w = null;
     if (d && d.solarNoon) {
       var when = momentFor(d);
       var sm = new Date(d.solarNoon.getTime() - 12 * 3600000);
-      var ph = ((when.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24;
-      var w = BC.watchAt(ph);
-      /* And where the three curves stand at this instant. Modelled, not
-       * measured: the shapes come from the published phase relationships, so
-       * the timing is meaningful and the exact percentage is not a reading of
-       * anyone's blood. Direction matters more than level, so each line says
-       * whether it is climbing or falling. */
-      var mOn = d.sunset ? ((d.sunset.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24 + 1 : 19;
-      var mOff = d.sunrise ? ((d.sunrise.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24 + 1 : 6.5;
-      var LEVELS = [
-        ['melatonin', 'var(--moon)', function (x) { return BC.melatonin(x, mOn, mOff); }],
-        ['cortisol', 'var(--sun-bright)', BC.cortisol],
-        ['core temperature', 'var(--equinox)', BC.temperature]
-      ];
-      var levels = LEVELS.map(function (L) {
-        var v = Math.max(0, Math.min(1, L[2](ph)));
-        var ahead = Math.max(0, Math.min(1, L[2](ph + 0.5)));
-        var dir = ahead - v > 0.012 ? 'climbing'
-                : v - ahead > 0.012 ? 'falling' : 'level';
-        var word = v > 0.85 ? (dir === 'level' ? 'at its peak' : dir)
-                 : v < 0.1 ? (dir === 'climbing' ? 'starting to climb' : 'near its floor')
-                 : dir;
-        return '<div class="tp-lv">' +
-          '<span class="tp-lv-n">' + L[0] + '</span>' +
-          '<span class="tp-lv-bar"><i style="width:' + Math.round(v * 100) +
-            '%;background:' + L[1] + '"></i></span>' +
-          '<span class="tp-lv-v">' + Math.round(v * 100) + '%</span>' +
-          '<span class="tp-lv-d">' + word + '</span></div>';
-      }).join('');
-
-      now = '<div class="tp-now">' +
-        '<div class="tp-now-lab">' + (haveRealInstant(d) ? 'Right now' : 'At midday') +
-        ' &#183; the ' + esc(w.branch) + ' watch</div>' +
-        '<div class="tp-now-organ">' + esc(w.organ) + '</div>' +
-        '<div class="tp-now-best">' + esc(w.best) + '</div>' +
-        (w.avoid ? '<div class="tp-now-avoid">Rather not: ' + esc(w.avoid) + '</div>' : '') +
-        '<div class="tp-levels">' + levels + '</div>' +
-        '<p class="tp-lv-note">Modelled from the published phase relationships, ' +
-        'not measured from you. The shape and the timing are the meaningful ' +
-        'part; treat the percentage as where you sit between that curve\'s own ' +
-        'low and high, rather than as a number from a blood test.</p>' +
-        '</div>';
+      ph = ((when.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24;
+      w = BC.watchAt(ph);
     }
-    return '<label class="tog tp-switch"><input type="checkbox" id="body-tog"' +
-      (state.showBody ? ' checked' : '') + '><span>Draw it on the dial</span></label>' +
-      now +
-      '<p>This layer is here to help you put your day alongside the day the ' +
-      'sun is actually having: when to eat, when to push, when to stop.</p>' +
+    var live = haveRealInstant(d) ? 'Right now' : 'At midday';
 
-      '<h4>Zi and wu</h4>' +
-      '<p><i>Zi</i> is the double hour around midnight, when yin is fullest, and ' +
-      'yin governs sleep. <i>Wu</i> is the double hour around noon, when yang is ' +
-      'fullest and yin begins to gather again. The cycle is named for them: ' +
-      '<i>zi wu liu zhu</i>, "midnight-noon flowing and pouring". They are the ' +
-      'gold ticks on the ring. <b>Click any watch</b> for what it governs.</p>' +
+    /* --- the measured band ------------------------------------------- */
+    var bio = '<label class="tog tp-switch"><input type="checkbox" id="bio-tog"' +
+      (state.showBio ? ' checked' : '') +
+      '><span>Hormones &amp; body temperature</span></label>' +
+      '<p class="tp-brief">Melatonin, cortisol and core temperature across the ' +
+      'day, drawn as three curves outside the dial. Measured chronobiology, ' +
+      'phased from your own solar midnight.</p>';
 
-      '<h4>What these three actually are</h4>' +
-      '<p><b>Melatonin</b> is made in the pineal gland and released when the ' +
-      'brain\'s clock says it is dark. It is not a sedative. It is the body\'s ' +
-      'announcement that night has come, sent to every tissue at once, which is ' +
-      'why it is called the hormone of darkness. Light falling on the eye ' +
-      'suppresses it directly, within minutes.</p>' +
-      '<p><b>Cortisol</b> comes from the adrenal glands. It frees glucose into ' +
-      'the blood, lifts blood pressure and sharpens attention. Its morning ' +
-      'surge is not alarm: it is an anticipatory rise that begins in the last ' +
-      'hours of sleep, so that the body is ready before you are.</p>' +
-      '<p><b>Core temperature</b> is not a hormone but the body\'s own ' +
-      'thermostat, swinging about half a degree across the day. The fall into ' +
-      'the night helps sleep begin; the climb through the afternoon tracks ' +
-      'alertness, reaction speed and physical strength. Its low point is the ' +
-      'deepest part of the night.</p>' +
+    if (state.showBio) {
+      var levels = '';
+      if (ph !== null) {
+        var mOn = d.sunset ? ((d.sunset.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24 + 1 : 19;
+        var mOff = d.sunrise ? ((d.sunrise.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24 + 1 : 6.5;
+        levels = [
+          ['melatonin', 'var(--moon)', function (x) { return BC.melatonin(x, mOn, mOff); }],
+          ['cortisol', 'var(--sun-bright)', BC.cortisol],
+          ['core temperature', 'var(--equinox)', BC.temperature]
+        ].map(function (L) {
+          var v = Math.max(0, Math.min(1, L[2](ph)));
+          var ahead = Math.max(0, Math.min(1, L[2](ph + 0.5)));
+          var dir = ahead - v > 0.012 ? 'climbing' : v - ahead > 0.012 ? 'falling' : 'level';
+          var word = v > 0.85 ? (dir === 'level' ? 'at its peak' : dir)
+                   : v < 0.1 ? (dir === 'climbing' ? 'starting to climb' : 'near its floor')
+                   : dir;
+          return '<div class="tp-lv"><span class="tp-lv-n">' + L[0] + '</span>' +
+            '<span class="tp-lv-bar"><i style="width:' + Math.round(v * 100) +
+              '%;background:' + L[1] + '"></i></span>' +
+            '<span class="tp-lv-v">' + Math.round(v * 100) + '%</span>' +
+            '<span class="tp-lv-d">' + word + '</span></div>';
+        }).join('');
+        bio += '<div class="tp-now"><div class="tp-now-lab">' + live + '</div>' +
+          '<div class="tp-levels">' + levels + '</div>' +
+          '<p class="tp-lv-note">Modelled from the published phase ' +
+          'relationships, not measured from you. The shape and the timing are ' +
+          'the meaningful part; read the percentage as where you sit between ' +
+          'that curve\'s own low and high.</p></div>';
+      }
+      bio +=
+        '<h4>What these three are</h4>' +
+        '<p><b>Melatonin</b> is made in the pineal gland and released when the ' +
+        'brain\'s clock says it is dark. Not a sedative: it is the body\'s ' +
+        'announcement that night has come, sent to every tissue at once. Light ' +
+        'on the eye suppresses it within minutes.</p>' +
+        '<p><b>Cortisol</b> comes from the adrenal glands. It frees glucose into ' +
+        'the blood, lifts blood pressure and sharpens attention. Its morning ' +
+        'surge is not alarm but an anticipatory rise beginning in the last hours ' +
+        'of sleep, so the body is ready before you are.</p>' +
+        '<p><b>Core temperature</b> is the body\'s thermostat, swinging about ' +
+        'half a degree a day. The fall into night helps sleep begin; the climb ' +
+        'through the afternoon tracks alertness, reaction speed and strength.</p>' +
 
-      '<h4>How anyone knows this</h4>' +
-      '<p>From the <b>constant routine</b>: volunteers kept awake in dim light, ' +
-      'half-reclined, fed identical small snacks hourly, at a fixed room ' +
-      'temperature, for a day or more. Stripping out sleep, posture, meals and ' +
-      'light leaves only the rhythm the body generates on its own. Melatonin is ' +
-      'sampled from saliva or blood, temperature from a probe, and the curve is ' +
-      'fitted to find its true peak and trough. The onset of melatonin under ' +
-      'dim light is the single most accurate marker of where anyone\'s clock ' +
-      'stands.</p>' +
+        '<h4>How anyone knows this</h4>' +
+        '<p>From the <b>constant routine</b>: volunteers kept awake in dim light, ' +
+        'half-reclined, fed identical small snacks hourly at a fixed temperature, ' +
+        'for a day or more. Stripping out sleep, posture, meals and light leaves ' +
+        'only the rhythm the body makes on its own. Melatonin under dim light is ' +
+        'the single most accurate marker of where a clock stands.</p>' +
 
-      '<h4>Why it is only an estimate</h4>' +
-      '<p>Light does set the clock, so that instinct is right: cells in the ' +
-      'back of the eye carrying <i>melanopsin</i> report daylight straight to ' +
-      'the clock in the hypothalamus, and morning light pulls it earlier while ' +
-      'evening light pushes it later.</p>' +
-      '<p>But the markers are not pegged to sunrise and sunset directly. In the ' +
-      'research they are pegged to <b>your own sleep</b>: melatonin climbs about ' +
-      'two hours before habitual bedtime, temperature bottoms out an hour or two ' +
-      'before habitual waking, cortisol peaks half an hour after you get up. The ' +
-      'chain runs light, then clock, then sleep, then these.</p>' +
-      '<p>So the drawing assumes you live roughly by the sun. If you do, it is ' +
-      'close. If you are under lamps until one in the morning, your whole set of ' +
-      'curves is shifted hours later than what is drawn, and chronotype moves ' +
-      'people again on top of that. What holds steady is not the hours but the ' +
-      '<b>gaps between them</b>, which is why the model is built from those ' +
-      'intervals rather than from clock times.</p>' +
+        '<h4>Why it is only an estimate</h4>' +
+        '<p>Light does set the clock: cells at the back of the eye carrying ' +
+        '<i>melanopsin</i> report daylight straight to the hypothalamus, and ' +
+        'morning light pulls the clock earlier while evening light pushes it ' +
+        'later.</p>' +
+        '<p>But the markers are pegged to <b>your own sleep</b>, not to sunrise ' +
+        'directly. Melatonin climbs about two hours before habitual bedtime, ' +
+        'temperature bottoms out an hour or two before habitual waking, cortisol ' +
+        'peaks half an hour after you rise. The chain runs light, clock, sleep, ' +
+        'then these. So this assumes you live roughly by the sun. Under lamps ' +
+        'until one in the morning, the whole set shifts hours later. What holds ' +
+        'steady is the <b>gaps between them</b>, which is what the model is ' +
+        'built from.</p>' +
 
-      '<h4>Why the sun, and not the clock</h4>' +
-      '<p>Both bands hang on this place\'s own solar midnight and noon. The ' +
-      'horary cycle is traditionally reckoned by solar time, and the body ' +
-      'entrains to light rather than to a timezone, which is a band up to ' +
-      'fifteen degrees wide with daylight saving laid on top.</p>' +
+        '<h4>What the research says about eating</h4>' +
+        '<p>Insulin sensitivity, beta-cell responsiveness and the thermic effect ' +
+        'of food are all <b>higher in the morning</b>: the same meal costs the ' +
+        'body less earlier in the day. Sutton\'s 2018 trial found that moving ' +
+        'eating earlier improved insulin sensitivity and blood pressure ' +
+        '<b>without any weight loss at all</b>. Late eating shows the reverse.</p>' +
+        '<ul class="tp-refs">' +
+        '<li><a href="https://www.cell.com/cell-metabolism/fulltext/S1550-4131(18)30253-5" target="_blank" rel="noopener">Sutton et al. 2018, early time-restricted feeding</a></li>' +
+        '<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12252119/" target="_blank" rel="noopener">Chrononutrition and energy balance, 2025 review</a></li>' +
+        '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8308587/" target="_blank" rel="noopener">Early dinner and 24-hour glucose</a></li>' +
+        '<li><a href="https://www.sciencedirect.com/science/article/pii/S2451994422000062" target="_blank" rel="noopener">Constant routine protocols</a></li>' +
+        '<li><a href="https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0017860" target="_blank" rel="noopener">The light-sensing cells that set the clock</a></li>' +
+        '</ul>' +
+        '<p class="tp-brief">Nothing lunar is drawn here. That one is genuinely ' +
+        'contested, having failed to replicate more than once, and once in the ' +
+        'opposite direction.</p>';
+    }
 
-      '<h4>What the research says about eating</h4>' +
-      '<p>This is the part where the tradition and the laboratory agree most ' +
-      'plainly. Insulin sensitivity, beta-cell responsiveness and the thermic ' +
-      'effect of food are all <b>higher in the morning</b> than later, which is ' +
-      'to say the same meal costs the body less earlier in the day. Sutton\'s ' +
-      '2018 trial found that simply moving eating earlier improved insulin ' +
-      'sensitivity and blood pressure <b>without any weight loss at all</b>. ' +
-      'Eating late is associated with the reverse: delayed glucose rhythms, ' +
-      'blunted cortisol, poorer control.</p>' +
-      '<p>Which lands almost exactly on the stomach watch, the two solar hours ' +
-      'after dawn that the tradition names as the time to eat well, and on its ' +
-      'advice to keep dinner light in the kidney watch.</p>' +
-      '<ul class="tp-refs">' +
-      '<li><a href="https://www.cell.com/cell-metabolism/fulltext/S1550-4131(18)30253-5" ' +
-        'target="_blank" rel="noopener">Sutton et al. 2018, early time-restricted feeding</a></li>' +
-      '<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12252119/" ' +
-        'target="_blank" rel="noopener">Chrononutrition and energy balance, 2025 review</a></li>' +
-      '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8308587/" ' +
-        'target="_blank" rel="noopener">Early dinner and 24-hour glucose</a></li>' +
-      '<li><a href="https://www.ncbi.nlm.nih.gov/books/NBK519507/" ' +
-        'target="_blank" rel="noopener">Physiology of circadian rhythm</a></li>' +
-      '<li><a href="https://www.sciencedirect.com/science/article/pii/S2451994422000062" ' +
-        'target="_blank" rel="noopener">Constant routine protocols, practical guidelines</a></li>' +
-      '<li><a href="https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0017860" ' +
-        'target="_blank" rel="noopener">Light-sensing cells that set the clock</a></li>' +
-      '<li><a href="https://chinesemedicineatlas.com/tcm-body-clock/" ' +
-        'target="_blank" rel="noopener">The horary cycle, and its solar reckoning</a></li>' +
-      '</ul>' +
+    /* --- the traditional band ----------------------------------------- */
+    var organs = '<label class="tog tp-switch"><input type="checkbox" id="organ-tog"' +
+      (state.showOrgans ? ' checked' : '') +
+      '><span>The twelve organ watches</span></label>' +
+      '<p class="tp-brief">The <i>zi wu liu zhu</i> of Chinese medicine: twelve ' +
+      'two-hour watches, each with an organ and a character, from the Huang Di ' +
+      'Nei Jing. A traditional framework rather than a measurement, and reckoned ' +
+      'by the sun as it always was.</p>';
 
-      '<h4>Taking it lightly</h4>' +
-      '<p>None of this is a rule. It is a note on when things tend to come ' +
-      'easiest, and plenty of good living happens at the wrong hour. The outer ' +
-      'curves are a model of the published phase relationships, not a reading ' +
-      'of you. Nothing lunar is drawn: that one is genuinely contested, having ' +
-      'failed to replicate more than once, once in the opposite direction.</p>';
+    if (state.showOrgans) {
+      if (w) {
+        organs += '<div class="tp-now">' +
+          '<div class="tp-now-lab">' + live + ' &#183; the ' + esc(w.branch) + ' watch</div>' +
+          '<div class="tp-now-organ">' + esc(w.organ) + '</div>' +
+          '<div class="tp-now-best">' + esc(w.best) + '</div>' +
+          (w.avoid ? '<div class="tp-now-avoid">Rather not: ' + esc(w.avoid) + '</div>' : '') +
+          '</div>';
+      }
+      organs +=
+        '<h4>Zi and wu</h4>' +
+        '<p><i>Zi</i> is the double hour around midnight, when yin is fullest, ' +
+        'and yin governs sleep. <i>Wu</i> is the double hour around noon, when ' +
+        'yang is fullest and yin begins to gather again. The cycle is named for ' +
+        'them: <i>zi wu liu zhu</i>, "midnight-noon flowing and pouring". They ' +
+        'are the gold ticks on the ring.</p>' +
+        '<p><b>Click any watch</b> on the ring for what it governs, what suits ' +
+        'it, what does not, and why.</p>' +
+        '<p class="tp-brief">None of it is a rule. It is a note on when things ' +
+        'tend to come easiest, and plenty of good living happens at the wrong ' +
+        'hour.</p>' +
+        '<ul class="tp-refs">' +
+        '<li><a href="https://chinesemedicineatlas.com/tcm-body-clock/" target="_blank" rel="noopener">The horary cycle, and its solar reckoning</a></li>' +
+        '</ul>';
+    }
+
+    return '<p class="tp-intro">Two ways of reading the same day, kept apart ' +
+      'because they are different kinds of claim. Turn on whichever you want to ' +
+      'look at.</p>' +
+      '<div class="tp-sec">' + bio + '</div>' +
+      '<div class="tp-sec">' + organs + '</div>' +
+      ((state.showBio || state.showOrgans)
+        ? '<p class="tp-brief tp-foot">Both hang on this place\'s <b>solar</b> ' +
+          'midnight and noon, not the clock. The horary cycle is reckoned by ' +
+          'solar time and the body entrains to light, so a timezone is the ' +
+          'wrong peg for either.</p>'
+        : '');
   }
 
   function planetsPanelHTML() {
@@ -954,7 +964,7 @@
     if (!d) return;
     var out = DayView.render(cycle, d, { hour12: state.hour12, useDST: state.useDST,
       now: new Date(), placeName: state.place ? (state.place.name || state.place.label) : '',
-      planets: state.showPlanets, body: state.showBody });
+      planets: state.showPlanets, bio: state.showBio, organs: state.showOrgans });
     $('dayclock').innerHTML = out.svg + '<g id="day-clock-ring"></g>';
     startDayRing();
 
@@ -1515,6 +1525,22 @@
      * the reasoning for a day-view layer along with its switch, which is
      * where it belongs: in the day panel it was buried under the times and
      * collapsed out of sight with them. */
+    function wireToolProse(k) {
+      [['bio-tog', 'showBio'], ['organ-tog', 'showOrgans'],
+       ['planet-tog', 'showPlanets']].forEach(function (pair) {
+        var box = $(pair[0]);
+        if (!box) return;
+        box.addEventListener('change', function () {
+          state[pair[1]] = box.checked;
+          save(); syncDayTools(); drawDay();
+          var d3 = state.day ? cycle.days[state.day - 1] : null;
+          $('tool-panel-prose').innerHTML =
+            k === 'body' ? bodyPanelHTML(d3) : planetsPanelHTML();
+          wireToolProse(k);
+        });
+      });
+    }
+
     if (kind === 'body' || kind === 'planets') {
       var d = state.day ? cycle.days[state.day - 1] : null;
       $('tool-panel-title').textContent = kind === 'body' ? 'The body clock' : 'The planets';
@@ -1526,12 +1552,7 @@
       $('tool-panel').classList.add('is-prose');
       toolOpen = kind;
       $('tool-' + kind).setAttribute('aria-expanded', 'true');
-      var box = $(kind === 'body' ? 'body-tog' : 'planet-tog');
-      box.addEventListener('change', function () {
-        if (kind === 'body') state.showBody = box.checked;
-        else state.showPlanets = box.checked;
-        save(); syncDayTools(); drawDay();
-      });
+      wireToolProse(kind);
       return;
     }
     $('tool-panel-prose').hidden = true;
@@ -2034,9 +2055,9 @@
       $('tool-planets').hidden = !on;
       $('tool-body').hidden = !on;
       $('tool-planets').classList.toggle('is-on', state.showPlanets);
-      $('tool-body').classList.toggle('is-on', state.showBody);
+      $('tool-body').classList.toggle('is-on', state.showBio || state.showOrgans);
       $('tool-planets').setAttribute('aria-pressed', state.showPlanets);
-      $('tool-body').setAttribute('aria-pressed', state.showBody);
+      $('tool-body').setAttribute('aria-pressed', state.showBio || state.showOrgans);
     };
     global.__syncDayTools = syncDayTools;
     $('tool-planets').addEventListener('click', function () { openTool('planets'); });

@@ -406,6 +406,15 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   font-size: 13.5px; color: var(--sun-bright);
 }
 .tool-panel-prose b { font-weight: 500; color: var(--ink); }
+.tool-panel-prose .tp-intro { color: var(--ink-3); font-size: 11.5px; margin-bottom: 12px; }
+.tool-panel-prose .tp-sec {
+  padding: 10px 0 4px; border-top: 1px solid var(--line-soft);
+}
+.tool-panel-prose .tp-sec:first-of-type { border-top: 0; padding-top: 0; }
+.tool-panel-prose .tp-brief { font-size: 11.5px; color: var(--ink-3); }
+.tool-panel-prose .tp-foot {
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft);
+}
 .tool-panel-prose .tp-switch {
   display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 10px;
   border: 1px solid var(--line); border-radius: 9px; background: var(--bg-2); font-size: 12.5px;
