@@ -765,51 +765,93 @@
    * watches are a framework from the Huang Di Nei Jing. Both are hung on this
    * place's own solar midnight, which is the one thing they agree on and the
    * reason it is worth drawing here at all. */
-  function bodyMarkup(d) {
-    if (!global.BodyClock) return '';
-    if (!state.showBody) return '';
+  /* Everything the body layer needs to say, in its own drawer on the right.
+   *
+   * It used to sit in the day panel, where it was buried under the times and
+   * kept getting collapsed out of sight. The panel now carries only what is
+   * being measured; the reasoning lives here, next to the switch that turns
+   * the layer on.
+   */
+  function bodyPanelHTML(d) {
     var BC = global.BodyClock;
-    var noonT = d.solarNoon;
-    var nowLine = '';
-    if (noonT) {
+    var now = '';
+    if (d && d.solarNoon) {
       var when = momentFor(d);
-      var sm = new Date(noonT.getTime() - 12 * 3600000);
+      var sm = new Date(d.solarNoon.getTime() - 12 * 3600000);
       var ph = ((when.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24;
       var w = BC.watchAt(ph);
-      nowLine = '<div class="d-body-now" id="body-now">' +
-        '<div class="d-body-now-lab">' + (haveRealInstant(d) ? 'Right now' : 'At midday') +
+      now = '<div class="tp-now">' +
+        '<div class="tp-now-lab">' + (haveRealInstant(d) ? 'Right now' : 'At midday') +
         ' &#183; the ' + esc(w.branch) + ' watch</div>' +
-        '<div class="d-body-now-organ">' + esc(w.organ) + '</div>' +
-        '<div class="d-body-now-best">' + esc(w.best) + '</div>' +
-        (w.avoid ? '<div class="d-body-now-avoid">Rather not: ' + esc(w.avoid) + '</div>' : '') +
+        '<div class="tp-now-organ">' + esc(w.organ) + '</div>' +
+        '<div class="tp-now-best">' + esc(w.best) + '</div>' +
+        (w.avoid ? '<div class="tp-now-avoid">Rather not: ' + esc(w.avoid) + '</div>' : '') +
         '</div>';
     }
-    return '<div class="d-planets d-body">' +
-      '<div class="d-body-key">' +
-        '<span><i style="background:var(--moon)"></i>melatonin</span>' +
-        '<span><i style="background:var(--sun-bright)"></i>cortisol</span>' +
-        '<span><i style="background:var(--equinox)"></i>core temperature</span>' +
-      '</div>' + nowLine +
-      '<p class="d-pl-note"><b>Zi and wu</b> are the two poles the whole cycle ' +
-      'swings between: <i>zi</i>, the double hour around midnight, when yin is ' +
-      'fullest and yin governs sleep; <i>wu</i>, the double hour around noon, ' +
-      'when yang is fullest and yin begins to gather again. The name <i>zi wu ' +
-      'liu zhu</i> means "midnight-noon flowing and pouring". They are the gold ' +
-      'ticks on the ring.</p>' +
-      '<p class="d-pl-note"><b>Click any watch on the ring</b> for what it ' +
-      'governs, what suits it and what does not, and why.</p>' +
-      '<p class="d-pl-note"><b>Outer band, measured.</b> Melatonin crests about ' +
-      'two hours before the core temperature low and four to six hours before ' +
-      'the cortisol peak. The shapes are a model, not a reading of you, but ' +
-      'those phase relationships are the published ones.</p>' +
-      '<p class="d-pl-note">Both bands hang on <b>solar</b> midnight and noon ' +
-      'here, not the clock. The horary cycle is reckoned by solar time and the ' +
-      'body entrains to light, so a timezone is the wrong peg for either.</p>' +
-      '<p class="d-pl-note">None of it is a rule. It is a note on when things ' +
-      'tend to come easiest, and plenty of good living happens at the wrong ' +
-      'hour. Nothing lunar is drawn: that one is genuinely contested, having ' +
-      'failed to replicate more than once.</p>' +
-      '</div>';
+    return '<label class="tog tp-switch"><input type="checkbox" id="body-tog"' +
+      (state.showBody ? ' checked' : '') + '><span>Draw it on the dial</span></label>' +
+      now +
+      '<p>This layer is here to help you put your day alongside the day the ' +
+      'sun is actually having: when to eat, when to push, when to stop.</p>' +
+
+      '<h4>Zi and wu</h4>' +
+      '<p><i>Zi</i> is the double hour around midnight, when yin is fullest, and ' +
+      'yin governs sleep. <i>Wu</i> is the double hour around noon, when yang is ' +
+      'fullest and yin begins to gather again. The cycle is named for them: ' +
+      '<i>zi wu liu zhu</i>, "midnight-noon flowing and pouring". They are the ' +
+      'gold ticks on the ring. <b>Click any watch</b> for what it governs.</p>' +
+
+      '<h4>Why the sun, and not the clock</h4>' +
+      '<p>Both bands hang on this place\'s own solar midnight and noon. The ' +
+      'horary cycle is traditionally reckoned by solar time, and the body ' +
+      'entrains to light rather than to a timezone, which is a band up to ' +
+      'fifteen degrees wide with daylight saving laid on top.</p>' +
+
+      '<h4>What the research says about eating</h4>' +
+      '<p>This is the part where the tradition and the laboratory agree most ' +
+      'plainly. Insulin sensitivity, beta-cell responsiveness and the thermic ' +
+      'effect of food are all <b>higher in the morning</b> than later, which is ' +
+      'to say the same meal costs the body less earlier in the day. Sutton\'s ' +
+      '2018 trial found that simply moving eating earlier improved insulin ' +
+      'sensitivity and blood pressure <b>without any weight loss at all</b>. ' +
+      'Eating late is associated with the reverse: delayed glucose rhythms, ' +
+      'blunted cortisol, poorer control.</p>' +
+      '<p>Which lands almost exactly on the stomach watch, the two solar hours ' +
+      'after dawn that the tradition names as the time to eat well, and on its ' +
+      'advice to keep dinner light in the kidney watch.</p>' +
+      '<ul class="tp-refs">' +
+      '<li><a href="https://www.cell.com/cell-metabolism/fulltext/S1550-4131(18)30253-5" ' +
+        'target="_blank" rel="noopener">Sutton et al. 2018, early time-restricted feeding</a></li>' +
+      '<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12252119/" ' +
+        'target="_blank" rel="noopener">Chrononutrition and energy balance, 2025 review</a></li>' +
+      '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8308587/" ' +
+        'target="_blank" rel="noopener">Early dinner and 24-hour glucose</a></li>' +
+      '<li><a href="https://www.ncbi.nlm.nih.gov/books/NBK519507/" ' +
+        'target="_blank" rel="noopener">Physiology of circadian rhythm</a></li>' +
+      '<li><a href="https://chinesemedicineatlas.com/tcm-body-clock/" ' +
+        'target="_blank" rel="noopener">The horary cycle, and its solar reckoning</a></li>' +
+      '</ul>' +
+
+      '<h4>Taking it lightly</h4>' +
+      '<p>None of this is a rule. It is a note on when things tend to come ' +
+      'easiest, and plenty of good living happens at the wrong hour. The outer ' +
+      'curves are a model of the published phase relationships, not a reading ' +
+      'of you. Nothing lunar is drawn: that one is genuinely contested, having ' +
+      'failed to replicate more than once, once in the opposite direction.</p>';
+  }
+
+  function planetsPanelHTML() {
+    return '<label class="tog tp-switch"><input type="checkbox" id="planet-tog"' +
+      (state.showPlanets ? ' checked' : '') + '><span>Draw it on the dial</span></label>' +
+      '<p>Each planet gets two marks on the dial: when it clears the horizon ' +
+      'and when it goes back under, lined up with the hour, the same way ' +
+      'moonrise and moonset are drawn. The arrow says which way it is crossing ' +
+      'and the label carries the time.</p>' +
+      '<p>This is the one planetary question that is about your patch of ' +
+      'ground. Where a planet sits in the zodiac reads the same from anywhere ' +
+      'on earth; when it rises, and which way you face to catch it, are yours ' +
+      'alone and change with every degree of latitude. For the positions, open ' +
+      'the <b>System</b> view.</p>';
   }
 
   /* One watch, opened from the ring. */
@@ -876,7 +918,6 @@
       '</div>' +
       timesMarkup(d, out.darkMidpoint, out) +
       planetsMarkup(d, out) +
-      bodyMarkup(d) +
       clockShiftMarkup(d) +
       noteMarkup(d.iso);
 
@@ -1385,8 +1426,37 @@
     });
   }
 
+  var syncDayTools = function () {};
+
   function openTool(kind) {
     if (toolOpen === kind) { closeTool(); return; }
+
+    /* Two of these drawers are lists and two are prose. The prose ones carry
+     * the reasoning for a day-view layer along with its switch, which is
+     * where it belongs: in the day panel it was buried under the times and
+     * collapsed out of sight with them. */
+    if (kind === 'body' || kind === 'planets') {
+      var d = state.day ? cycle.days[state.day - 1] : null;
+      $('tool-panel-title').textContent = kind === 'body' ? 'The body clock' : 'The planets';
+      $('tool-panel-filter').hidden = true;
+      $('tool-panel-list').innerHTML = '';
+      $('tool-panel-prose').innerHTML = kind === 'body' ? bodyPanelHTML(d) : planetsPanelHTML();
+      $('tool-panel-prose').hidden = false;
+      $('tool-panel').hidden = false;
+      $('tool-panel').classList.add('is-prose');
+      toolOpen = kind;
+      $('tool-' + kind).setAttribute('aria-expanded', 'true');
+      var box = $(kind === 'body' ? 'body-tog' : 'planet-tog');
+      box.addEventListener('change', function () {
+        if (kind === 'body') state.showBody = box.checked;
+        else state.showPlanets = box.checked;
+        save(); syncDayTools(); drawDay();
+      });
+      return;
+    }
+    $('tool-panel-prose').hidden = true;
+    $('tool-panel').classList.remove('is-prose');
+
     var items = kind === 'moon' ? moonListItems() : stationListItems();
     var todayN = todayNumber();
     $('tool-panel-title').textContent = kind === 'moon'
@@ -1440,6 +1510,9 @@
     $('tool-stations').classList.remove('is-open');
     $('tool-moon').setAttribute('aria-expanded', 'false');
     $('tool-stations').setAttribute('aria-expanded', 'false');
+    $('tool-planets').setAttribute('aria-expanded', 'false');
+    $('tool-body').setAttribute('aria-expanded', 'false');
+    $('tool-panel').classList.remove('is-prose');
   }
 
   /* The day's two turning points: the sun's upper and lower meridian
@@ -1876,7 +1949,7 @@
 
     /* The two day-view layers now switch from the floating tools, out of the
      * way of the panel that kept swallowing them. */
-    function syncDayTools() {
+    syncDayTools = function () {
       var on = state.level === 'day';
       $('tool-planets').hidden = !on;
       $('tool-body').hidden = !on;
@@ -1884,18 +1957,10 @@
       $('tool-body').classList.toggle('is-on', state.showBody);
       $('tool-planets').setAttribute('aria-pressed', state.showPlanets);
       $('tool-body').setAttribute('aria-pressed', state.showBody);
-    }
+    };
     global.__syncDayTools = syncDayTools;
-    $('tool-planets').addEventListener('click', function (e) {
-      e.stopPropagation();
-      state.showPlanets = !state.showPlanets;
-      save(); syncDayTools(); drawDay();
-    });
-    $('tool-body').addEventListener('click', function (e) {
-      e.stopPropagation();
-      state.showBody = !state.showBody;
-      save(); syncDayTools(); drawDay();
-    });
+    $('tool-planets').addEventListener('click', function () { openTool('planets'); });
+    $('tool-body').addEventListener('click', function () { openTool('body'); });
     syncDayTools();
 
     $('watch-close').addEventListener('click', function () { $('watch').hidden = true; });
