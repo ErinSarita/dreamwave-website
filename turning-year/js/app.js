@@ -796,9 +796,9 @@
     var bio = '<label class="tog tp-switch"><input type="checkbox" id="bio-tog"' +
       (state.showBio ? ' checked' : '') +
       '><span>Hormones &amp; body temperature</span></label>' +
-      '<p class="tp-brief">Melatonin, cortisol and core temperature across the ' +
-      'day, drawn as three curves outside the dial. Measured chronobiology, ' +
-      'phased from your own solar midnight.</p>';
+      '<p class="tp-brief">Melatonin, cortisol and your core temperature, drawn ' +
+      'as three curves around the outside of the dial. The measured kind, hung ' +
+      'on your own solar midnight rather than the clock.</p>';
 
     if (state.showBio) {
       var levels = '';
@@ -825,51 +825,60 @@
         bio += '<div class="tp-now"><div class="tp-now-lab">' + live + '</div>' +
           '<div class="tp-levels">' + levels + '</div>' +
           '<p class="tp-lv-note">Modelled from the published phase ' +
-          'relationships, not measured from you. The shape and the timing are ' +
-          'the meaningful part; read the percentage as where you sit between ' +
-          'that curve\'s own low and high.</p></div>';
+          'relationships rather than measured from you. The shape and the ' +
+          'timing carry the meaning; read the percentage as roughly where you ' +
+          'sit between that curve\'s own low and high.</p></div>';
       }
       bio +=
         '<h4>What these three are</h4>' +
-        '<p><b>Melatonin</b> is made in the pineal gland and released when the ' +
-        'brain\'s clock says it is dark. Not a sedative: it is the body\'s ' +
-        'announcement that night has come, sent to every tissue at once. Light ' +
-        'on the eye suppresses it within minutes.</p>' +
+        '<p><b>Melatonin</b> is made in the pineal gland and let go once the clock ' +
+        'in your head decides it is dark. It works as an announcement rather ' +
+        'than a sedative: word goes out to every tissue at once that night has ' +
+        'arrived. Light on the eye hushes it within minutes.</p>' +
         '<p><b>Cortisol</b> comes from the adrenal glands. It frees glucose into ' +
         'the blood, lifts blood pressure and sharpens attention. Its morning ' +
-        'surge is not alarm but an anticipatory rise beginning in the last hours ' +
-        'of sleep, so the body is ready before you are.</p>' +
-        '<p><b>Core temperature</b> is the body\'s thermostat, swinging about ' +
-        'half a degree a day. The fall into night helps sleep begin; the climb ' +
-        'through the afternoon tracks alertness, reaction speed and strength.</p>' +
+        'rise is more kindness than alarm: it begins in the last hours of sleep ' +
+        'so that your body is ready before you are.</p>' +
+        '<p><b>Core temperature</b> is your own thermostat, swinging about half a ' +
+        'degree across the day. The drift downward into the night helps sleep ' +
+        'arrive; the climb through the afternoon carries alertness, reaction ' +
+        'speed and strength along with it.</p>' +
 
         '<h4>How anyone knows this</h4>' +
-        '<p>From the <b>constant routine</b>: volunteers kept awake in dim light, ' +
-        'half-reclined, fed identical small snacks hourly at a fixed temperature, ' +
-        'for a day or more. Stripping out sleep, posture, meals and light leaves ' +
-        'only the rhythm the body makes on its own. Melatonin under dim light is ' +
-        'the single most accurate marker of where a clock stands.</p>' +
+        '<p>From something called a <b>constant routine</b>. Volunteers stay awake ' +
+        'in dim light, half reclined, eating identical small snacks every hour ' +
+        'in a room held at one temperature, for a day or longer. With sleep, ' +
+        'posture, meals and light all held still, what is left is the rhythm the ' +
+        'body keeps on its own. Melatonin read under dim light turns out to be ' +
+        'the clearest single marker of where a person\'s clock stands.</p>' +
 
         '<h4>Why it is only an estimate</h4>' +
-        '<p>Light does set the clock: cells at the back of the eye carrying ' +
-        '<i>melanopsin</i> report daylight straight to the hypothalamus, and ' +
-        'morning light pulls the clock earlier while evening light pushes it ' +
-        'later.</p>' +
-        '<p>But the markers are pegged to <b>your own sleep</b>, not to sunrise ' +
-        'directly. Melatonin climbs about two hours before habitual bedtime, ' +
-        'temperature bottoms out an hour or two before habitual waking, cortisol ' +
-        'peaks half an hour after you rise. The chain runs light, clock, sleep, ' +
-        'then these. So this assumes you live roughly by the sun. Under lamps ' +
-        'until one in the morning, the whole set shifts hours later. What holds ' +
-        'steady is the <b>gaps between them</b>, which is what the model is ' +
-        'built from.</p>' +
+        '<p>Light does set the clock, so that instinct is a good one. Cells at the ' +
+        'back of the eye carrying <i>melanopsin</i> report daylight straight to ' +
+        'the hypothalamus, and morning light pulls the clock earlier while ' +
+        'evening light nudges it later.</p>' +
+        '<p>The catch is that these markers are pegged to <b>your own sleep</b> ' +
+        'rather than to sunrise itself. Melatonin starts climbing about two ' +
+        'hours before you usually go to bed, temperature bottoms out an hour or ' +
+        'two before you usually wake, and cortisol peaks about half an hour ' +
+        'after you get up. The chain runs light, then clock, then sleep, then ' +
+        'these.</p>' +
+        '<p>So this drawing assumes you live roughly by the sun. If you do, it ' +
+        'sits close. If you are up under lamps until one in the morning, the ' +
+        'whole set slides hours later than what you see here, and chronotype ' +
+        'moves people again on top of that. What stays steady is the <b>spacing ' +
+        'between them</b>, and that is what the model is built from.</p>' +
 
         '<h4>What the research says about eating</h4>' +
-        '<p>Insulin sensitivity, beta-cell responsiveness and the thermic effect ' +
-        'of food are all <b>higher in the morning</b>: the same meal costs the ' +
-        'body less earlier in the day. Sutton\'s 2018 trial found that moving ' +
-        'eating earlier improved insulin sensitivity and blood pressure ' +
-        '<b>without any weight loss at all</b>. Late eating shows the reverse.</p>' +
+        '<p>This is where the tradition and the laboratory shake hands. Insulin ' +
+        'sensitivity, beta-cell responsiveness and the thermic effect of food ' +
+        'all run <b>higher in the morning</b>, which is to say the same meal ' +
+        'costs your body less earlier in the day. Sutton\'s 2018 trial found ' +
+        'that simply moving eating earlier improved insulin sensitivity and ' +
+        'blood pressure <b>even when nobody lost a gram</b>. Eating late tends ' +
+        'the other way.</p>' +
+        '<p>Which lands almost exactly on the stomach watch, the two solar hours ' +
+        'after dawn that the old cycle names as the time to eat well.</p>' +
         '<ul class="tp-refs">' +
         '<li><a href="https://www.cell.com/cell-metabolism/fulltext/S1550-4131(18)30253-5" target="_blank" rel="noopener">Sutton et al. 2018, early time-restricted feeding</a></li>' +
         '<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12252119/" target="_blank" rel="noopener">Chrononutrition and energy balance, 2025 review</a></li>' +
@@ -877,9 +886,9 @@
         '<li><a href="https://www.sciencedirect.com/science/article/pii/S2451994422000062" target="_blank" rel="noopener">Constant routine protocols</a></li>' +
         '<li><a href="https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0017860" target="_blank" rel="noopener">The light-sensing cells that set the clock</a></li>' +
         '</ul>' +
-        '<p class="tp-brief">Nothing lunar is drawn here. That one is genuinely ' +
-        'contested, having failed to replicate more than once, and once in the ' +
-        'opposite direction.</p>';
+        '<p class="tp-brief">The moon stays out of this one. The evidence there is ' +
+        'genuinely unsettled, having failed to replicate more than once, and ' +
+        'once in the opposite direction.</p>';
     }
 
     /* --- the traditional band ----------------------------------------- */
@@ -887,9 +896,9 @@
       (state.showOrgans ? ' checked' : '') +
       '><span>The twelve organ watches</span></label>' +
       '<p class="tp-brief">The <i>zi wu liu zhu</i> of Chinese medicine: twelve ' +
-      'two-hour watches, each with an organ and a character, from the Huang Di ' +
-      'Nei Jing. A traditional framework rather than a measurement, and reckoned ' +
-      'by the sun as it always was.</p>';
+      'two-hour watches, each with an organ and a character to it, out of the ' +
+      'Huang Di Nei Jing. A traditional frame rather than a measurement, and ' +
+      'always reckoned by the sun.</p>';
 
     if (state.showOrgans) {
       if (w) {
@@ -902,46 +911,46 @@
       }
       organs +=
         '<h4>Zi and wu</h4>' +
-        '<p><i>Zi</i> is the double hour around midnight, when yin is fullest, ' +
-        'and yin governs sleep. <i>Wu</i> is the double hour around noon, when ' +
-        'yang is fullest and yin begins to gather again. The cycle is named for ' +
-        'them: <i>zi wu liu zhu</i>, "midnight-noon flowing and pouring". They ' +
-        'are the gold ticks on the ring.</p>' +
-        '<p><b>Click any watch</b> on the ring for what it governs, what suits ' +
-        'it, what does not, and why.</p>' +
-        '<p class="tp-brief">None of it is a rule. It is a note on when things ' +
-        'tend to come easiest, and plenty of good living happens at the wrong ' +
-        'hour.</p>' +
+        '<p><i>Zi</i> is the double hour around midnight, when yin is at its ' +
+        'fullest, and yin is what governs sleep. <i>Wu</i> is the double hour ' +
+        'around noon, when yang is fullest and yin begins gathering again. The ' +
+        'whole cycle is named after the pair of them: <i>zi wu liu zhu</i>, ' +
+        'midnight-noon flowing and pouring. They are the gold ticks on the ring.</p>' +
+        '<p><b>Click any watch</b> on the ring to see what it governs, what suits ' +
+        'it, what sits badly, and why.</p>' +
+        '<p class="tp-brief">Take all of it lightly. It marks when things tend to ' +
+        'come easiest, and a great deal of good living happens at the wrong ' +
+        'hour anyway.</p>' +
         '<ul class="tp-refs">' +
         '<li><a href="https://chinesemedicineatlas.com/tcm-body-clock/" target="_blank" rel="noopener">The horary cycle, and its solar reckoning</a></li>' +
         '</ul>';
     }
 
-    return '<p class="tp-intro">Two ways of reading the same day, kept apart ' +
-      'because they are different kinds of claim. Turn on whichever you want to ' +
-      'look at.</p>' +
+    return '<p class="tp-intro">Two ways of reading the same day. They come ' +
+      'from different places, so they sit apart here. Turn on whichever one you ' +
+      'feel like looking at.</p>' +
       '<div class="tp-sec">' + bio + '</div>' +
       '<div class="tp-sec">' + organs + '</div>' +
       ((state.showBio || state.showOrgans)
-        ? '<p class="tp-brief tp-foot">Both hang on this place\'s <b>solar</b> ' +
-          'midnight and noon, not the clock. The horary cycle is reckoned by ' +
-          'solar time and the body entrains to light, so a timezone is the ' +
-          'wrong peg for either.</p>'
+        ? '<p class="tp-brief tp-foot">Both hang on this place\'s own <b>solar</b> ' +
+          'midnight and noon rather than the clock. The horary cycle has always ' +
+          'been read by solar time, and your body takes its cue from light, so ' +
+          'a timezone makes a poor peg for either.</p>'
         : '');
   }
 
   function planetsPanelHTML() {
     return '<label class="tog tp-switch"><input type="checkbox" id="planet-tog"' +
       (state.showPlanets ? ' checked' : '') + '><span>Draw it on the dial</span></label>' +
-      '<p>Each planet gets two marks on the dial: when it clears the horizon ' +
-      'and when it goes back under, lined up with the hour, the same way ' +
-      'moonrise and moonset are drawn. The arrow says which way it is crossing ' +
-      'and the label carries the time.</p>' +
-      '<p>This is the one planetary question that is about your patch of ' +
+      '<p>Each planet leaves two marks on the dial: one where it clears the ' +
+      'horizon and one where it slips back under, lined up with the hour, the ' +
+      'same way moonrise and moonset are drawn. The arrow shows which way it is ' +
+      'crossing and the label carries the time.</p>' +
+      '<p>This is the one planetary question that belongs to your own patch of ' +
       'ground. Where a planet sits in the zodiac reads the same from anywhere ' +
-      'on earth; when it rises, and which way you face to catch it, are yours ' +
-      'alone and change with every degree of latitude. For the positions, open ' +
-      'the <b>System</b> view.</p>';
+      'on earth, while the hour it rises and the direction you turn to catch ' +
+      'it are yours alone, shifting with every degree of latitude. For the ' +
+      'positions, open the <b>System</b> view.</p>';
   }
 
   /* One watch, opened from the ring. */
