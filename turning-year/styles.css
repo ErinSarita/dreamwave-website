@@ -277,7 +277,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .scene[hidden] { display: none; }
 .scene.fading { opacity: 0; transform: scale(.94); }
 
-#wheel-svg, #day-svg {
+#wheel-svg, #day-svg, #orrery-svg {
   width: min(100%, calc(68dvh - 80px)); height: min(100%, calc(68dvh - 80px));
   display: block; overflow: visible; touch-action: none;
 }
@@ -570,10 +570,6 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .compare-card { width: min(94vw, 700px); }
 /* Longer lines than the reference sections, and no subheadings to break them,
  * so the measure is held in and the leading opened out. */
-/* The system view shares the wheel scene's shape: one square face that fills
- * the stage, with the readout floating at its foot. */
-.scene-orbits { position: relative; }
-#orrery-svg { width: 100%; height: 100%; display: block; overflow: visible; }
 
 /* The system readout. Wider than the year readout because each line carries
  * a sign, a constellation and a distance, and folding those would cost more
