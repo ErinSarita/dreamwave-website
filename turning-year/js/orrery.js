@@ -74,14 +74,20 @@
       var d = '';
       for (var deg = 0; deg <= 360; deg += 2) {
         var v0 = P.helioAtMean(b.n, T, deg);
-        var q = place(norm360(Math.atan2(v0[1], v0[0]) * 180 / Math.PI),
+        var q = place(norm360(Math.atan2(v0[1], v0[0]) * 180 / Math.PI + pre),
                       Math.sqrt(v0[0] * v0[0] + v0[1] * v0[1]));
         d += (deg ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1]);
       }
       parts.push('<path d="' + d + 'Z" fill="none" stroke="' + b.c +
         '" stroke-width="1" opacity=".38"/>');
       var v = P.helio(b.n, T);
-      var lon = norm360(Math.atan2(v[1], v[0]) * 180 / Math.PI);
+      /* The orbital elements give J2000 longitudes; the sign ring outside is
+       * cut from the equinox of the date. Without carrying the bodies forward
+       * by the precession between them, every sight-line lands a third of a
+       * degree short of the sign the panel says the planet is in, which is
+       * invisible until a planet sits near a boundary and then is simply
+       * wrong. */
+      var lon = norm360(Math.atan2(v[1], v[0]) * 180 / Math.PI + pre);
       var dist = Math.sqrt(v[0] * v[0] + v[1] * v[1]);
       pos[b.n] = { lon: lon, dist: dist, xy: place(lon, dist) };
     });
