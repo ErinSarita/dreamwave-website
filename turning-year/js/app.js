@@ -834,6 +834,49 @@
       '<i>zi wu liu zhu</i>, "midnight-noon flowing and pouring". They are the ' +
       'gold ticks on the ring. <b>Click any watch</b> for what it governs.</p>' +
 
+      '<h4>What these three actually are</h4>' +
+      '<p><b>Melatonin</b> is made in the pineal gland and released when the ' +
+      'brain\'s clock says it is dark. It is not a sedative. It is the body\'s ' +
+      'announcement that night has come, sent to every tissue at once, which is ' +
+      'why it is called the hormone of darkness. Light falling on the eye ' +
+      'suppresses it directly, within minutes.</p>' +
+      '<p><b>Cortisol</b> comes from the adrenal glands. It frees glucose into ' +
+      'the blood, lifts blood pressure and sharpens attention. Its morning ' +
+      'surge is not alarm: it is an anticipatory rise that begins in the last ' +
+      'hours of sleep, so that the body is ready before you are.</p>' +
+      '<p><b>Core temperature</b> is not a hormone but the body\'s own ' +
+      'thermostat, swinging about half a degree across the day. The fall into ' +
+      'the night helps sleep begin; the climb through the afternoon tracks ' +
+      'alertness, reaction speed and physical strength. Its low point is the ' +
+      'deepest part of the night.</p>' +
+
+      '<h4>How anyone knows this</h4>' +
+      '<p>From the <b>constant routine</b>: volunteers kept awake in dim light, ' +
+      'half-reclined, fed identical small snacks hourly, at a fixed room ' +
+      'temperature, for a day or more. Stripping out sleep, posture, meals and ' +
+      'light leaves only the rhythm the body generates on its own. Melatonin is ' +
+      'sampled from saliva or blood, temperature from a probe, and the curve is ' +
+      'fitted to find its true peak and trough. The onset of melatonin under ' +
+      'dim light is the single most accurate marker of where anyone\'s clock ' +
+      'stands.</p>' +
+
+      '<h4>Why it is only an estimate</h4>' +
+      '<p>Light does set the clock, so that instinct is right: cells in the ' +
+      'back of the eye carrying <i>melanopsin</i> report daylight straight to ' +
+      'the clock in the hypothalamus, and morning light pulls it earlier while ' +
+      'evening light pushes it later.</p>' +
+      '<p>But the markers are not pegged to sunrise and sunset directly. In the ' +
+      'research they are pegged to <b>your own sleep</b>: melatonin climbs about ' +
+      'two hours before habitual bedtime, temperature bottoms out an hour or two ' +
+      'before habitual waking, cortisol peaks half an hour after you get up. The ' +
+      'chain runs light, then clock, then sleep, then these.</p>' +
+      '<p>So the drawing assumes you live roughly by the sun. If you do, it is ' +
+      'close. If you are under lamps until one in the morning, your whole set of ' +
+      'curves is shifted hours later than what is drawn, and chronotype moves ' +
+      'people again on top of that. What holds steady is not the hours but the ' +
+      '<b>gaps between them</b>, which is why the model is built from those ' +
+      'intervals rather than from clock times.</p>' +
+
       '<h4>Why the sun, and not the clock</h4>' +
       '<p>Both bands hang on this place\'s own solar midnight and noon. The ' +
       'horary cycle is traditionally reckoned by solar time, and the body ' +
@@ -861,6 +904,10 @@
         'target="_blank" rel="noopener">Early dinner and 24-hour glucose</a></li>' +
       '<li><a href="https://www.ncbi.nlm.nih.gov/books/NBK519507/" ' +
         'target="_blank" rel="noopener">Physiology of circadian rhythm</a></li>' +
+      '<li><a href="https://www.sciencedirect.com/science/article/pii/S2451994422000062" ' +
+        'target="_blank" rel="noopener">Constant routine protocols, practical guidelines</a></li>' +
+      '<li><a href="https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0017860" ' +
+        'target="_blank" rel="noopener">Light-sensing cells that set the clock</a></li>' +
       '<li><a href="https://chinesemedicineatlas.com/tcm-body-clock/" ' +
         'target="_blank" rel="noopener">The horary cycle, and its solar reckoning</a></li>' +
       '</ul>' +
