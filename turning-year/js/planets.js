@@ -57,14 +57,17 @@
   var GLYPH = { Mercury:'☿', Venus:'♀', Mars:'♂',
                 Jupiter:'♃', Saturn:'♄', Sun:'☉', Moon:'☽' };
 
-  /* Heliocentric rectangular coordinates in the J2000 ecliptic frame. */
-  function helio(name, T) {
+  /* Heliocentric rectangular coordinates in the J2000 ecliptic frame, for an
+   * arbitrary point in the orbit rather than for a date. Tracing a whole orbit
+   * means walking the mean anomaly all the way round, which is the same
+   * machinery with the one line that turns a date into a mean anomaly taken
+   * out of it. */
+  function helioAtMean(name, T, M) {
     var E = ELEMENTS[name];
     var a = E.a[0] + E.a[1] * T, e = E.e[0] + E.e[1] * T;
-    var I = E.I[0] + E.I[1] * T, L = E.L[0] + E.L[1] * T;
+    var I = E.I[0] + E.I[1] * T;
     var w = E.w[0] + E.w[1] * T, N = E.N[0] + E.N[1] * T;
     var argPeri = w - N;
-    var M = L - w;
     M = ((M % 360) + 540) % 360 - 180;                 // into -180..180
     var eStar = R2D * e, Ecc = M + eStar * sin(M);
     for (var i = 0; i < 12; i++) {
@@ -82,6 +85,12 @@
       (cw * sN + sw * cN * cI) * xp + (-sw * sN + cw * cN * cI) * yp,
       (sw * sI) * xp + (cw * sI) * yp
     ];
+  }
+
+  /* Where the planet actually is on this date. */
+  function helio(name, T) {
+    var E = ELEMENTS[name];
+    return helioAtMean(name, T, (E.L[0] + E.L[1] * T) - (E.w[0] + E.w[1] * T));
   }
 
   /* General precession in ecliptic longitude from J2000 to the date. */
@@ -205,7 +214,7 @@
     ORDER: ORDER, GLYPH: GLYPH, position: position, all: all,
     signOf: signOf, constellationOf: constellationOf, angles: angles,
     lookAt: lookAt, toEquatorial: toEquatorial,
-    helio: helio,
+    helio: helio, helioAtMean: helioAtMean,
     precession: precession
   };
 })(typeof window !== 'undefined' ? window : globalThis);

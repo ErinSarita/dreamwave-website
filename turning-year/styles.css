@@ -570,6 +570,11 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .compare-card { width: min(94vw, 700px); }
 /* Longer lines than the reference sections, and no subheadings to break them,
  * so the measure is held in and the leading opened out. */
+/* The system view shares the wheel scene's shape: one square face that fills
+ * the stage, with the readout floating at its foot. */
+.scene-orbits { position: relative; }
+#orrery-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
 .zodiac-card { width: min(96vw, 760px); }
 #zodiac-svg, #sky-svg { width: 100%; height: auto; display: block; margin: 14px 0 4px; }
 .zodiac-card h3 { margin-top: 26px; }

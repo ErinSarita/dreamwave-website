@@ -125,6 +125,8 @@
   <main class="stage" id="stage">
 
     <nav class="crumbs" id="crumbs" aria-label="Zoom level">
+      <button data-level="orbits" class="crumb" id="crumb-orbits">System</button>
+      <span class="crumb-sep">›</span>
       <button data-level="year" class="crumb is-on">Year</button>
       <span class="crumb-sep">›</span>
       <button data-level="season" class="crumb" id="crumb-season" disabled>Season</button>
@@ -133,6 +135,14 @@
       <span class="crumb-sep">›</span>
       <button data-level="day" class="crumb" id="crumb-day" disabled>Day</button>
     </nav>
+
+    <div class="scene scene-orbits" id="scene-orbits" hidden>
+      <svg id="orrery-svg" viewBox="-40 -40 1080 1080" role="img"
+           aria-label="The solar system from above, with sight-lines from the earth to the zodiac">
+        <g id="orrery"></g>
+      </svg>
+      <div class="readout" id="orrery-readout"></div>
+    </div>
 
     <div class="scene scene-wheel" id="scene-wheel">
       <svg id="wheel-svg" viewBox="-125 -125 1250 1250" role="img"
@@ -703,6 +713,8 @@
 <script src="js/render-wheel.js"></script>
 <script src="js/planets.js"></script>
 <script src="js/zodiac.js"></script>
+<script src="js/orrery.js"></script>
+<script src="js/orrery.js"></script>
 <script src="js/render-day.js"></script>
 <script src="js/render-moon.js"></script>
 <script src="js/spiral.js"></script>

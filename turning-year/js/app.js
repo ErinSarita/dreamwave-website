@@ -42,7 +42,7 @@
   };
   var cycle = null;
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
-  var wheelZoom = null, dayZoom = null, moonZoom = null;  // ZoomPan controllers, attached in init
+  var wheelZoom = null, dayZoom = null, moonZoom = null, orbitsZoom = null;
 
   /* ------------------------------------------------------------ persistence */
   function save() {
@@ -304,6 +304,7 @@
   }
 
   function setLevel(level, opts) {
+    if (orbitsZoom) orbitsZoom.reset();
     if (wheelZoom) wheelZoom.reset();
     if (dayZoom) dayZoom.reset();
     if (moonZoom) moonZoom.reset();
@@ -323,12 +324,14 @@
     }
     $('zoom-controls').hidden = false;
     var wheelScene = $('scene-wheel'), dayScene = $('scene-day'), moonScene = $('scene-moon');
+    var orbitsScene = $('scene-orbits');
 
     /* Three scenes share the stage. Whichever the new level wants comes
      * forward and the other two step back, on the same fade the wheel and the
      * day already used between them. */
     function showScene(want) {
-      var all = [['wheel', wheelScene], ['day', dayScene], ['moon', moonScene]];
+      var all = [['orbits', orbitsScene], ['wheel', wheelScene],
+                 ['day', dayScene], ['moon', moonScene]];
       var current = null;
       all.forEach(function (pair) { if (!pair[1].hidden) current = pair; });
       var target = all.filter(function (pair) { return pair[0] === want; })[0];
@@ -345,6 +348,12 @@
       }, 260);
     }
 
+    if (level === 'orbits') {
+      drawOrbits();
+      showScene('orbits');
+      syncCrumbs(); syncLegend(); writeHash();
+      return;
+    }
     if (level === 'moon') {
       drawMoon();
       showScene('moon');
@@ -629,6 +638,32 @@
       'The whole arc swings round once a day as the earth turns, so a ' +
       'constellation low in the east now will be overhead in six hours.';
     $('zodiac').hidden = false;
+  }
+
+  /* The widest view there is: the system from above, and the lines of sight
+   * that turn it into what we see from inside it. */
+  function drawOrbits() {
+    if (!global.Orrery || !cycle) return;
+    var d = state.day ? cycle.days[state.day - 1] : null;
+    var isToday = !d || d.n === todayNumber();
+    var when = isToday ? new Date() : (d.solarNoon || d.date);
+    var out = Orrery.render({ when: when });
+    $('orrery').innerHTML = out.svg;
+
+    var rows = '';
+    ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].forEach(function (nm) {
+      var pp = Planets.position(nm, A.jdeFromJD(A.jdFromDate(when)));
+      var sg = Planets.signOf(pp.longitude);
+      rows += '<div><span>' + nm + '</span> · ' + sg.name + ' ' +
+        sg.degree.toFixed(0) + '&#176; · ' + pp.distanceAU.toFixed(2) + ' AU away</div>';
+    });
+    $('orrery-readout').innerHTML =
+      '<div class="r-lab">The system</div>' +
+      '<div class="r-date">' + TZ.formatDate(cycle.tz, when) + '</div>' +
+      '<div class="r-rows">' + rows + '</div>' +
+      '<div class="r-hint">Dashed lines run from the earth out to the sign each ' +
+      'planet appears in. True scale, so they are honest: zoom in for the ' +
+      'inner four.</div>';
   }
 
   function drawDay() {
@@ -1815,6 +1850,7 @@
     wheelZoom = ZoomPan.attach($('wheel-svg'), $('scene-wheel'));
     dayZoom = ZoomPan.attach($('day-svg'), $('scene-day'));
     moonZoom = ZoomPan.attach($('moon-svg'), $('scene-moon'));
+    orbitsZoom = ZoomPan.attach($('orrery-svg'), $('scene-orbits'));
     function active() {
       return state.level === 'day' ? dayZoom
            : state.level === 'moon' ? moonZoom : wheelZoom;
