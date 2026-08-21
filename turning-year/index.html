@@ -193,6 +193,10 @@
               aria-label="Full and new moons" title="Full and new moons">&#9789;</button>
       <button id="tool-stations" class="tool-btn" aria-haspopup="true" aria-expanded="false"
               aria-label="Solstices, equinoxes and midseasons" title="Solstices, equinoxes and midseasons">&#10037;</button>
+      <button id="tool-planets" class="tool-btn day-only" aria-pressed="false"
+              aria-label="Planet rise and set" title="Planet rise and set">&#9796;</button>
+      <button id="tool-body" class="tool-btn day-only" aria-pressed="false"
+              aria-label="Body clock" title="Body clock">&#9776;</button>
     </div>
     <div class="tool-panel" id="tool-panel" hidden>
       <div class="tool-panel-head">
@@ -212,6 +216,18 @@
       <button id="zoom-reset" aria-label="Reset zoom" title="Reset zoom">⤾</button>
     </div>
   </main>
+</div>
+
+<div class="modal" id="watch" hidden>
+  <div class="modal-card watch-card" role="dialog" aria-modal="true" aria-labelledby="watch-h">
+    <button class="close" id="watch-close" aria-label="Close">&times;</button>
+    <h2 id="watch-h"></h2>
+    <p class="watch-when" id="watch-when"></p>
+    <div id="watch-body"></div>
+    <p class="meta">Traditional guidance, not instruction. It is a note on when
+    a thing tends to come easiest, gathered from the practice; the hours are
+    reckoned from this place's own sun rather than the clock.</p>
+  </div>
 </div>
 
 <div class="modal" id="zodiac" hidden>

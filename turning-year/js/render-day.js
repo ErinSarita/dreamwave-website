@@ -475,10 +475,12 @@
             if (a1 === null || a2 === null) return;
             var lo = Math.max(0, Math.min(a1, a2)), hi = Math.min(360, Math.max(a1, a2));
             if (hi - lo < 0.25) return;
-            parts.push('<path d="' + sector(R.organIn, R.organOut, lo, hi) +
+            parts.push('<path class="organ-hit" data-watch="' + i + '" d="' +
+              sector(R.organIn, R.organOut, lo, hi) +
               '" fill="var(--bg-2)" fill-opacity="' + (i % 2 ? '.85' : '.5') +
-              '" stroke="var(--line-soft)" stroke-width=".7"><title>' + esc(w[0]) +
-              ' · ' + esc(w[1]) + '</title></path>');
+              '" stroke="var(--line-soft)" stroke-width=".7" style="cursor:pointer">' +
+              '<title>' + esc(w.organ) + ' (' + esc(w.branch) + ') · ' +
+              esc(w.best) + ' · click for more</title></path>');
             /* A sliver clipped by the day's edge has no room for a word. */
             if (hi - lo < 12) return;
             var mid = (lo + hi) / 2;
@@ -486,7 +488,7 @@
             parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
               'dominant-baseline="middle" font-size="9.5" fill="var(--ink-3)" ' +
               'transform="rotate(' + f(tangent(mid)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) +
-              ')">' + esc(w[0]) + '</text>');
+              ')" pointer-events="none">' + esc(w.organ) + '</text>');
           });
         });
 
@@ -494,9 +496,13 @@
         [[0, 'zi'], [12, 'wu'], [24, 'zi']].forEach(function (m) {
           var a = angleOf(atPhase(m[0]));
           if (a === null || a < 0 || a > 360) return;
-          var q1 = polar(R.organIn - 4, a), q2 = polar(R.organOut + 4, a);
+          var q1 = polar(R.organIn - 6, a), q2 = polar(R.organOut + 6, a);
           parts.push('<path d="M' + f(q1[0]) + ' ' + f(q1[1]) + 'L' + f(q2[0]) + ' ' +
-            f(q2[1]) + '" stroke="var(--sun)" stroke-width="1.6" opacity=".8"/>');
+            f(q2[1]) + '" stroke="var(--sun)" stroke-width="1.6" opacity=".85"/>');
+          var lq = polar(R.organIn - 15, a);
+          parts.push('<text x="' + f(lq[0]) + '" y="' + f(lq[1]) + '" text-anchor="middle" ' +
+            'dominant-baseline="middle" font-size="11" font-style="italic" ' +
+            'fill="var(--sun)" pointer-events="none">' + m[1] + '</text>');
         });
 
         /* the measured curves, each across the full outer band */

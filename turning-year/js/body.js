@@ -32,19 +32,87 @@
 
   /* Gallbladder holds the zi hour, which straddles midnight, so the cycle is
    * listed from there and each watch runs two solar hours. */
+  /* The twelve watches, listed from zi because zi straddles midnight.
+   *
+   * Each carries its earthly branch, the old name for that double hour, and
+   * its animal. Zi is the yin pole of the day and wu the yang pole: the whole
+   * cycle is built as a swing between those two, which is what the name zi wu
+   * liu zhu says, "midnight-noon flowing and pouring".
+   *
+   * The guidance is the traditional guidance, gathered from practitioner
+   * sources rather than invented here. It is offered as when a thing is
+   * easiest, not as a rule about when it is allowed.
+   */
   var WATCHES = [
-    ['Gallbladder', 'Decision, and the turn into deep sleep'],
-    ['Liver', 'Blood returns to the liver; deepest repair'],
-    ['Lung', 'Breath; the classical hour for waking practice'],
-    ['Large Intestine', 'Letting go, and the first release of the day'],
-    ['Stomach', 'The hour to eat well'],
-    ['Spleen', 'Transforming food into usable energy'],
-    ['Heart', 'Yang at its height; circulation and joy'],
-    ['Small Intestine', 'Sorting the pure from the impure'],
-    ['Bladder', 'Storing and clearing; the afternoon push'],
-    ['Kidney', 'Essence and reserve; the deep well'],
-    ['Pericardium', 'The heart protector; warmth and intimacy'],
-    ['Triple Burner', 'Balancing the three burners before rest']
+    { organ: 'Gallbladder', branch: 'zi', animal: 'Rat', hours: '23–1',
+      pole: 'The yin pole of the day. Yin is at its fullest, and yin governs sleep.',
+      best: 'Be asleep, or on your way there.',
+      avoid: 'Starting anything new, or a screen.',
+      why: 'This watch is held to govern decisions and the courage to make them, ' +
+           'and it is where the deep repair of the night begins. Sleep entered ' +
+           'before it rather than during it is the classical advice.' },
+    { organ: 'Liver', branch: 'chou', animal: 'Ox', hours: '1–3',
+      pole: '', best: 'Deep sleep.',
+      avoid: 'Being awake, alcohol, and late arguments.',
+      why: 'The blood is said to return to the liver to be cleaned, and the ' +
+           'liver is the organ of anger and of plans. Waking reliably in this ' +
+           'watch is the classic sign a practitioner asks about. It also sits ' +
+           'squarely on the measured melatonin peak.' },
+    { organ: 'Lung', branch: 'yin', animal: 'Tiger', hours: '3–5',
+      pole: '', best: 'Sleep. If you are awake anyway, breathe slowly rather than fight it.',
+      avoid: 'Forcing yourself back to sleep with effort.',
+      why: 'The lungs take in the first qi of the new day, which is why this is ' +
+           'the traditional hour for breathing practice and why monastic ' +
+           'schedules start here. The lungs are also the organ of grief.' },
+    { organ: 'Large Intestine', branch: 'mao', animal: 'Rabbit', hours: '5–7',
+      pole: '', best: 'Wake, drink warm water, empty the bowels, move gently.',
+      avoid: 'Coffee before water.',
+      why: 'The letting-go organ, physically and otherwise. Warm water ahead of ' +
+           'anything else is the near-universal recommendation.' },
+    { organ: 'Stomach', branch: 'chen', animal: 'Dragon', hours: '7–9',
+      pole: '', best: 'Eat the largest, warmest meal of the day.',
+      avoid: 'Cold food and iced drinks; skipping breakfast.',
+      why: 'Digestive fire is held to be at its strongest here, so this is the ' +
+           'cheapest meal for the body to process. Cold is said to damp that fire.' },
+    { organ: 'Spleen', branch: 'si', animal: 'Snake', hours: '9–11',
+      pole: '', best: 'Hard thinking, and the work that needs your best attention.',
+      avoid: 'Heavy snacking; it interrupts what the spleen is doing.',
+      why: 'The spleen turns food into usable energy and is tied to clear ' +
+           'thought. This lands close to the measured morning alertness peak.' },
+    { organ: 'Heart', branch: 'wu', animal: 'Horse', hours: '11–13',
+      pole: 'The yang pole of the day. Yang is at its fullest and yin begins to gather again.',
+      best: 'Lunch, company, laughter. A short rest after.',
+      avoid: 'Eating while working or reading.',
+      why: 'The heart houses the shen, the spirit, and is the organ of joy and ' +
+           'of connection. The old advice to eat with people rather than at a ' +
+           'desk belongs to this watch.' },
+    { organ: 'Small Intestine', branch: 'wei', animal: 'Goat', hours: '13–15',
+      pole: '', best: 'Sorting, filing, tidying, anything fiddly and detailed.',
+      avoid: 'Big decisions on a full stomach.',
+      why: 'Its job is separating the pure from the impure, so the tasks that ' +
+           'suit it are the ones that sort one thing from another.' },
+    { organ: 'Bladder', branch: 'shen', animal: 'Monkey', hours: '15–17',
+      pole: '', best: 'Drink water. Study, learn, revise.',
+      avoid: 'Letting yourself get dehydrated into the afternoon dip.',
+      why: 'The bladder channel runs the length of the back and is tied to ' +
+           'stamina. The traditional study hour, and it holds up: this is close ' +
+           'to the daily peak in body temperature and reaction speed.' },
+    { organ: 'Kidney', branch: 'you', animal: 'Rooster', hours: '17–19',
+      pole: '', best: 'A light dinner, then a walk or a stretch.',
+      avoid: 'A heavy late meal, and hard training that leaves nothing back.',
+      why: 'The kidneys store jing, the deep reserve you are not meant to spend ' +
+           'freely. The watch for restoring rather than pushing.' },
+    { organ: 'Pericardium', branch: 'xu', animal: 'Dog', hours: '19–21',
+      pole: '', best: 'Warmth and closeness. A bath, touch, people you like.',
+      avoid: 'Conflict, and hard exercise this late.',
+      why: 'The heart protector. Named for shielding the heart, and traditionally ' +
+           'the watch for intimacy and for putting the day down.' },
+    { organ: 'Triple Burner', branch: 'hai', animal: 'Pig', hours: '21–23',
+      pole: '', best: 'Wind down. Dim the lights, read on paper, get into bed.',
+      avoid: 'Bright screens, which delay melatonin directly.',
+      why: 'The san jiao balances the three burners, upper, middle and lower, ' +
+           'before the night. Getting to sleep before zi opens is the single ' +
+           'piece of advice this whole cycle is most often reduced to.' }
   ];
 
   /* Phase, in hours after solar midnight, of each thing worth marking. Taken
@@ -96,8 +164,15 @@
   function cortisol(phase) { return curveAt(CORTISOL, phase); }
   function temperature(phase) { return curveAt(TEMPERATURE, phase); }
 
+  /* Which watch a given phase falls in. Zi runs from -1 to +1, so the whole
+   * cycle is shifted an hour before dividing. */
+  function watchAt(phase) {
+    var p = ((phase + 1) % 24 + 24) % 24;
+    return WATCHES[Math.floor(p / 2) % 12];
+  }
+
   global.BodyClock = {
-    WATCHES: WATCHES, melatonin: melatonin, cortisol: cortisol,
+    WATCHES: WATCHES, watchAt: watchAt, melatonin: melatonin, cortisol: cortisol,
     temperature: temperature,
     MEL_PEAK: MEL_PEAK, TEMP_MIN: TEMP_MIN, CORT_PEAK: CORT_PEAK, TEMP_MAX: TEMP_MAX
   };

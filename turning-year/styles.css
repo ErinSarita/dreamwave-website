@@ -396,6 +396,35 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .day-panel .d-pl-rule {
   height: 1px; background: var(--line-soft); margin: 7px 0 6px;
 }
+.tool-btn.is-on { border-color: var(--sun); color: var(--sun); background: var(--bg-2); }
+.tool-btn[hidden] { display: none; }
+
+.watch-card { width: min(94vw, 520px); }
+.watch-card h2 { margin-bottom: 4px; }
+.watch-card .watch-when {
+  font-size: 12px; letter-spacing: .06em; color: var(--ink-3);
+  text-transform: lowercase; margin: 0 0 16px;
+}
+.watch-card .watch-pole {
+  padding: 10px 12px; border-radius: 10px; background: var(--bg-2);
+  border: 1px solid var(--line-soft); color: var(--sun-bright); font-size: 13px;
+}
+.watch-card h3 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); margin: 18px 0 4px; font-family: inherit; }
+
+.day-panel .d-body-now {
+  margin: 10px 0 12px; padding: 10px 12px; border-radius: 10px;
+  background: var(--bg-2); border: 1px solid var(--line-soft);
+}
+.day-panel .d-body-now-lab {
+  font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3);
+}
+.day-panel .d-body-now-organ {
+  font-family: var(--serif); font-size: 19px; color: var(--sun-bright); margin: 2px 0 4px;
+}
+.day-panel .d-body-now-best { font-size: 12.5px; color: var(--ink-2); }
+.day-panel .d-body-now-avoid { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+
 .day-panel .d-body-key {
   display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 9px 0 4px;
   font-size: 10.5px; color: var(--ink-3);

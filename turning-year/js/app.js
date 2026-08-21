@@ -320,6 +320,7 @@
     if (dayZoom) dayZoom.reset();
     if (moonZoom) moonZoom.reset();
     state.level = level;
+    if (global.__syncDayTools) setTimeout(global.__syncDayTools, 0);
     /* Each ring ticks only while its own face is on the stage. */
     if (level !== 'moon') stopMoonClock();
     if (level !== 'day') stopDayRing();
@@ -545,10 +546,8 @@
    * here as well said the same thing twice in a view that cannot draw it.
    */
   function planetsMarkup(d, out) {
-    if (!global.Planets) return '';
-    var head = '<label class="tog d-planets-tog"><input type="checkbox" id="planet-tog"' +
-      (state.showPlanets ? ' checked' : '') + '><span>Planet rise &amp; set</span></label>';
-    if (!state.showPlanets) return '<div class="d-planets">' + head + '</div>';
+    if (!global.Planets || !state.showPlanets) return '';
+    var head = '';
 
     var jdStart = A.jdFromDate(d.date);
     var live = haveRealInstant(d) ? momentFor(d) : null;
@@ -768,34 +767,64 @@
    * reason it is worth drawing here at all. */
   function bodyMarkup(d) {
     if (!global.BodyClock) return '';
-    var head = '<label class="tog d-planets-tog"><input type="checkbox" id="body-tog"' +
-      (state.showBody ? ' checked' : '') + '><span>Body clock</span></label>';
-    if (!state.showBody) return '<div class="d-planets d-body">' + head + '</div>';
-    return '<div class="d-planets d-body">' + head +
+    if (!state.showBody) return '';
+    var BC = global.BodyClock;
+    var noonT = d.solarNoon;
+    var nowLine = '';
+    if (noonT) {
+      var when = momentFor(d);
+      var sm = new Date(noonT.getTime() - 12 * 3600000);
+      var ph = ((when.getTime() - sm.getTime()) / 3600000 % 24 + 24) % 24;
+      var w = BC.watchAt(ph);
+      nowLine = '<div class="d-body-now" id="body-now">' +
+        '<div class="d-body-now-lab">' + (haveRealInstant(d) ? 'Right now' : 'At midday') +
+        ' &#183; the ' + esc(w.branch) + ' watch</div>' +
+        '<div class="d-body-now-organ">' + esc(w.organ) + '</div>' +
+        '<div class="d-body-now-best">' + esc(w.best) + '</div>' +
+        (w.avoid ? '<div class="d-body-now-avoid">Rather not: ' + esc(w.avoid) + '</div>' : '') +
+        '</div>';
+    }
+    return '<div class="d-planets d-body">' +
       '<div class="d-body-key">' +
         '<span><i style="background:var(--moon)"></i>melatonin</span>' +
         '<span><i style="background:var(--sun-bright)"></i>cortisol</span>' +
         '<span><i style="background:var(--equinox)"></i>core temperature</span>' +
-      '</div>' +
+      '</div>' + nowLine +
+      '<p class="d-pl-note"><b>Zi and wu</b> are the two poles the whole cycle ' +
+      'swings between: <i>zi</i>, the double hour around midnight, when yin is ' +
+      'fullest and yin governs sleep; <i>wu</i>, the double hour around noon, ' +
+      'when yang is fullest and yin begins to gather again. The name <i>zi wu ' +
+      'liu zhu</i> means "midnight-noon flowing and pouring". They are the gold ' +
+      'ticks on the ring.</p>' +
+      '<p class="d-pl-note"><b>Click any watch on the ring</b> for what it ' +
+      'governs, what suits it and what does not, and why.</p>' +
       '<p class="d-pl-note"><b>Outer band, measured.</b> Melatonin crests about ' +
       'two hours before the core temperature low and four to six hours before ' +
-      'the cortisol peak; temperature tops out in the early evening. The shapes ' +
-      'are a model, not a reading of you, but those phase relationships are the ' +
-      'published ones.</p>' +
-      '<p class="d-pl-note"><b>Inner band, traditional.</b> The twelve organ ' +
-      'watches of the <i>zi wu liu zhu</i>, from the Huang Di Nei Jing. The gold ' +
-      'ticks are <i>zi</i> and <i>wu</i>, the midnight and noon poles the cycle ' +
-      'turns on. Hover any watch for what it governs.</p>' +
-      '<p class="d-pl-note">Both are hung on <b>solar</b> midnight and noon here, ' +
-      'not on the clock. A timezone is a band up to fifteen degrees wide with ' +
-      'daylight saving on top, so a clock hour can sit more than an hour from ' +
-      'the real sun. The horary cycle is reckoned by solar time and the body ' +
-      'entrains to light, so the clock is the wrong peg for either.</p>' +
-      '<p class="d-pl-note">Nothing lunar is drawn here. The best-known study ' +
-      'found shorter sleep near full moon, then failed to replicate, once in ' +
-      'the opposite direction, and a far larger analysis with the power to see ' +
-      'that effect found none. Contested, so not drawn as settled.</p>' +
+      'the cortisol peak. The shapes are a model, not a reading of you, but ' +
+      'those phase relationships are the published ones.</p>' +
+      '<p class="d-pl-note">Both bands hang on <b>solar</b> midnight and noon ' +
+      'here, not the clock. The horary cycle is reckoned by solar time and the ' +
+      'body entrains to light, so a timezone is the wrong peg for either.</p>' +
+      '<p class="d-pl-note">None of it is a rule. It is a note on when things ' +
+      'tend to come easiest, and plenty of good living happens at the wrong ' +
+      'hour. Nothing lunar is drawn: that one is genuinely contested, having ' +
+      'failed to replicate more than once.</p>' +
       '</div>';
+  }
+
+  /* One watch, opened from the ring. */
+  function openWatch(i) {
+    var w = global.BodyClock && global.BodyClock.WATCHES[i];
+    if (!w) return;
+    $('watch-h').textContent = w.organ;
+    $('watch-when').textContent = 'The ' + w.branch + ' watch · ' + w.animal +
+      ' · ' + w.hours + ' by the sun';
+    $('watch-body').innerHTML =
+      (w.pole ? '<p class="watch-pole">' + esc(w.pole) + '</p>' : '') +
+      '<h3>Suits it</h3><p>' + esc(w.best) + '</p>' +
+      (w.avoid ? '<h3>Sits badly</h3><p>' + esc(w.avoid) + '</p>' : '') +
+      '<h3>Why</h3><p>' + esc(w.why) + '</p>';
+    $('watch').hidden = false;
   }
 
   function drawDay() {
@@ -855,18 +884,13 @@
       state.panelMin = !state.panelMin;
       save(); drawDay();
     });
-    if ($('body-tog')) {
-      $('body-tog').addEventListener('change', function () {
-        state.showBody = this.checked;
-        save(); drawDay();
+    Array.prototype.forEach.call($('dayclock').querySelectorAll('.organ-hit'),
+      function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openWatch(+el.getAttribute('data-watch'));
+        });
       });
-    }
-    if ($('planet-tog')) {
-      $('planet-tog').addEventListener('change', function () {
-        state.showPlanets = this.checked;
-        save(); drawDay();
-      });
-    }
     $('day-info').addEventListener('click', function (e) {
       e.stopPropagation();
       dayInfoOpen = !dayInfoOpen;
@@ -1850,6 +1874,35 @@
       }
     });
 
+    /* The two day-view layers now switch from the floating tools, out of the
+     * way of the panel that kept swallowing them. */
+    function syncDayTools() {
+      var on = state.level === 'day';
+      $('tool-planets').hidden = !on;
+      $('tool-body').hidden = !on;
+      $('tool-planets').classList.toggle('is-on', state.showPlanets);
+      $('tool-body').classList.toggle('is-on', state.showBody);
+      $('tool-planets').setAttribute('aria-pressed', state.showPlanets);
+      $('tool-body').setAttribute('aria-pressed', state.showBody);
+    }
+    global.__syncDayTools = syncDayTools;
+    $('tool-planets').addEventListener('click', function (e) {
+      e.stopPropagation();
+      state.showPlanets = !state.showPlanets;
+      save(); syncDayTools(); drawDay();
+    });
+    $('tool-body').addEventListener('click', function (e) {
+      e.stopPropagation();
+      state.showBody = !state.showBody;
+      save(); syncDayTools(); drawDay();
+    });
+    syncDayTools();
+
+    $('watch-close').addEventListener('click', function () { $('watch').hidden = true; });
+    $('watch').addEventListener('click', function (e) {
+      if (e.target === $('watch')) $('watch').hidden = true;
+    });
+
     $('zodiac-close').addEventListener('click', function () { $('zodiac').hidden = true; });
     $('zodiac').addEventListener('click', function (e) {
       if (e.target === $('zodiac')) $('zodiac').hidden = true;
@@ -1934,6 +1987,7 @@
     document.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.key === 'Escape') {
+        if (!$('watch').hidden) { $('watch').hidden = true; return; }
         if (!$('zodiac').hidden) { $('zodiac').hidden = true; return; }
         if (!$('ethos').hidden) { $('ethos').hidden = true; return; }
         if (!$('about').hidden) { $('about').hidden = true; return; }
