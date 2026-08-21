@@ -37,6 +37,10 @@
      * the sun and moon first, and five more curves on it is a choice. */
     showPlanets: false,
     orbitsMin: false,   // the system readout collapsed to a single line
+    /* A chosen instant, when someone wants a particular moment rather than
+     * now: a birth time, an eclipse, a date in 1969. Held as an ISO string so
+     * it survives a reload. Null means "read the sky as it is". */
+    moment: null,
     moonPhases: { 'New Moon': true, 'Waxing Crescent': true, 'First Quarter': true,
                   'Waxing Gibbous': true, 'Full Moon': true, 'Waning Gibbous': true,
                   'Last Quarter': true, 'Waning Crescent': true }
@@ -54,6 +58,7 @@
         panelMin: state.panelMin, moonMin: state.moonMin,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
         showPlanets: state.showPlanets, orbitsMin: state.orbitsMin,
+        moment: state.moment,
         moonPhases: state.moonPhases
       }));
     } catch (e) { /* private mode; the site still works, it just forgets */ }
@@ -77,6 +82,7 @@
       if (typeof o.lunarCountdown === 'boolean') state.lunarCountdown = o.lunarCountdown;
       if (typeof o.showPlanets === 'boolean') state.showPlanets = o.showPlanets;
       if (typeof o.orbitsMin === 'boolean') state.orbitsMin = o.orbitsMin;
+      if (typeof o.moment === 'string' || o.moment === null) state.moment = o.moment;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
         if (typeof o.moonPhases[k] === 'boolean') state.moonPhases[k] = o.moonPhases[k];
       });
@@ -545,8 +551,8 @@
       (state.showPlanets ? ' checked' : '') + '><span>Planets &amp; angles</span></label>';
     if (!state.showPlanets) return '<div class="d-planets">' + head + '</div>';
 
-    var isToday = (d.n === todayNumber());
-    var when = isToday ? new Date() : (d.solarNoon || d.date);
+    var isToday = haveRealInstant(d);
+    var when = momentFor(d);
     var jd = A.jdFromDate(when), jde = A.jdeFromJD(jd);
     var T = (jde - 2451545) / 36525, pre = Planets.precession(T);
     var eps = A.sunPosition(jde).obliquity;
@@ -610,18 +616,43 @@
     Jupiter: '#c9a24a', Saturn: '#8d8ab5'
   };
 
+  /* Which instant the sky is being read for.
+   *
+   * A moment the reader has chosen wins over everything: that is the whole
+   * point of typing a birth time. Otherwise it is the clock if the day on
+   * screen is today, and that day's noon if it is not, because "where is Mars
+   * right now" has no answer for a Tuesday in 1994 until you say when.
+   *
+   * Bearings and the two angles need a real instant to mean anything, so they
+   * appear whenever there is one, chosen or current, and stay hidden when all
+   * we have is an arbitrary noon. */
+  function momentFor(d) {
+    if (state.moment) {
+      var t = new Date(state.moment);
+      if (!isNaN(t.getTime())) return t;
+    }
+    if (!d) return new Date();
+    return d.n === todayNumber() ? new Date() : (d.solarNoon || d.date);
+  }
+  function haveRealInstant(d) {
+    return !!state.moment || (!!d && d.n === todayNumber());
+  }
+  function momentLabel(when) {
+    return TZ.formatDate(cycle.tz, when) + ' · ' +
+      Clock.time(cycle, when, state.useDST, state.hour12) +
+      (state.moment ? ' (chosen)' : '');
+  }
+
   /* The ecliptic wheel, in its own window because its angle means something
    * different from every other dial on the site. */
   function openZodiac() {
     if (!global.Zodiac) return;
-    var d = cycle.days[state.day - 1];
-    var isToday = d && d.n === todayNumber();
-    var when = isToday ? new Date() : ((d && (d.solarNoon || d.date)) || new Date());
+    var d = state.day ? cycle.days[state.day - 1] : null;
+    var when = momentFor(d);
     var out = Zodiac.render({
       lat: cycle.lat, lon: cycle.lon, when: when,
       placeName: state.place ? (state.place.name || state.place.label) : '',
-      stamp: TZ.formatDate(cycle.tz, when) +
-        (isToday ? ' · ' + Clock.time(cycle, when, state.useDST, state.hour12) : ' · midday')
+      stamp: momentLabel(when)
     });
     $('zodiac-svg').innerHTML = out.svg;
     $('zodiac-meta').textContent =
@@ -647,8 +678,7 @@
   function drawOrbits() {
     if (!global.Orrery || !cycle) return;
     var d = state.day ? cycle.days[state.day - 1] : null;
-    var isToday = !d || d.n === todayNumber();
-    var when = isToday ? new Date() : (d.solarNoon || d.date);
+    var when = momentFor(d);
     var out = Orrery.render({ when: when });
     $('orrery').innerHTML = out.svg;
 
@@ -668,7 +698,7 @@
         '<span class="o-pl-n">' + name + '</span>' +
         '<b>' + sg.name + ' ' + sg.degree.toFixed(1) + '&#176;</b>' +
         '<span class="o-pl-c">in ' + con +
-        (au ? ' &#183; ' + au.toFixed(2) + ' AU from us' : '') + '</span></div>';
+        (au ? ' &#183; ' + au.toFixed(2) + ' AU from earth' : '') + '</span></div>';
     }
     var sunp = A.sunPosition(jdew);
     var rows = orow('\u2609', 'Sun', A.norm360(sunp.longitude), 'var(--sun-bright)',
@@ -686,12 +716,15 @@
         (state.orbitsMin ? '\u25B4' : '\u25BE') + '</button>' +
       '<div class="r-mini">The system &#183; ' +
         TZ.formatDate(cycle.tz, when, 'short') + '</div>' +
-      '<div class="r-lab">Seen from the earth</div>' +
-      '<div class="r-date">' + TZ.formatDate(cycle.tz, when) + '</div>' +
+      '<div class="r-lab">Seen from ' +
+        esc(state.place ? (state.place.name || state.place.label) : 'the earth') + '</div>' +
+      '<div class="r-date">' + esc(momentLabel(when)) + '</div>' +
       '<div class="o-list">' + rows + '</div>' +
       '<div class="r-hint">Each dashed line runs from the earth through a planet ' +
       'to the sign it appears in. <b>In</b> is the constellation really behind ' +
-      'it. True scale, so the lines are honest: zoom for the inner four.</div>';
+      'it. Distance is from the earth itself, so it reads the same from any ' +
+      'town; the place sets the clock this moment is read on, and it is what ' +
+      'the day view and the zodiac wheel use for bearings.</div>';
 
     $('orbits-min').addEventListener('click', function (e) {
       e.stopPropagation();
@@ -1613,29 +1646,57 @@
     });
     $('cycle-today').addEventListener('click', function () {
       var y = anchorYearFor(new Date(), state.place.lat, state.place.tz);
+      state.moment = null;                     // back to the sky as it is
+      $('goto-time').value = '';
+      $('goto-meta').textContent = GOTO_HINT;
+      save();
       var go = function () {
         var n = todayNumber();
-        if (n) { state.day = n; setLevel('day'); }
+        if (n) { state.day = n; setLevel(state.level === 'orbits' ? 'orbits' : 'day'); }
       };
       if (y !== state.anchorYear) { state.anchorYear = y; rebuild(go); } else go();
     });
 
+    var GOTO_HINT = 'Any date, past or future, in this place\'s own calendar. ' +
+      'Add a time to fix the sky to that exact moment.';
+
+    /* A date alone lands on the day; a date with a time fixes the sky to that
+     * instant, which is what a birth chart needs. The time is read in the
+     * selected place's zone, so for a birth moment set the place to the town
+     * it happened in first and the offsets of the day take care of themselves.
+     *
+     * Without a time we still use local noon internally, because it keeps the
+     * day placement clear of the changeover hours, but nothing then claims to
+     * know where a planet stood: bearings and the two angles stay hidden. */
     function goToDate() {
       var val = $('goto-date').value;                    // "YYYY-MM-DD" or ""
       var m = val.match(/^(\d{4})-(\d{2})-(\d{2})$/);
       if (!m) { $('goto-meta').textContent = 'Pick a date first.'; return; }
+      var tval = $('goto-time').value;                   // "HH:MM" or ""
+      var tm = tval.match(/^(\d{2}):(\d{2})$/);
       var y = +m[1], mo = +m[2], d = +m[3];
-      var target = TZ.instantFromCivil(state.place.tz, y, mo, d, 12, 0, 0);   // local noon avoids DST edge cases
+      var hh = tm ? +tm[1] : 12, mi = tm ? +tm[2] : 0;
+      var target = TZ.instantFromCivil(state.place.tz, y, mo, d, hh, mi, 0);
       var anchorYear = anchorYearFor(target, state.place.lat, state.place.tz);
       var go = function () {
         var n = CycleModel.dayNumberForInstant(cycle, target);
-        if (n) { state.day = n; setLevel('day'); $('goto-meta').textContent = 'Any date, past or future, in this place\'s own calendar.'; }
-        else $('goto-meta').textContent = 'Could not place that date. Try another.';
+        if (!n) { $('goto-meta').textContent = 'Could not place that date. Try another.'; return; }
+        state.day = n;
+        state.moment = tm ? target.toISOString() : null;
+        save();
+        /* Stay where the reader is. Someone who typed a birth time while
+         * looking at the system map wants the system map for that moment,
+         * not to be dropped into the day view. */
+        setLevel(state.level === 'orbits' ? 'orbits' : 'day');
+        $('goto-meta').textContent = tm
+          ? 'Reading the sky for ' + momentLabel(target) + '. "Go to today" clears it.'
+          : GOTO_HINT;
       };
       if (anchorYear !== state.anchorYear) { state.anchorYear = anchorYear; rebuild(go); } else go();
     }
     $('goto-btn').addEventListener('click', goToDate);
     $('goto-date').addEventListener('keydown', function (e) { if (e.key === 'Enter') goToDate(); });
+    $('goto-time').addEventListener('keydown', function (e) { if (e.key === 'Enter') goToDate(); });
 
     [['lay-moon', 'moon'], ['lay-terms', 'terms'], ['lay-frost', 'frost'],
      ['lay-months', 'months'], ['lay-seasons', 'seasons'],

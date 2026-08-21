@@ -159,6 +159,10 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .goto-row { display: flex; gap: 8px; margin-top: 8px; }
 .goto-row input[type="date"] { flex: 1; min-width: 0; }
 .goto-row .ghost-btn { width: auto; flex: 0 0 auto; padding: 8px 16px; }
+/* Date, then an optional time beside it. The time is narrower because it
+ * always holds five characters and the date does not. */
+.goto-row #goto-time { flex: 0 0 auto; width: 7.5em; }
+.goto-row #goto-date { min-width: 0; }
 
 .place-row { display: flex; gap: 8px; }
 .icon-btn {
