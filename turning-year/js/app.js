@@ -36,6 +36,7 @@
     /* The planets and the two angles, off by default: the day clock is about
      * the sun and moon first, and five more curves on it is a choice. */
     showPlanets: false,
+    showBody: false,    // the body layer on the day dial
     orbitsMin: false,   // the system readout collapsed to a single line
     /* A chosen instant, when someone wants a particular moment rather than
      * now: a birth time, an eclipse, a date in 1969. Held as an ISO string so
@@ -57,7 +58,8 @@
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
         panelMin: state.panelMin, moonMin: state.moonMin,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
-        showPlanets: state.showPlanets, orbitsMin: state.orbitsMin,
+        showPlanets: state.showPlanets, showBody: state.showBody,
+        orbitsMin: state.orbitsMin,
         moment: state.moment,
         moonPhases: state.moonPhases
       }));
@@ -81,6 +83,7 @@
       if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
       if (typeof o.lunarCountdown === 'boolean') state.lunarCountdown = o.lunarCountdown;
       if (typeof o.showPlanets === 'boolean') state.showPlanets = o.showPlanets;
+      if (typeof o.showBody === 'boolean') state.showBody = o.showBody;
       if (typeof o.orbitsMin === 'boolean') state.orbitsMin = o.orbitsMin;
       if (typeof o.moment === 'string' || o.moment === null) state.moment = o.moment;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
@@ -755,12 +758,52 @@
     }
   }
 
+  /* The body layer's switch and its legend.
+   *
+   * Two bands, and they are two different kinds of claim, so the panel says
+   * which is which rather than letting the drawing imply they are the same
+   * sort of thing. The outer curves are measured chronobiology; the inner
+   * watches are a framework from the Huang Di Nei Jing. Both are hung on this
+   * place's own solar midnight, which is the one thing they agree on and the
+   * reason it is worth drawing here at all. */
+  function bodyMarkup(d) {
+    if (!global.BodyClock) return '';
+    var head = '<label class="tog d-planets-tog"><input type="checkbox" id="body-tog"' +
+      (state.showBody ? ' checked' : '') + '><span>Body clock</span></label>';
+    if (!state.showBody) return '<div class="d-planets d-body">' + head + '</div>';
+    return '<div class="d-planets d-body">' + head +
+      '<div class="d-body-key">' +
+        '<span><i style="background:var(--moon)"></i>melatonin</span>' +
+        '<span><i style="background:var(--sun-bright)"></i>cortisol</span>' +
+        '<span><i style="background:var(--equinox)"></i>core temperature</span>' +
+      '</div>' +
+      '<p class="d-pl-note"><b>Outer band, measured.</b> Melatonin crests about ' +
+      'two hours before the core temperature low and four to six hours before ' +
+      'the cortisol peak; temperature tops out in the early evening. The shapes ' +
+      'are a model, not a reading of you, but those phase relationships are the ' +
+      'published ones.</p>' +
+      '<p class="d-pl-note"><b>Inner band, traditional.</b> The twelve organ ' +
+      'watches of the <i>zi wu liu zhu</i>, from the Huang Di Nei Jing. The gold ' +
+      'ticks are <i>zi</i> and <i>wu</i>, the midnight and noon poles the cycle ' +
+      'turns on. Hover any watch for what it governs.</p>' +
+      '<p class="d-pl-note">Both are hung on <b>solar</b> midnight and noon here, ' +
+      'not on the clock. A timezone is a band up to fifteen degrees wide with ' +
+      'daylight saving on top, so a clock hour can sit more than an hour from ' +
+      'the real sun. The horary cycle is reckoned by solar time and the body ' +
+      'entrains to light, so the clock is the wrong peg for either.</p>' +
+      '<p class="d-pl-note">Nothing lunar is drawn here. The best-known study ' +
+      'found shorter sleep near full moon, then failed to replicate, once in ' +
+      'the opposite direction, and a far larger analysis with the power to see ' +
+      'that effect found none. Contested, so not drawn as settled.</p>' +
+      '</div>';
+  }
+
   function drawDay() {
     var d = cycle.days[state.day - 1];
     if (!d) return;
     var out = DayView.render(cycle, d, { hour12: state.hour12, useDST: state.useDST,
       now: new Date(), placeName: state.place ? (state.place.name || state.place.label) : '',
-      planets: state.showPlanets });
+      planets: state.showPlanets, body: state.showBody });
     $('dayclock').innerHTML = out.svg + '<g id="day-clock-ring"></g>';
     startDayRing();
 
@@ -804,6 +847,7 @@
       '</div>' +
       timesMarkup(d, out.darkMidpoint, out) +
       planetsMarkup(d, out) +
+      bodyMarkup(d) +
       clockShiftMarkup(d) +
       noteMarkup(d.iso);
 
@@ -811,6 +855,12 @@
       state.panelMin = !state.panelMin;
       save(); drawDay();
     });
+    if ($('body-tog')) {
+      $('body-tog').addEventListener('change', function () {
+        state.showBody = this.checked;
+        save(); drawDay();
+      });
+    }
     if ($('planet-tog')) {
       $('planet-tog').addEventListener('change', function () {
         state.showPlanets = this.checked;

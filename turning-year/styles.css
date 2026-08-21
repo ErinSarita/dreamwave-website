@@ -396,6 +396,13 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .day-panel .d-pl-rule {
   height: 1px; background: var(--line-soft); margin: 7px 0 6px;
 }
+.day-panel .d-body-key {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 9px 0 4px;
+  font-size: 10.5px; color: var(--ink-3);
+}
+.day-panel .d-body-key span { display: inline-flex; align-items: center; gap: 5px; }
+.day-panel .d-body-key i { width: 14px; height: 2.5px; border-radius: 2px; flex: 0 0 auto; }
+.day-panel .d-body .d-pl-note + .d-pl-note { margin-top: 7px; }
 .day-panel .d-pl-note {
   margin: 9px 0 0; font-size: 10.5px; line-height: 1.45; color: var(--ink-3);
 }

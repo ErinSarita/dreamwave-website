@@ -12,6 +12,10 @@
      * this date, so it closes exactly at midnight however many hours the date
      * actually ran. */
     cycleRing: 512,
+    /* The body layer rides outside everything else, where there is room for
+     * two bands that must not be mistaken for each other. */
+    organIn: 522, organOut: 552, organLabel: 537,
+    physIn: 560, physOut: 596,
     /* The planets' own band, in the clear space between the moon ring and the
      * reach of the altitude curves, which stop at 322. */
     planetOut: 356, planetLabel: 342, planetIn: 328,
@@ -438,6 +442,79 @@
      * above the horizon. Sampled every twentieth step rather than at all 720,
      * because a planet moves at most a degree and a half in a whole day and
      * the curve is smooth at that spacing. */
+    /* ---- the body, phased from this place's own sun --------------------------
+     * Not from the clock. A timezone is up to fifteen degrees wide with
+     * daylight saving on top, so the same clock hour can sit more than an hour
+     * from the real sun. The horary cycle is traditionally reckoned by solar
+     * time and the body entrains to light, so both bands are hung on solar
+     * midnight and solar noon instead. */
+    if (opts.body && global.BodyClock) {
+      var BC = global.BodyClock;
+      var noonT = day.solarNoon || (marks.solarNoon && marks.solarNoon.t);
+      if (noonT) {
+        var solarMidnight = new Date(noonT.getTime() - 12 * 3600000);
+        var phaseOf = function (date) {
+          return ((date.getTime() - solarMidnight.getTime()) / 3600000 % 24 + 24) % 24;
+        };
+        var atPhase = function (ph) {
+          return new Date(solarMidnight.getTime() + ph * 3600000);
+        };
+
+        /* the twelve watches, two solar hours each, zi straddling midnight */
+        BC.WATCHES.forEach(function (w, i) {
+          var a1 = angleOf(atPhase(i * 2 - 1)), a2 = angleOf(atPhase(i * 2 + 1));
+          if (a1 === null || a2 === null) return;
+          if (a2 < a1) a2 += 360;
+          if (a2 < 0 || a1 > 360) return;
+          parts.push('<path d="' + sector(R.organIn, R.organOut, Math.max(0, a1), Math.min(360, a2)) +
+            '" fill="var(--bg-2)" fill-opacity="' + (i % 2 ? '.85' : '.5') +
+            '" stroke="var(--line-soft)" stroke-width=".7"><title>' + esc(w[0]) +
+            ' · ' + esc(w[1]) + '</title></path>');
+          var mid = (Math.max(0, a1) + Math.min(360, a2)) / 2;
+          var lp = polar(R.organLabel, mid);
+          parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
+            'dominant-baseline="middle" font-size="9.5" fill="var(--ink-3)" ' +
+            'transform="rotate(' + f(tangent(mid)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) +
+            ')">' + esc(w[0]) + '</text>');
+        });
+
+        /* zi and wu, the axis the whole cycle turns on */
+        [[0, 'zi'], [12, 'wu']].forEach(function (m) {
+          var a = angleOf(atPhase(m[0]));
+          if (a === null || a < 0 || a > 360) return;
+          var q1 = polar(R.organIn - 4, a), q2 = polar(R.organOut + 4, a);
+          parts.push('<path d="M' + f(q1[0]) + ' ' + f(q1[1]) + 'L' + f(q2[0]) + ' ' +
+            f(q2[1]) + '" stroke="var(--sun)" stroke-width="1.6" opacity=".8"/>');
+        });
+
+        /* the measured curves, each across the full outer band */
+        /* Melatonin is hung on this day's own dusk and dawn rather than on a
+         * fixed hour: it begins climbing about an hour after the light goes
+         * and is finished about an hour after it returns, so the band widens
+         * in winter and narrows in summer exactly as the night does. */
+        var mOn = day.sunset ? phaseOf(day.sunset) + 1 : 19;
+        var mOff = day.sunrise ? phaseOf(day.sunrise) + 1 : 6.5;
+        var CURVES = [
+          ['melatonin', 'var(--moon)', function (ph) { return BC.melatonin(ph, mOn, mOff); }],
+          ['cortisol', 'var(--sun-bright)', BC.cortisol],
+          ['core temperature', 'var(--equinox)', BC.temperature]
+        ];
+        parts.push('<circle cx="' + CX + '" cy="' + CY + '" r="' + R.physIn +
+          '" fill="none" stroke="var(--line-soft)" stroke-width=".7"/>');
+        CURVES.forEach(function (cv) {
+          var d = '';
+          for (var i = 0; i <= 240; i++) {
+            var t = new Date(win.start.getTime() + (win.end - win.start) * (i / 240));
+            var v = Math.max(0, Math.min(1, cv[2](phaseOf(t))));
+            var q = polar(R.physIn + (R.physOut - R.physIn) * v, 360 * i / 240);
+            d += (i ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1]);
+          }
+          parts.push('<path d="' + d + '" fill="none" stroke="' + cv[1] +
+            '" stroke-width="1.6" opacity=".85"><title>' + cv[0] + '</title></path>');
+        });
+      }
+    }
+
     /* ---- earth, centred on this place, at this moment ------------------------ */
     if (Globe && opts.globe !== false) {
       var globeInstant = (opts.now && opts.now >= win.start && opts.now < win.end) ? opts.now : day.solarNoon;
