@@ -36,6 +36,7 @@
     /* The planets and the two angles, off by default: the day clock is about
      * the sun and moon first, and five more curves on it is a choice. */
     showPlanets: false,
+    orbitsMin: false,   // the system readout collapsed to a single line
     moonPhases: { 'New Moon': true, 'Waxing Crescent': true, 'First Quarter': true,
                   'Waxing Gibbous': true, 'Full Moon': true, 'Waning Gibbous': true,
                   'Last Quarter': true, 'Waning Crescent': true }
@@ -52,7 +53,7 @@
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
         panelMin: state.panelMin, moonMin: state.moonMin,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
-        showPlanets: state.showPlanets,
+        showPlanets: state.showPlanets, orbitsMin: state.orbitsMin,
         moonPhases: state.moonPhases
       }));
     } catch (e) { /* private mode; the site still works, it just forgets */ }
@@ -75,6 +76,7 @@
       if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
       if (typeof o.lunarCountdown === 'boolean') state.lunarCountdown = o.lunarCountdown;
       if (typeof o.showPlanets === 'boolean') state.showPlanets = o.showPlanets;
+      if (typeof o.orbitsMin === 'boolean') state.orbitsMin = o.orbitsMin;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
         if (typeof o.moonPhases[k] === 'boolean') state.moonPhases[k] = o.moonPhases[k];
       });
@@ -650,20 +652,52 @@
     var out = Orrery.render({ when: when });
     $('orrery').innerHTML = out.svg;
 
-    var rows = '';
-    ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].forEach(function (nm) {
-      var pp = Planets.position(nm, A.jdeFromJD(A.jdFromDate(when)));
-      var sg = Planets.signOf(pp.longitude);
-      rows += '<div><span>' + nm + '</span> · ' + sg.name + ' ' +
-        sg.degree.toFixed(0) + '&#176; · ' + pp.distanceAU.toFixed(2) + ' AU away</div>';
+    /* What the map means from inside it. Each dashed line on the drawing ends
+     * somewhere, and this says where: the sign it lands in, and the
+     * constellation actually behind that patch of sky. The distance is there
+     * because it is the one thing the flat wheel and the sky view cannot
+     * show, and it is what makes the picture make sense: Mars is bright this
+     * month because it is near, not because it is high. */
+    var jdw = A.jdFromDate(when), jdew = A.jdeFromJD(jdw);
+    var prew = Planets.precession((jdew - 2451545) / 36525);
+    function orow(glyph, name, lon, colour, au) {
+      var sg = Planets.signOf(lon);
+      var con = Planets.constellationOf(((lon - prew) % 360 + 360) % 360);
+      return '<div class="o-pl">' +
+        '<i class="o-pl-g" style="color:' + colour + '">' + glyph + '</i>' +
+        '<span class="o-pl-n">' + name + '</span>' +
+        '<b>' + sg.name + ' ' + sg.degree.toFixed(1) + '&#176;</b>' +
+        '<span class="o-pl-c">in ' + con +
+        (au ? ' &#183; ' + au.toFixed(2) + ' AU from us' : '') + '</span></div>';
+    }
+    var sunp = A.sunPosition(jdew);
+    var rows = orow('\u2609', 'Sun', A.norm360(sunp.longitude), 'var(--sun-bright)',
+                    sunp.distanceAU);
+    Planets.ORDER.forEach(function (nm) {
+      var pp = Planets.position(nm, jdew);
+      rows += orow(Planets.GLYPH[nm], nm, pp.longitude, PLANET_COLOUR[nm], pp.distanceAU);
     });
+
+    $('orrery-readout').className = 'readout' + (state.orbitsMin ? ' min' : '');
     $('orrery-readout').innerHTML =
-      '<div class="r-lab">The system</div>' +
+      '<button class="panel-min" id="orbits-min" aria-label="' +
+        (state.orbitsMin ? 'Expand the system details' : 'Minimise the system details') +
+        '" title="' + (state.orbitsMin ? 'Expand' : 'Minimise') + '">' +
+        (state.orbitsMin ? '\u25B4' : '\u25BE') + '</button>' +
+      '<div class="r-mini">The system &#183; ' +
+        TZ.formatDate(cycle.tz, when, 'short') + '</div>' +
+      '<div class="r-lab">Seen from the earth</div>' +
       '<div class="r-date">' + TZ.formatDate(cycle.tz, when) + '</div>' +
-      '<div class="r-rows">' + rows + '</div>' +
-      '<div class="r-hint">Dashed lines run from the earth out to the sign each ' +
-      'planet appears in. True scale, so they are honest: zoom in for the ' +
-      'inner four.</div>';
+      '<div class="o-list">' + rows + '</div>' +
+      '<div class="r-hint">Each dashed line runs from the earth through a planet ' +
+      'to the sign it appears in. <b>In</b> is the constellation really behind ' +
+      'it. True scale, so the lines are honest: zoom for the inner four.</div>';
+
+    $('orbits-min').addEventListener('click', function (e) {
+      e.stopPropagation();
+      state.orbitsMin = !state.orbitsMin;
+      save(); drawOrbits();
+    });
   }
 
   function drawDay() {

@@ -575,6 +575,23 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .scene-orbits { position: relative; }
 #orrery-svg { width: 100%; height: 100%; display: block; overflow: visible; }
 
+/* The system readout. Wider than the year readout because each line carries
+ * a sign, a constellation and a distance, and folding those would cost more
+ * than the width does. */
+.scene-orbits .readout { width: min(340px, calc(100% - 32px)); text-align: left; }
+.scene-orbits .readout .r-lab,
+.scene-orbits .readout .r-date { text-align: center; }
+.readout .o-list { margin-top: 10px; }
+.readout .o-pl {
+  display: grid; grid-template-columns: 18px 1fr auto; align-items: baseline;
+  column-gap: 8px; font-size: 11.5px; padding: 2px 0;
+}
+.readout .o-pl-g { font-style: normal; font-size: 13px; line-height: 1; text-align: center; }
+.readout .o-pl-n { color: var(--ink-2); }
+.readout .o-pl b { font-family: var(--mono); font-weight: 500; color: var(--ink); white-space: nowrap; }
+.readout .o-pl-c { grid-column: 2 / 4; color: var(--ink-3); font-size: 10.5px; margin-top: -1px; }
+.readout .r-hint b { font-weight: 500; color: var(--ink-2); }
+
 .zodiac-card { width: min(96vw, 760px); }
 #zodiac-svg, #sky-svg { width: 100%; height: auto; display: block; margin: 14px 0 4px; }
 .zodiac-card h3 { margin-top: 26px; }
