@@ -12,6 +12,9 @@
      * this date, so it closes exactly at midnight however many hours the date
      * actually ran. */
     cycleRing: 512,
+    /* The planets' own band, in the clear space between the moon ring and the
+     * reach of the altitude curves, which stop at 322. */
+    planetOut: 356, planetLabel: 342, planetIn: 328,
     eventLabel: 486, hourNum: 462, tickOut: 454, tickIn: 444,
     sunOut: 440, sunIn: 402,
     moonOut: 394, moonIn: 362, moonLabel: 378,
@@ -345,6 +348,26 @@
                     r1: moon ? R.moonIn - 8 : R.sunIn - 8,
                     r2: moon ? R.moonOut + 8 : R.sunOut + 10 });
     });
+    /* The planets get the same treatment the moon does: a tick across their
+     * own band, a dot, and a label carrying the time. Ten of them would crowd
+     * the sun's rim and bury the moon's, so they have a ring to themselves in
+     * the clear space between the moon band and the altitude curves, and the
+     * tiering below spreads any that fall within half an hour of each other.
+     * The arrow says which way the planet is crossing. */
+    if (opts.planets && global.Planets) {
+      var PL = global.Planets;
+      PL.ORDER.forEach(function (nm) {
+        var rs = A.riseSet(nm, A.jdFromDate(win.start), 1, cycle.lat, cycle.lon);
+        [['\u2191', rs && rs.rise], ['\u2193', rs && rs.set]].forEach(function (ev) {
+          if (!ev[1]) return;
+          events.push({ t: A.dateFromJD(ev[1]), group: 'planet',
+                        label: PL.GLYPH[nm] + ev[0], colour: PLANET_COLOUR[nm],
+                        full: nm + (ev[0] === '\u2191' ? ' rises' : ' sets'),
+                        r1: R.planetIn, r2: R.planetOut });
+        });
+      });
+    }
+
     /* The present moment, when the day on screen is today. It carries a time
      * like every other mark, and reads by whichever clock is set, so toggling
      * daylight saving moves the number here along with all the rest. It joins
@@ -363,19 +386,21 @@
     events = events.filter(function (e) { return e.a !== null && e.a >= 0 && e.a <= 360; });
 
     function angDist(x, y) { var d = Math.abs(x - y) % 360; return d > 180 ? 360 - d : d; }
-    function assignTiers(group, baseR, stepR) {
+    function assignTiers(group, baseR, stepR, minGap) {
+      var gap = minGap || 26;
       var g = events.filter(function (e) { return e.group === group; })
                     .sort(function (x, y) { return x.a - y.a; });
       var placed = [];
       g.forEach(function (e) {
         var tier = 0;
-        while (placed.some(function (o) { return o.tier === tier && angDist(o.a, e.a) < 26; })) tier++;
+        while (placed.some(function (o) { return o.tier === tier && angDist(o.a, e.a) < gap; })) tier++;
         e.labelR = baseR + tier * stepR;
         placed.push({ a: e.a, tier: tier });
       });
     }
     assignTiers('sun', R.eventLabel, 17);      // outward
     assignTiers('moon', R.moonLabel, -19);     // inward, into the clear gap
+    assignTiers('planet', R.planetLabel, -17, 17);  // inward again, on their own ring
 
     events.forEach(function (e) {
       var p1 = polar(e.r1, e.a), p2 = polar(e.r2, e.a);
@@ -387,7 +412,14 @@
       var lp = polar(e.labelR, e.a);
       var txt = e.label + ' ' + Clock.time(cycle, e.t, useDST, opts.hour12);
       var rot = 'rotate(' + f(tangent(e.a)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) + ')';
-      if (e.group === 'moon') {
+      if (e.group === 'planet') {
+        var pw = txt.length * 5.4 + 12;
+        parts.push('<g transform="' + rot + '"><title>' + esc(e.full) + ' ' + txt + '</title>' +
+          '<rect x="' + f(lp[0] - pw / 2) + '" y="' + f(lp[1] - 7.5) + '" width="' + f(pw) +
+          '" height="15" rx="5" fill="var(--bg-2)" stroke="var(--line)" stroke-width=".6" opacity=".95"/>' +
+          '<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
+          'dominant-baseline="middle" font-size="10.5" fill="' + e.colour + '">' + txt + '</text></g>');
+      } else if (e.group === 'moon') {
         var w = txt.length * 5.7 + 12;
         parts.push('<g transform="' + rot + '">' +
           '<rect x="' + f(lp[0] - w / 2) + '" y="' + f(lp[1] - 8) + '" width="' + f(w) +
@@ -406,34 +438,6 @@
      * above the horizon. Sampled every twentieth step rather than at all 720,
      * because a planet moves at most a degree and a half in a whole day and
      * the curve is smooth at that spacing. */
-    /* Five full altitude curves said too much at once: nested near-parallel
-     * loops that read as orbits when they are nothing of the kind. What a
-     * person standing outside needs from this dial is when a planet clears the
-     * horizon and when it goes back under, so only those two moments are
-     * marked, on their own quiet rings. Rises ride the outer of the two, sets
-     * the inner, and the times and bearings are spelled out in the panel. */
-    if (opts.planets && global.Planets) {
-      var PL = global.Planets;
-      PL.ORDER.forEach(function (nm) {
-        var rs = A.riseSet(nm, win.start ? A.jdFromDate(win.start) : null, 1,
-                           cycle.lat, cycle.lon);
-        [['rise', rs && rs.rise, 352], ['set', rs && rs.set, 330]].forEach(function (ev) {
-          if (!ev[1]) return;
-          var a = angleOf(A.dateFromJD(ev[1]));
-          if (a === null || a < 0 || a > 360) return;
-          var q = polar(ev[2], a);
-          var look = PL.lookAt(PL.position(nm, A.jdeFromJD(ev[1])).ra,
-                               PL.position(nm, A.jdeFromJD(ev[1])).dec,
-                               ev[1], cycle.lat, cycle.lon);
-          parts.push('<text x="' + f(q[0]) + '" y="' + f(q[1]) + '" text-anchor="middle" ' +
-            'dominant-baseline="middle" font-size="12" fill="' + PLANET_COLOUR[nm] + '"' +
-            (ev[0] === 'set' ? ' opacity=".62"' : '') + '><title>' + nm + ' ' + ev[0] +
-            's ' + Clock.time(cycle, A.dateFromJD(ev[1]), useDST, opts.hour12) +
-            ', ' + look.compass + '</title>' + PL.GLYPH[nm] + '</text>');
-        });
-      });
-    }
-
     /* ---- earth, centred on this place, at this moment ------------------------ */
     if (Globe && opts.globe !== false) {
       var globeInstant = (opts.now && opts.now >= win.start && opts.now < win.end) ? opts.now : day.solarNoon;
