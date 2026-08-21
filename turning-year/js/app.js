@@ -963,7 +963,7 @@
     $('watch-body').innerHTML =
       (w.pole ? '<p class="watch-pole">' + esc(w.pole) + '</p>' : '') +
       '<h3>Suits it</h3><p>' + esc(w.best) + '</p>' +
-      (w.avoid ? '<h3>Sits badly</h3><p>' + esc(w.avoid) + '</p>' : '') +
+      (w.avoid ? '<h3>Easier another hour</h3><p>' + esc(w.avoid) + '</p>' : '') +
       '<h3>Why</h3><p>' + esc(w.why) + '</p>';
     $('watch').hidden = false;
   }
