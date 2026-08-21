@@ -460,26 +460,38 @@
           return new Date(solarMidnight.getTime() + ph * 3600000);
         };
 
-        /* the twelve watches, two solar hours each, zi straddling midnight */
+        /* The twelve watches, two solar hours each.
+         *
+         * Solar midnight is not clock midnight, so the zi watch that straddles
+         * it lands partly before the window opens and partly after it closes.
+         * Each watch is therefore tried a turn early and a turn late as well
+         * as in place, and any piece that overlaps the day is clipped to it
+         * and drawn. Without that the wrapping watch simply vanished and the
+         * ring came up two short. */
         BC.WATCHES.forEach(function (w, i) {
-          var a1 = angleOf(atPhase(i * 2 - 1)), a2 = angleOf(atPhase(i * 2 + 1));
-          if (a1 === null || a2 === null) return;
-          if (a2 < a1) a2 += 360;
-          if (a2 < 0 || a1 > 360) return;
-          parts.push('<path d="' + sector(R.organIn, R.organOut, Math.max(0, a1), Math.min(360, a2)) +
-            '" fill="var(--bg-2)" fill-opacity="' + (i % 2 ? '.85' : '.5') +
-            '" stroke="var(--line-soft)" stroke-width=".7"><title>' + esc(w[0]) +
-            ' · ' + esc(w[1]) + '</title></path>');
-          var mid = (Math.max(0, a1) + Math.min(360, a2)) / 2;
-          var lp = polar(R.organLabel, mid);
-          parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
-            'dominant-baseline="middle" font-size="9.5" fill="var(--ink-3)" ' +
-            'transform="rotate(' + f(tangent(mid)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) +
-            ')">' + esc(w[0]) + '</text>');
+          [-24, 0, 24].forEach(function (shift) {
+            var a1 = angleOf(atPhase(i * 2 - 1 + shift));
+            var a2 = angleOf(atPhase(i * 2 + 1 + shift));
+            if (a1 === null || a2 === null) return;
+            var lo = Math.max(0, Math.min(a1, a2)), hi = Math.min(360, Math.max(a1, a2));
+            if (hi - lo < 0.25) return;
+            parts.push('<path d="' + sector(R.organIn, R.organOut, lo, hi) +
+              '" fill="var(--bg-2)" fill-opacity="' + (i % 2 ? '.85' : '.5') +
+              '" stroke="var(--line-soft)" stroke-width=".7"><title>' + esc(w[0]) +
+              ' · ' + esc(w[1]) + '</title></path>');
+            /* A sliver clipped by the day's edge has no room for a word. */
+            if (hi - lo < 12) return;
+            var mid = (lo + hi) / 2;
+            var lp = polar(R.organLabel, mid);
+            parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
+              'dominant-baseline="middle" font-size="9.5" fill="var(--ink-3)" ' +
+              'transform="rotate(' + f(tangent(mid)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) +
+              ')">' + esc(w[0]) + '</text>');
+          });
         });
 
         /* zi and wu, the axis the whole cycle turns on */
-        [[0, 'zi'], [12, 'wu']].forEach(function (m) {
+        [[0, 'zi'], [12, 'wu'], [24, 'zi']].forEach(function (m) {
           var a = angleOf(atPhase(m[0]));
           if (a === null || a < 0 || a > 360) return;
           var q1 = polar(R.organIn - 4, a), q2 = polar(R.organOut + 4, a);
