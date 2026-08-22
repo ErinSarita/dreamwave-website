@@ -15,7 +15,7 @@
   'use strict';
   var TZ = global.TZ, MoonGlyph = global.MoonGlyph;
 
-  var CX = 600, CY = 762, HALF = 59;          // degrees either side of vertical
+  var CX = 600, CY = 762, HALF = 57;          // degrees either side of vertical
   /* Inner to outer, the same order the year wheel stacks them: the slow things
    * near the apex, the fast ones out at the rim.
    *
@@ -28,9 +28,12 @@
     growIn: 128, growOut: 158,
     seasonIn: 166, seasonOut: 202, seasonLabel: 184,
     termIn: 210, termOut: 262, termLabel: 243, termDayNum: 219,
-    moonIn: 270, moonOut: 330, moonGlyph: 294, moonLabel: 321,
-    lightIn: 340, lightOut: 620,
-    dayIn: 632, dayOut: 692, solarNum: 648, dateNum: 677
+    /* The hour band takes the middle and most of the depth, being the only
+     * ring that carries a whole axis. The moon rides outside it, where the arc
+     * is long enough for a face a day without crowding. */
+    lightIn: 272, lightOut: 552,
+    moonIn: 562, moonOut: 632, moonGlyph: 590, moonLabel: 623,
+    dayIn: 642, dayOut: 700, solarNum: 657, dateNum: 685
   };
   var HOUR_SPAN = 24;
 
@@ -119,22 +122,20 @@
     });
 
     /* the hours themselves, so the block can be read against a clock */
-    for (var hh = 0; hh <= HOUR_SPAN; hh += 3) {
+    for (var hh = 0; hh <= HOUR_SPAN; hh += 1) {
       var major = hh % 6 === 0;
       parts.push('<path d="' + arcPath(hourR(hh), -HALF, HALF) + '" fill="none" ' +
-        'stroke="var(--line-soft)" stroke-width="' + (major ? '.9' : '.5') +
-        '" opacity="' + (major ? '.75' : '.45') + '"/>');
-      if (major) {
-        [[-HALF, 'end'], [HALF, 'start']].forEach(function (side) {
-          var q = polar(hourR(hh), side[0]);
-          var off = side[1] === 'end' ? -7 : 7;
-          parts.push('<text x="' + f(q[0] + off) + '" y="' + f(q[1]) + '" ' +
-            'text-anchor="' + side[1] + '" dominant-baseline="middle" font-size="9.5" ' +
-            'font-family="var(--mono)" fill="var(--ink-3)" pointer-events="none" ' +
-            'transform="' + tilt(side[0], q[0] + off, q[1]) + '">' + hh + '</text>');
-        });
-      }
+        'stroke="var(--line-soft)" stroke-width="' + (major ? '.9' : '.45') +
+        '" opacity="' + (major ? '.8' : '.3') + '" pointer-events="none"/>');
+      var qh = polar(hourR(hh), -HALF);
+      parts.push('<text x="' + f(qh[0] - 8) + '" y="' + f(qh[1]) + '" text-anchor="end" ' +
+        'dominant-baseline="middle" font-size="' + (major ? '10.5' : '8.5') + '" ' +
+        'font-family="var(--mono)" fill="var(--ink-' + (major ? '2' : '3') + ')" ' +
+        'pointer-events="none" transform="' + tilt(-HALF, qh[0] - 8, qh[1]) + '">' +
+        hh + '</text>');
     }
+    /* where the clock stands right now, on today's own column */
+    parts.push('<g id="mv-now"></g>');
     /* sunrise and sunset written on once a week, where the eye can catch them */
     days.forEach(function (d, i) {
       if (i % 7 || !d.sunrise || !d.sunset) return;
@@ -168,6 +169,9 @@
       .forEach(function (r) {
         var a1 = edge(r.from), a2 = edge(r.to + 1);
         if (a2 - a1 < 7) return;
+        parts.push('<path class="mv-run" data-from="' + days[r.from].n + '" data-to="' +
+          days[r.to].n + '" d="' + sector(R.moonIn, R.moonOut, a1, a2) +
+          '" fill="var(--moon)" fill-opacity=".01" pointer-events="none"/>');
         var e1 = polar(R.moonIn, a1), e2 = polar(R.moonOut, a1);
         parts.push('<path d="M' + f(e1[0]) + ' ' + f(e1[1]) + 'L' + f(e2[0]) + ' ' +
           f(e2[1]) + '" stroke="var(--moon)" stroke-width="1.2" opacity=".7"/>');
@@ -189,6 +193,9 @@
       .forEach(function (r) {
         var a1 = edge(r.from), a2 = edge(r.to + 1);
         var t = days[r.from].inTerm;
+        parts.push('<path class="mv-run" data-from="' + days[r.from].n + '" data-to="' +
+          days[r.to].n + '" d="' + sector(R.termIn, R.termOut, a1, a2) +
+          '" fill="var(--bg-2)" fill-opacity=".01" pointer-events="none"/>');
         var e1 = polar(R.termIn, a1), e2 = polar(R.termOut, a1);
         parts.push('<path d="M' + f(e1[0]) + ' ' + f(e1[1]) + 'L' + f(e2[0]) + ' ' +
           f(e2[1]) + '" stroke="var(--line)" stroke-width="1"/>');
@@ -223,8 +230,10 @@
     runsOf(days, function (d) { return d.season; }).forEach(function (r) {
       var a1 = edge(r.from), a2 = edge(r.to + 1);
       var s = cycle.stations[days[r.from].season * 2] || cycle.stations[0];
-      parts.push('<path d="' + sector(R.seasonIn, R.seasonOut, a1, a2) +
-        '" fill="var(--bg-2)" fill-opacity=".6" stroke="var(--line-soft)" stroke-width=".7"/>');
+      parts.push('<path class="mv-run" data-from="' + days[r.from].n + '" data-to="' +
+        days[r.to].n + '" d="' + sector(R.seasonIn, R.seasonOut, a1, a2) +
+        '" fill="var(--bg-2)" fill-opacity=".6" stroke="var(--line-soft)" ' +
+        'stroke-width=".7" pointer-events="none"/>');
       var c = (a1 + a2) / 2, lp = polar(R.seasonLabel, c);
       parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
         'dominant-baseline="middle" font-size="15" font-family="var(--serif)" ' +
@@ -250,8 +259,10 @@
     parts.push('<path d="' + sector(R.growIn, R.growOut, -HALF, HALF) +
       '" fill="var(--bg-2)" fill-opacity=".35" stroke="var(--line-soft)" stroke-width=".7"/>');
     if (grow) {
-      parts.push('<path d="' + sector(R.growIn, R.growOut, edge(grow.from), edge(grow.to + 1)) +
-        '" fill="var(--grow, #6b9e5a)" fill-opacity=".45"/>');
+      parts.push('<path class="mv-run" data-from="' + days[grow.from].n + '" data-to="' +
+        days[grow.to].n + '" d="' +
+        sector(R.growIn, R.growOut, edge(grow.from), edge(grow.to + 1)) +
+        '" fill="var(--grow, #6b9e5a)" fill-opacity=".45" pointer-events="none"/>');
       var gc = (edge(grow.from) + edge(grow.to + 1)) / 2, gp = polar(R.growIn + 26, gc);
       parts.push('<text x="' + f(gp[0]) + '" y="' + f(gp[1]) + '" text-anchor="middle" ' +
         'dominant-baseline="middle" font-size="11" fill="var(--ink-2)" ' +
@@ -300,5 +311,30 @@
                (from > 0 ? ' opens' : ' closes') };
   }
 
-  global.MonthView = { render: render };
+  /* The current hour, ticked on today's column. Exported so it can be redrawn
+   * on a timer without rebuilding the fan underneath it. */
+  function nowMark(cycle, run, when) {
+    var days = cycle.days.slice(run.start - 1, run.end);
+    var N = days.length, span = HALF * 2;
+    for (var i = 0; i < N; i++) {
+      if (days[i].iso !== isoOf(cycle, when)) continue;
+      var a1 = -HALF + span * (i / N), a2 = -HALF + span * ((i + 1) / N);
+      var h = TZ.hoursIntoDay(cycle.tz, when);
+      var r = R.lightIn + (R.lightOut - R.lightIn) * Math.max(0, Math.min(24, h)) / 24;
+      var p1 = polar(r, a1), p2 = polar(r, a2);
+      var mid = (a1 + a2) / 2, q = polar(r, mid);
+      return '<path d="M' + f(p1[0]) + ' ' + f(p1[1]) + 'A' + r + ' ' + r +
+        ' 0 0 1 ' + f(p2[0]) + ' ' + f(p2[1]) +
+        '" fill="none" stroke="var(--today)" stroke-width="3"/>' +
+        '<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="4" fill="var(--today)"/>';
+    }
+    return '';
+  }
+  function isoOf(cycle, when) {
+    var p = TZ.civilParts(cycle.tz, when);
+    return p.year + '-' + (p.month < 10 ? '0' : '') + p.month +
+           '-' + (p.day < 10 ? '0' : '') + p.day;
+  }
+
+  global.MonthView = { render: render, nowMark: nowMark };
 })(typeof window !== 'undefined' ? window : globalThis);

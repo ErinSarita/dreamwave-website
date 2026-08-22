@@ -347,6 +347,7 @@
     /* Each ring ticks only while its own face is on the stage. */
     if (level !== 'moon') stopMoonClock();
     if (level !== 'day') stopDayRing();
+    if (level !== 'month') stopMonthNow();
     if (level === 'year') { state.season = null; state.day = null; state.lunationK = null; state.monthRun = null; }
     if (level === 'season') state.lunationK = null;
     if (level === 'season' && state.season === null) {
@@ -753,9 +754,18 @@
      * pointer leaves, so the box is never blank. */
     var body = $('month-readout').querySelector('.r-body');
     var sectors = $('monthfan').querySelectorAll('.mv-day');
+    var runsEls = $('monthfan').querySelectorAll('.mv-run');
+    /* Marking a day lights the day itself and every run it belongs to: its
+     * term, its lunation, its season, its stretch of growing weather. The
+     * point of the fan is that those boundaries fall wherever the sky puts
+     * them, so seeing which ones a day sits inside is the whole reading. */
     function markDay(n) {
       Array.prototype.forEach.call(sectors, function (el) {
         el.classList.toggle('is-sel', +el.getAttribute('data-day') === n);
+      });
+      Array.prototype.forEach.call(runsEls, function (el) {
+        var a = +el.getAttribute('data-from'), b = +el.getAttribute('data-to');
+        el.classList.toggle('is-lit', n >= a && n <= b);
       });
     }
     function showDay(n) {
@@ -798,6 +808,25 @@
     });
     $('monthfan').addEventListener('mouseleave', restDay);
     restDay();
+    startMonthNow(run);
+  }
+
+  /* The clock's own position on today's column, kept current while the fan is
+   * on the stage. A minute is plenty: the tick moves a fraction of its own
+   * width in that time. */
+  var monthNowTimer = null;
+  function tickMonthNow(run) {
+    var g = document.getElementById('mv-now');
+    if (!g || !global.MonthView) { stopMonthNow(); return; }
+    g.innerHTML = MonthView.nowMark(cycle, run, new Date());
+  }
+  function startMonthNow(run) {
+    stopMonthNow();
+    tickMonthNow(run);
+    monthNowTimer = setInterval(function () { tickMonthNow(run); }, 60000);
+  }
+  function stopMonthNow() {
+    if (monthNowTimer) { clearInterval(monthNowTimer); monthNowTimer = null; }
   }
 
   /* The ecliptic wheel, in its own window because its angle means something
