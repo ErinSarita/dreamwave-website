@@ -25,15 +25,15 @@
    * real hours laid out between. The season and term bands were shortened to
    * pay for it, since a word and a number each need much less room. */
   var R = {
-    growIn: 128, growOut: 158,
-    seasonIn: 166, seasonOut: 202, seasonLabel: 184,
-    termIn: 210, termOut: 262, termLabel: 243, termDayNum: 219,
+    growIn: 128, growOut: 158, growLabel: 143,
+    seasonIn: 166, seasonOut: 200, seasonLabel: 183,
     /* The hour band takes the middle and most of the depth, being the only
-     * ring that carries a whole axis. The moon rides outside it, where the arc
-     * is long enough for a face a day without crowding. */
-    lightIn: 272, lightOut: 552,
-    moonIn: 562, moonOut: 632, moonGlyph: 590, moonLabel: 623,
-    dayIn: 642, dayOut: 700, solarNum: 657, dateNum: 685
+     * ring that carries a whole axis. Moon outside it, then the terms, then
+     * the days at the rim. */
+    lightIn: 210, lightOut: 486,
+    moonIn: 496, moonOut: 560, moonGlyph: 522, moonLabel: 552,
+    termIn: 570, termOut: 626, termNum: 604, termDayNum: 580,
+    dayIn: 636, dayOut: 700, solarNum: 652, dateNum: 682
   };
   var HOUR_SPAN = 24;
 
@@ -184,26 +184,27 @@
       });
 
     /* -- the solar terms crossing the month ------------------------------ */
+    /* Numbers, and nothing else. A term's name is worth a line on the year
+     * wheel where there is room for it; here the number is what tells you
+     * which of the twenty-four you are in, and the divider at each boundary is
+     * what shows a term ending mid-month. The days are combed beneath. */
     parts.push('<path d="' + sector(R.termIn, R.termOut, -HALF, HALF) +
       '" fill="var(--bg-2)" fill-opacity=".45" stroke="var(--line-soft)" stroke-width=".7"/>');
     runsOf(days, function (d) { return d.inTerm ? d.inTerm.number : null; })
       .forEach(function (r) {
         var a1 = edge(r.from), a2 = edge(r.to + 1);
         var t = days[r.from].inTerm;
-        var e1 = polar(R.termIn, a1), e2 = polar(R.termOut, a1);
-        parts.push('<path d="M' + f(e1[0]) + ' ' + f(e1[1]) + 'L' + f(e2[0]) + ' ' +
-          f(e2[1]) + '" stroke="var(--line)" stroke-width="1"/>');
-        var c = (a1 + a2) / 2, lp = polar(R.termLabel, c);
-        var wide = (a2 - a1) > 18;
+        [a1, a2].forEach(function (a) {
+          var e1 = polar(R.termIn, a), e2 = polar(R.termOut, a);
+          parts.push('<path d="M' + f(e1[0]) + ' ' + f(e1[1]) + 'L' + f(e2[0]) + ' ' +
+            f(e2[1]) + '" stroke="var(--line)" stroke-width="1.2"/>');
+        });
+        var c = (a1 + a2) / 2, lp = polar(R.termNum, c);
         parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
-          'dominant-baseline="middle" font-size="' + (wide ? 12 : 10) + '" ' +
+          'dominant-baseline="middle" font-size="17" font-family="var(--serif)" ' +
           'fill="var(--ink-2)" pointer-events="none" transform="' +
-          tilt(c, lp[0], lp[1]) + '">' + esc(t.english) + '</text>');
-        parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1] + 15) + '" text-anchor="middle" ' +
-          'dominant-baseline="middle" font-size="9" fill="var(--ink-3)" ' +
-          'pointer-events="none" transform="' + tilt(c, lp[0], lp[1] + 15) + '">' +
-          'term ' + t.number + ' of 24 · ' + (r.to - r.from + 1) + ' of its ' +
-          t.days + ' days here</text>');
+          tilt(c, lp[0], lp[1]) + '"><title>' + esc(t.english) + ' · term ' +
+          t.number + ' of 24 · ' + t.days + ' days</title>' + t.number + '</text>');
       });
 
     /* Which day of its own term each day is. The year wheel combs the term
@@ -254,16 +255,19 @@
     if (grow) {
       parts.push('<path d="' + sector(R.growIn, R.growOut, edge(grow.from), edge(grow.to + 1)) +
         '" fill="var(--grow, #6b9e5a)" fill-opacity=".45" pointer-events="none"/>');
-      var gc = (edge(grow.from) + edge(grow.to + 1)) / 2, gp = polar(R.growIn + 26, gc);
+      var gc = (edge(grow.from) + edge(grow.to + 1)) / 2, gp = polar(R.growLabel, gc);
       parts.push('<text x="' + f(gp[0]) + '" y="' + f(gp[1]) + '" text-anchor="middle" ' +
         'dominant-baseline="middle" font-size="11" fill="var(--ink-2)" ' +
         'pointer-events="none" transform="' + tilt(gc, gp[0], gp[1]) + '">' +
         esc(grow.label) + '</text>');
     }
 
-    /* No caption at the apex. The title bar above the fan already carries the
-     * month and its span, and clearing the middle is what lets the rings reach
-     * inward far enough to give the hour band real depth. */
+    /* The month named at the apex, small. The title bar carries it too, but
+     * the fan should say what it is when read on its own. */
+    parts.push('<text x="' + CX + '" y="' + (CY - 76) + '" text-anchor="middle" ' +
+      'font-size="20" font-family="var(--serif)" fill="var(--ink-2)">' +
+      esc(TZ.MONTHS[run.month - 1]) + ' <tspan font-size="13" fill="var(--ink-3)">' +
+      run.year + '</tspan></text>');
 
     /* One radial marker cutting the whole stack, the same way the year wheel
      * marks a day: everything that shares this day lights at once, because the
