@@ -132,6 +132,8 @@
       <span class="crumb-sep">›</span>
       <button data-level="season" class="crumb" id="crumb-season" disabled>Season</button>
       <span class="crumb-sep">›</span>
+      <button data-level="month" class="crumb" id="crumb-month" disabled>Month</button>
+      <span class="crumb-sep">›</span>
       <button data-level="moon" class="crumb" id="crumb-moon" disabled>Moon</button>
       <span class="crumb-sep">›</span>
       <button data-level="day" class="crumb" id="crumb-day" disabled>Day</button>
@@ -143,6 +145,19 @@
         <g id="orrery"></g>
       </svg>
       <div class="readout" id="orrery-readout"></div>
+    </div>
+
+    <div class="scene scene-month" id="scene-month" hidden>
+      <div class="month-topbar">
+        <button class="moon-arrow" id="month-prev" aria-label="Previous month" title="Previous month">‹</button>
+        <div class="month-head" id="month-head"></div>
+        <button class="moon-arrow" id="month-next" aria-label="Next month" title="Next month">›</button>
+      </div>
+      <svg id="month-svg" viewBox="0 0 1200 800" role="img"
+           aria-label="One calendar month drawn as a slice of the year">
+        <g id="monthfan"></g>
+      </svg>
+      <div class="readout" id="month-readout"></div>
     </div>
 
     <div class="scene scene-wheel" id="scene-wheel">
@@ -217,21 +232,6 @@
       <button id="zoom-reset" aria-label="Reset zoom" title="Reset zoom">⤾</button>
     </div>
   </main>
-</div>
-
-<div class="modal" id="month" hidden>
-  <div class="modal-card month-card" role="dialog" aria-modal="true" aria-labelledby="month-h">
-    <button class="close" id="month-close" aria-label="Close">&times;</button>
-    <h2 id="month-h">The month, opened out</h2>
-    <p>A calendar month is one slice of the year's pie, so here it is as one:
-    the apex below, the days fanning up and out, and the same layers the wheel
-    carries stacked in the same order. The month's own edges are the only thing
-    here that owes nothing to the sky. Everything else cuts across it wherever
-    the sun and moon decide, which is the interesting part.</p>
-    <svg id="month-svg" viewBox="0 0 1200 800" role="img"
-         aria-label="One calendar month drawn as a slice of the year"></svg>
-    <p class="meta" id="month-meta"></p>
-  </div>
 </div>
 
 <div class="modal" id="watch" hidden>

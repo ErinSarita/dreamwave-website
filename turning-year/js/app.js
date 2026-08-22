@@ -42,6 +42,8 @@
     showBio: false,
     showOrgans: false,
     orbitsMin: false,   // the system readout collapsed to a single line
+    monthRun: null,     // which calendar month is open, as an index
+    monthMin: false,
     /* A chosen instant, when someone wants a particular moment rather than
      * now: a birth time, an eclipse, a date in 1969. Held as an ISO string so
      * it survives a reload. Null means "read the sky as it is". */
@@ -52,7 +54,7 @@
   };
   var cycle = null;
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
-  var wheelZoom = null, dayZoom = null, moonZoom = null, orbitsZoom = null;
+  var wheelZoom = null, dayZoom = null, moonZoom = null, orbitsZoom = null, monthZoom = null;
 
   /* ------------------------------------------------------------ persistence */
   function save() {
@@ -62,6 +64,7 @@
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
         panelMin: state.panelMin, moonMin: state.moonMin,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
+        monthRun: state.monthRun, monthMin: state.monthMin,
         showPlanets: state.showPlanets,
         showBio: state.showBio, showOrgans: state.showOrgans,
         orbitsMin: state.orbitsMin,
@@ -94,6 +97,8 @@
       if (typeof o.showBio === 'boolean') state.showBio = o.showBio;
       if (typeof o.showOrgans === 'boolean') state.showOrgans = o.showOrgans;
       if (typeof o.orbitsMin === 'boolean') state.orbitsMin = o.orbitsMin;
+      if (typeof o.monthRun === 'number' || o.monthRun === null) state.monthRun = o.monthRun;
+      if (typeof o.monthMin === 'boolean') state.monthMin = o.monthMin;
       if (typeof o.moment === 'string' || o.moment === null) state.moment = o.moment;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
         if (typeof o.moonPhases[k] === 'boolean') state.moonPhases[k] = o.moonPhases[k];
@@ -284,7 +289,8 @@
     for (var q = 0; q < monthHits.length; q++) {
       monthHits[q].addEventListener('click', function (e) {
         e.stopPropagation();          // the day sector underneath must not also fire
-        openMonth(+e.currentTarget.getAttribute('data-run'));
+        state.monthRun = +e.currentTarget.getAttribute('data-run');
+        setLevel('month');
       });
     }
     var moonHits = $('wheel').querySelectorAll('.moon-hit');
@@ -332,6 +338,7 @@
 
   function setLevel(level, opts) {
     if (orbitsZoom) orbitsZoom.reset();
+    if (monthZoom) monthZoom.reset();
     if (wheelZoom) wheelZoom.reset();
     if (dayZoom) dayZoom.reset();
     if (moonZoom) moonZoom.reset();
@@ -340,7 +347,7 @@
     /* Each ring ticks only while its own face is on the stage. */
     if (level !== 'moon') stopMoonClock();
     if (level !== 'day') stopDayRing();
-    if (level === 'year') { state.season = null; state.day = null; state.lunationK = null; }
+    if (level === 'year') { state.season = null; state.day = null; state.lunationK = null; state.monthRun = null; }
     if (level === 'season') state.lunationK = null;
     if (level === 'season' && state.season === null) {
       state.season = WheelView.seasonOfDay(cycle, state.day || todayNumber() || 1);
@@ -352,14 +359,14 @@
     }
     $('zoom-controls').hidden = false;
     var wheelScene = $('scene-wheel'), dayScene = $('scene-day'), moonScene = $('scene-moon');
-    var orbitsScene = $('scene-orbits');
+    var orbitsScene = $('scene-orbits'), monthScene = $('scene-month');
 
     /* Three scenes share the stage. Whichever the new level wants comes
      * forward and the other two step back, on the same fade the wheel and the
      * day already used between them. */
     function showScene(want) {
       var all = [['orbits', orbitsScene], ['wheel', wheelScene],
-                 ['day', dayScene], ['moon', moonScene]];
+                 ['month', monthScene], ['day', dayScene], ['moon', moonScene]];
       var current = null;
       all.forEach(function (pair) { if (!pair[1].hidden) current = pair; });
       var target = all.filter(function (pair) { return pair[0] === want; })[0];
@@ -379,6 +386,13 @@
     if (level === 'orbits') {
       drawOrbits();
       showScene('orbits');
+      syncCrumbs(); syncLegend(); writeHash();
+      return;
+    }
+    if (level === 'month') {
+      if (state.monthRun === null) state.monthRun = monthRunOfDay(state.day || todayNumber() || 1);
+      drawMonth();
+      showScene('month');
       syncCrumbs(); syncLegend(); writeHash();
       return;
     }
@@ -440,6 +454,7 @@
       cs[i].classList.toggle('is-on', lvl === slot);
     }
     var cS = $('crumb-season'), cM = $('crumb-moon'), cD = $('crumb-day');
+    $('crumb-month').disabled = !cycle;
     cS.disabled = !cycle;
     cM.disabled = !cycle;
     cD.disabled = !cycle;
@@ -667,48 +682,82 @@
       (state.moment ? ' (chosen)' : '');
   }
 
-  /* One month, opened out of the year wheel into its own fan. */
-  function openMonth(runIndex) {
+  /* One month, opened out of the year wheel into its own fan.
+   *
+   * A level of its own rather than a window, so it can be zoomed, stepped and
+   * linked like every other view, and so the trail says where you are. */
+  function monthRunOfDay(n) {
+    var runs = WheelView.monthRuns(cycle);
+    for (var i = 0; i < runs.length; i++) {
+      if (n >= runs[i].start && n <= runs[i].end) return i;
+    }
+    return 0;
+  }
+
+  function drawMonth() {
     if (!global.MonthView || !cycle) return;
     var runs = WheelView.monthRuns(cycle);
-    var run = runs[runIndex];
-    if (!run) return;
+    var idx = Math.max(0, Math.min(runs.length - 1, state.monthRun || 0));
+    state.monthRun = idx;
+    var run = runs[idx];
     var out = MonthView.render(cycle, run, {});
-    $('month-svg').innerHTML = out.svg;
-    $('month-h').textContent = TZ.MONTHS[run.month - 1] + ' ' + run.year;
+    $('monthfan').innerHTML = out.svg;
 
-    var d0 = out.days[0], dN = out.days[out.days.length - 1];
-    var terms = {}, lunations = {};
+    $('month-head').innerHTML =
+      '<div class="mh-name">' + esc(TZ.MONTHS[run.month - 1]) +
+      ' <span class="mh-year">' + run.year + '</span></div>' +
+      '<div class="mh-sub">' + out.days.length + ' days &#183; solar day ' +
+      out.days[0].n + ' to ' + out.days[out.days.length - 1].n +
+      ' of ' + cycle.length + '</div>';
+    $('month-prev').disabled = idx === 0;
+    $('month-next').disabled = idx === runs.length - 1;
+
+    var terms = {}, luns = {};
     out.days.forEach(function (d) {
       if (d.inTerm) terms[d.inTerm.number] = d.inTerm.english;
-      if (d.lunation) lunations[d.lunation.startDay] = d.lunation.yearMoonNumber || '\u00b7';
+      if (d.lunation) luns[d.lunation.startDay] = 1;
     });
-    var tk = Object.keys(terms), lk = Object.keys(lunations);
-    var events = out.days.filter(function (d) { return d.moonEvent; })
-      .map(function (d) { return d.moonEvent + ' on the ' + d.day; });
-    var stations = out.days.filter(function (d) { return d.station; })
-      .map(function (d) { return d.station.name + ' on the ' + d.day; });
+    var tk = Object.keys(terms);
+    var events = out.days.filter(function (d) { return d.moonEvent; });
+    var stations = out.days.filter(function (d) { return d.station; });
+    var rows = '';
+    rows += '<div><span>Season</span> · ' +
+      ['Winter', 'Spring', 'Summer', 'Autumn'][out.days[0].season] + '</div>';
+    rows += '<div><span>Terms</span> · ' + tk.length + '</div>';
+    rows += '<div><span>Lunations</span> · ' + Object.keys(luns).length + '</div>';
 
-    $('month-meta').textContent =
-      out.days.length + ' days, running solar day ' + d0.n + ' to ' + dN.n +
-      ' of ' + cycle.length + '. ' +
-      'It crosses ' + tk.length + ' solar term' + (tk.length === 1 ? '' : 's') +
-      ' (' + tk.map(function (k) { return terms[k]; }).join(', ') + ') and ' +
-      lk.length + ' lunation' + (lk.length === 1 ? '' : 's') + '. ' +
-      (events.length ? events.join(', ') + '. ' : '') +
-      (stations.length ? stations.join(', ') + '. ' : '') +
-      'Tap any day to open its twenty-four hours.';
+    $('month-readout').className = 'readout' + (state.monthMin ? ' min' : '');
+    $('month-readout').innerHTML =
+      '<button class="panel-min" id="month-min" aria-label="' +
+        (state.monthMin ? 'Expand month details' : 'Minimise month details') +
+        '" title="' + (state.monthMin ? 'Expand' : 'Minimise') + '">' +
+        (state.monthMin ? '▴' : '▾') + '</button>' +
+      '<div class="r-mini">' + esc(TZ.MONTHS_SHORT[run.month - 1]) + ' ' + run.year +
+        ' &#183; ' + out.days.length + ' days</div>' +
+      '<div class="r-lab">' + esc(TZ.MONTHS[run.month - 1]) + '</div>' +
+      '<div class="r-date">' + esc(tk.map(function (k) { return terms[k]; }).join(' · ')) + '</div>' +
+      '<div class="r-rows">' + rows + '</div>' +
+      (events.length ? '<div class="r-lunation">' + events.map(function (d) {
+        return d.moonEvent + ' on the ' + d.day; }).join(' · ') + '</div>' : '') +
+      (stations.length ? '<div class="r-station">' + stations.map(function (d) {
+        return d.station.name + ' on the ' + d.day; }).join(' · ') + '</div>' : '') +
+      '<div class="r-hint">The month is the one ring here that owes nothing to ' +
+      'the sky. Everything else cuts across it as the sun and moon decide. ' +
+      'Click a day for its twenty-four hours.</div>';
 
-    Array.prototype.forEach.call($('month-svg').querySelectorAll('.mv-day'),
+    $('month-min').addEventListener('click', function (e) {
+      e.stopPropagation();
+      state.monthMin = !state.monthMin;
+      save(); drawMonth();
+    });
+    Array.prototype.forEach.call($('monthfan').querySelectorAll('.mv-day'),
       function (el) {
         el.addEventListener('click', function (e) {
           e.stopPropagation();
-          $('month').hidden = true;
           state.day = +el.getAttribute('data-day');
           setLevel('day');
         });
       });
-    $('month').hidden = false;
   }
 
   /* The ecliptic wheel, in its own window because its angle means something
@@ -2176,9 +2225,11 @@
     $('tool-body').addEventListener('click', function () { openTool('body'); });
     syncDayTools();
 
-    $('month-close').addEventListener('click', function () { $('month').hidden = true; });
-    $('month').addEventListener('click', function (e) {
-      if (e.target === $('month')) $('month').hidden = true;
+    $('month-prev').addEventListener('click', function () {
+      state.monthRun = Math.max(0, (state.monthRun || 0) - 1); drawMonth(); writeHash();
+    });
+    $('month-next').addEventListener('click', function () {
+      state.monthRun = (state.monthRun || 0) + 1; drawMonth(); writeHash();
     });
 
     $('watch-close').addEventListener('click', function () { $('watch').hidden = true; });
@@ -2264,13 +2315,15 @@
        * day in hand. Only the arrows and the wheel's own pies choose a month
        * deliberately, and those set it themselves before coming here. */
       if (lvl === 'moon') state.lunationK = lunationKOfDay(state.day || todayNumber() || 1);
+      if (lvl === 'month' && state.monthRun === null) {
+        state.monthRun = monthRunOfDay(state.day || todayNumber() || 1);
+      }
       setLevel(lvl);
     });
 
     document.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.key === 'Escape') {
-        if (!$('month').hidden) { $('month').hidden = true; return; }
         if (!$('watch').hidden) { $('watch').hidden = true; return; }
         if (!$('zodiac').hidden) { $('zodiac').hidden = true; return; }
         if (!$('ethos').hidden) { $('ethos').hidden = true; return; }
@@ -2349,6 +2402,7 @@
     wheelZoom = ZoomPan.attach($('wheel-svg'), $('scene-wheel'));
     dayZoom = ZoomPan.attach($('day-svg'), $('scene-day'));
     moonZoom = ZoomPan.attach($('moon-svg'), $('scene-moon'));
+    monthZoom = ZoomPan.attach($('month-svg'), $('scene-month'));
     orbitsZoom = ZoomPan.attach($('orrery-svg'), $('scene-orbits'));
     function active() {
       return state.level === 'day' ? dayZoom

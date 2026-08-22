@@ -19,7 +19,7 @@
   var R = {
     growIn: 236, growOut: 288,
     seasonIn: 300, seasonOut: 372, seasonLabel: 336,
-    termIn: 384, termOut: 458, termLabel: 421,
+    termIn: 384, termOut: 458, termLabel: 428, termDayNum: 396,
     moonIn: 470, moonOut: 552, moonGlyph: 500, moonLabel: 538,
     dayIn: 566, dayOut: 648, solarNum: 588, dateNum: 622
   };
@@ -123,8 +123,22 @@
           'dominant-baseline="middle" font-size="9" fill="var(--ink-3)" ' +
           'pointer-events="none" transform="' + tilt(c, lp[0], lp[1] + 15) + '">' +
           'term ' + t.number + ' of 24 · ' + (r.to - r.from + 1) + ' of its ' +
-          t.days + ' days</text>');
+          t.days + ' days here</text>');
       });
+
+    /* Which day of its own term each day is. The year wheel combs the term
+     * ring by day at a size where only the ticks show; here there is room for
+     * the numbers themselves, so a term can be watched counting up and
+     * starting over mid-month. */
+    days.forEach(function (d, i) {
+      if (!d.inTerm || !d.dayInTerm) return;
+      var m = mid(i), q = polar(R.termDayNum, m);
+      parts.push('<text x="' + f(q[0]) + '" y="' + f(q[1]) + '" text-anchor="middle" ' +
+        'dominant-baseline="middle" font-size="9.5" font-family="var(--mono)" ' +
+        'fill="' + (d.dayInTerm === 1 ? 'var(--sun)' : 'var(--ink-3)') + '" ' +
+        'pointer-events="none" transform="' + tilt(m, q[0], q[1]) + '">' +
+        d.dayInTerm + '</text>');
+    });
 
     /* -- season and midpoint --------------------------------------------- */
     runsOf(days, function (d) { return d.season; }).forEach(function (r) {

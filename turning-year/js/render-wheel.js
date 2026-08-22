@@ -147,6 +147,7 @@
   }
 
   function render(cycle, opts) {
+    var monthHits = [];
     var parts = [];
     var N = cycle.length;
     var step = 360 / N;
@@ -503,14 +504,15 @@
       parts.push('<circle cx="500" cy="500" r="' + ((R.monthIn + R.monthOut) / 2) + '" fill="none" ' +
                  'stroke="var(--line-soft)" stroke-width="' + (R.monthOut - R.monthIn) + '" opacity=".6"/>');
       var runs = monthRuns(cycle);
+      monthHits = [];
       /* Each month is a door into its own fan. The band is thin, so the
        * target reaches a little past it on both sides. */
       runs.forEach(function (run, ri) {
         var hitA = dayEdge(cycle, run.start);
         var hitB = dayEdge(cycle, Math.min(run.end + 1, N + 1));
         if (hitB > hitA) {
-          parts.push('<path class="month-hit" data-run="' + ri + '" d="' +
-            sector(R.monthIn - 9, R.monthOut + 9, hitA, hitB) +
+          monthHits.push('<path class="month-hit" data-run="' + ri + '" d="' +
+            sector(R.monthIn - 8, R.monthOut + 8, hitA, hitB) +
             '" fill="transparent" style="cursor:pointer"><title>' +
             TZ.MONTHS[run.month - 1] + ' ' + run.year + ' · open this month</title></path>');
         }
@@ -688,6 +690,7 @@
                'stroke="var(--ink)" stroke-width=".8" stroke-opacity=".5" opacity="0"/>');
 
     /* -- hit targets ---------------------------------------------------------*/
+    /* Order matters here: whatever goes on last wins the pointer. */
     var hits = [];
     for (i = 1; i <= N; i++) {
       hits.push('<path class="hit" data-day="' + i + '" d="' +
@@ -698,6 +701,7 @@
       parts.push('<g id="moon-hits">' + cycle._pieHits + '</g>');
       cycle._pieHits = null;
     }
+    if (monthHits.length) parts.push('<g id="month-hits">' + monthHits.join('') + '</g>');
 
     return parts.join('');
   }
