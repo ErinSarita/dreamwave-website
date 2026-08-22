@@ -464,6 +464,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-align: right;
 }
 .tool-panel-prose .tp-watches .tw-hours em { display: block; font-style: normal; }
+.tool-panel-prose .tp-watches .tw-hours { font-size: 11px; }
 
 .tool-panel-prose .tp-refs { margin: 6px 0 0; padding-left: 16px; font-size: 11.5px; }
 .tool-panel-prose .tp-refs li { margin-bottom: 4px; color: var(--ink-3); }

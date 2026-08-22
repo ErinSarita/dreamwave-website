@@ -913,20 +913,44 @@
        * ring is under nine pixels deep at that size, well below a comfortable
        * touch target. The clock times beside each also make plain how far the
        * solar reckoning sits from the hour numerals. */
-      organs += '<ul class="tp-watches">' + BC.WATCHES.map(function (x, j) {
+      organs += '<p class="tp-brief">The twelve, as they fall on your clock ' +
+        'today. Their classical hours are solar ones, so they drift off the ' +
+        'clock by your longitude inside the timezone, by daylight saving, and ' +
+        'by the equation of time. Here that comes to over an hour, which is why ' +
+        'the ring sits away from the hour numerals: the ring follows the sun, ' +
+        'and the numerals follow the timezone.</p>' +
+        '<ul class="tp-watches">' + BC.WATCHES.map(function (x, j) {
         var ck = watchClock(j, d);
         return '<li><button data-watch="' + j + '"' +
           (w === x ? ' class="is-now"' : '') + '>' +
           '<span class="tw-organ">' + esc(x.organ) + '</span>' +
           '<span class="tw-branch">' + esc(x.branch) + '</span>' +
-          '<span class="tw-hours">' + esc(x.hours) + ' sun' +
-          (ck ? '<em>' + esc(ck) + '</em>' : '') + '</span></button></li>';
+          '<span class="tw-hours">' + esc(ck || x.hours) + '</span></button></li>';
       }).join('') + '</ul>' +
-      '<p class="tp-brief">Those hours are <b>solar</b> hours, so they drift ' +
-      'from the clock by your longitude inside the timezone, by daylight ' +
-      'saving, and by the equation of time. Here that comes to more than an ' +
-      'hour, which is why the ring sits off the hour numerals: the ring ' +
-      'follows the sun, and the numerals follow the timezone.</p>';
+
+      '<h4>Why every watch is the same width</h4>' +
+      '<p>A fair thing to wonder, given the sun sets everything else here. The ' +
+      'sun fixes <b>where the ring starts</b>, and the season moves the light ' +
+      'around inside it, but the ring itself is always the same length: one ' +
+      'whole turn of the earth, and a turn is a turn.</p>' +
+      '<p>What swings through the year is how the day is <i>split</i> between ' +
+      'light and dark. At this latitude daylight runs about 15 hours at ' +
+      'midsummer and about 9 at midwinter, nearly six hours of difference. The ' +
+      'day holding them is 24 hours either way.</p>' +
+      '<p>The watches divide <b>the turn</b>, twelve equal shares of two hours ' +
+      'apiece, which is 30 degrees each, every day of the year. They were kept ' +
+      'that way by water clock. Systems that divide the <i>daylight</i> into ' +
+      'six and the night into six do exist, and there the hours really do ' +
+      'stretch and shrink with the season, but that is Edo Japan and medieval ' +
+      'Europe rather than this cycle.</p>' +
+      '<p>So the season shows up here as the light sliding through the fixed ' +
+      'watches. The Lung watch sits at solar 3 to 5 all year, ending half an ' +
+      'hour before dawn in midsummer and over two hours before it in ' +
+      'midwinter. The watch holds still; the light moves through it.</p>' +
+      '<p class="tp-brief">Twice a year, on the daylight saving changeovers, ' +
+      'the day really does run 23 or 25 hours. On those two days the watches ' +
+      'narrow or widen a little and one of them appears at both ends of the ' +
+      'ring, so you will count thirteen.</p>';
       organs +=
         '<h4>Zi and wu</h4>' +
         '<p><i>Zi</i> is the double hour around midnight, when yin is at its ' +
