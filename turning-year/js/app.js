@@ -928,25 +928,6 @@
           '<span class="tw-hours">' + esc(ck || x.hours) + '</span></button></li>';
       }).join('') + '</ul>' +
 
-      '<h4>Why every watch is the same width</h4>' +
-      '<p>A fair thing to wonder, given the sun sets everything else here. The ' +
-      'sun fixes <b>where the ring starts</b>, and the season moves the light ' +
-      'around inside it, but the ring itself is always the same length: one ' +
-      'whole turn of the earth, and a turn is a turn.</p>' +
-      '<p>What swings through the year is how the day is <i>split</i> between ' +
-      'light and dark. At this latitude daylight runs about 15 hours at ' +
-      'midsummer and about 9 at midwinter, nearly six hours of difference. The ' +
-      'day holding them is 24 hours either way.</p>' +
-      '<p>The watches divide <b>the turn</b>, twelve equal shares of two hours ' +
-      'apiece, which is 30 degrees each, every day of the year. They were kept ' +
-      'that way by water clock. Systems that divide the <i>daylight</i> into ' +
-      'six and the night into six do exist, and there the hours really do ' +
-      'stretch and shrink with the season, but that is Edo Japan and medieval ' +
-      'Europe rather than this cycle.</p>' +
-      '<p>So the season shows up here as the light sliding through the fixed ' +
-      'watches. The Lung watch sits at solar 3 to 5 all year, ending half an ' +
-      'hour before dawn in midsummer and over two hours before it in ' +
-      'midwinter. The watch holds still; the light moves through it.</p>' +
       '<p class="tp-brief">Twice a year, on the daylight saving changeovers, ' +
       'the day really does run 23 or 25 hours. On those two days the watches ' +
       'narrow or widen a little and one of them appears at both ends of the ' +
@@ -958,6 +939,8 @@
         'around noon, when yang is fullest and yin begins gathering again. The ' +
         'whole cycle is named after the pair of them: <i>zi wu liu zhu</i>, ' +
         'midnight-noon flowing and pouring. They are the gold ticks on the ring.</p>' +
+        '<p>The ring is measured from those two poles, darkest and brightest, ' +
+        'and divided out from there at two-hour intervals.</p>' +
         '<p><b>Click any watch</b> on the ring to see what it governs, what suits ' +
         'it, what sits badly, and why.</p>' +
         '<p class="tp-brief">Take all of it lightly. It marks when things tend to ' +
