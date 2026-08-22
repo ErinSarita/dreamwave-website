@@ -160,6 +160,94 @@
     fsh:          [[1,.45],[4,.55],[8,.35],[12,.3],[14,.62],[16,.25],[26,.2],[29,.42]]
   };
   var CURVE_ORDER = ['oestrogen', 'progesterone', 'lh', 'fsh'];
+
+  /* What each of the four actually is, and what can reasonably be said about
+   * looking after it.
+   *
+   * The support notes are deliberately thin on supplements and thick on the
+   * one thing that is well established: the whole axis runs from the
+   * hypothalamus, and the hypothalamus reads energy availability. Under-eating
+   * and over-training switch it down more reliably than anything switches it
+   * up. Most of what is sold as hormone support has little behind it; that is
+   * said here rather than left out.
+   */
+  var HORMONE_NOTES = {
+    oestrogen: {
+      name: 'Oestrogen', full: 'Oestradiol',
+      what: 'The principal oestrogen, made mostly by the follicle growing in ' +
+        'the ovary. It climbs through the first half of the cycle, spikes just ' +
+        'before ovulation, and returns in a broader, lower rise mid-luteal.',
+      role: 'It builds the uterine lining and brings the follicle to maturity, ' +
+        'and at its peak it flips the pituitary into the LH surge that releases ' +
+        'the egg. Its work reaches far past reproduction: bone density, ' +
+        'cholesterol handling, collagen in the skin, and signalling in the ' +
+        'serotonin and dopamine systems.',
+      felt: 'Rising oestrogen generally tracks rising energy, easier mood, ' +
+        'more appetite for company and clearer thinking. The sharp drop after ' +
+        'ovulation, and the fall before a period, are both implicated in the ' +
+        'dips that come with them.',
+      support: 'It needs enough food and enough body fat: both are raw ' +
+        'material, and severe restriction suppresses it outright. Fibre and ' +
+        'cruciferous vegetables support the liver in clearing what has been ' +
+        'used. Alcohol raises circulating levels and gives the liver more to ' +
+        'do. Sleep matters, as it does for the whole axis.'
+    },
+    progesterone: {
+      name: 'Progesterone', full: 'Progesterone',
+      what: 'Made by the corpus luteum, which is what the follicle becomes ' +
+        'once it has released the egg. It exists in quantity only if ovulation ' +
+        'actually happened, which makes it the honest signal that a cycle was ' +
+        'ovulatory rather than merely bleeding.',
+      role: 'It holds and matures the lining for a possible implantation, and ' +
+        'resets the hypothalamus about a third of a degree warmer for the rest ' +
+        'of the cycle. Broken down, it becomes allopregnanolone, which acts on ' +
+        'the same receptors alcohol and benzodiazepines do.',
+      felt: 'Warmth, and for many a settling calm. For others the same ' +
+        'metabolite brings irritability or low mood instead, which is one of ' +
+        'the better explanations for why premenstrual symptoms differ so ' +
+        'sharply between women. Appetite genuinely rises, heat is shed poorly, ' +
+        'and sleep can thin out.',
+      support: 'It follows ovulation, so there is no supporting it directly: ' +
+        'you support ovulating well. That means eating enough, training within ' +
+        'what recovery allows, and sleeping. Magnesium and B6 have modest ' +
+        'evidence for premenstrual symptoms; most other supplements sold for ' +
+        'this have very little.'
+    },
+    lh: {
+      name: 'LH', full: 'Luteinising hormone',
+      what: 'Released by the anterior pituitary in pulses, under the ' +
+        'hypothalamus. It sits at a low baseline for most of the cycle and ' +
+        'then produces one sharp surge.',
+      role: 'That surge is the trigger. The egg is released roughly 24 to 36 ' +
+        'hours after it, and afterwards LH keeps the corpus luteum working. ' +
+        'It is what ovulation predictor strips are detecting.',
+      felt: 'The surge itself is not felt. What follows sometimes is: a change ' +
+        'in cervical fluid, and for some a one-sided ache as the follicle ' +
+        'ruptures.',
+      support: 'Its pulses come from the hypothalamus, which is exquisitely ' +
+        'sensitive to energy availability. Sustained under-eating, heavy ' +
+        'training loads and prolonged stress suppress the pulse and with it ' +
+        'ovulation. Eating enough and leaving room to recover is the whole of ' +
+        'the advice, and it is better evidenced than anything else here.'
+    },
+    fsh: {
+      name: 'FSH', full: 'Follicle-stimulating hormone',
+      what: 'Also from the anterior pituitary. It rises as a cycle opens, ' +
+        'falls back as oestrogen takes over, and lifts once more alongside the ' +
+        'LH surge.',
+      role: 'It recruits the batch of follicles each cycle begins with, and ' +
+        'drives the one that wins to produce oestradiol. Rising oestrogen then ' +
+        'feeds back and shuts FSH down, which is how a single follicle is ' +
+        'selected out of many.',
+      felt: 'Nothing directly. A baseline that climbs over years is one of the ' +
+        'markers used to read diminishing ovarian reserve and the approach of ' +
+        'perimenopause.',
+      support: 'The same axis as LH, and the same answer: energy, recovery, ' +
+        'sleep. It responds to how well the whole system is being fed rather ' +
+        'than to anything aimed at it specifically.'
+    }
+  };
+
   var CURVE_LABEL = { oestrogen: 'oestrogen', progesterone: 'progesterone',
                       lh: 'LH', fsh: 'FSH' };
 
@@ -215,6 +303,7 @@
     PHASES: PHASES,
     CURVE_ORDER: CURVE_ORDER, CURVE_LABEL: CURVE_LABEL,
     MOON_NOTES: MOON_NOTES, moonNoteAt: moonNoteAt,
+    HORMONE_NOTES: HORMONE_NOTES,
     levelAt: levelAt,
     phaseOfDay: phaseOfDay,
     spans: spans

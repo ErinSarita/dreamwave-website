@@ -114,8 +114,13 @@
         d += (t ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1]);
       }
       parts.push('<path d="' + d + '" fill="none" stroke="' + HORMONE_COLOUR[key] +
-        '" stroke-width="2" opacity=".92" pointer-events="none"><title>' +
-        esc(Menses.CURVE_LABEL[key]) + '</title></path>');
+        '" stroke-width="2" opacity=".92" pointer-events="none"/>');
+      /* A two-pixel line is nothing to aim at, so the target is a wide
+       * invisible stroke laid over the same path. */
+      parts.push('<path class="mn-horm" data-horm="' + key + '" d="' + d +
+        '" fill="none" stroke="transparent" stroke-width="16" ' +
+        'style="cursor:pointer"><title>' + esc(Menses.CURVE_LABEL[key]) +
+        ' · tap to read it</title></path>');
     });
 
     /* -- the cycle's own days --------------------------------------------- */

@@ -756,6 +756,13 @@
           openMensesPhase(Menses.phaseOfDay(d, length).key);
         });
       });
+    Array.prototype.forEach.call($('menseswheel').querySelectorAll('.mn-horm'),
+      function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openHormone(el.getAttribute('data-horm'));
+        });
+      });
     Array.prototype.forEach.call($('menseswheel').querySelectorAll('.mn-moon'),
       function (el) {
         el.addEventListener('click', function (e) {
@@ -786,17 +793,24 @@
         return '<div><span>' + esc(s.phase.name) + '</span> · ' + s.from + '–' + s.to + '</div>';
       }).join('') + '</div>' +
       '<div class="r-key">' + Menses.CURVE_ORDER.map(function (k) {
-        return '<span><i style="background:' + MensesView.HORMONE_COLOUR[k] + '"></i>' +
-          esc(Menses.CURVE_LABEL[k]) + '</span>';
+        return '<button class="r-key-btn" data-horm="' + k + '">' +
+          '<i style="background:' + MensesView.HORMONE_COLOUR[k] + '"></i>' +
+          esc(Menses.CURVE_LABEL[k]) + '</button>';
       }).join('') + '</div>' +
       '<div class="r-hint">This is <b>one possible shape of a common cycle</b>, ' +
       'not a template. Bleeding is drawn at the dark moon and ovulation near ' +
       'the full because that is the old teaching picture, rather than because ' +
       'cycles are known to follow the moon. <b>Tap a phase</b> for the body, ' +
-      '<b>tap the moon ring</b> for the moon read on its own: when yours runs ' +
-      'out of step with it, that second reading is often the one that ' +
-      'explains the day.</div>';
+      '<b>tap the moon ring</b> for the moon read on its own, ' +
+      '<b>tap a curve</b> for the hormone behind it.</div>';
 
+    Array.prototype.forEach.call($('menses-readout').querySelectorAll('.r-key-btn'),
+      function (b) {
+        b.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openHormone(b.getAttribute('data-horm'));
+        });
+      });
     $('menses-min').addEventListener('click', function (e) {
       e.stopPropagation();
       state.mensesMin = !state.mensesMin;
@@ -806,6 +820,24 @@
 
   /* The moon read on its own, for the days when the cycle does not explain
    * how someone feels. Two clocks, each with something to say. */
+  function openHormone(key) {
+    var h = Menses.HORMONE_NOTES[key];
+    if (!h) return;
+    $('menses-prose').innerHTML =
+      '<h4 style="margin-top:0;color:' + MensesView.HORMONE_COLOUR[key] + '">' +
+        esc(h.name) + '</h4>' +
+      '<p class="tp-brief">' + esc(h.full) + '</p>' +
+      '<h4>What it is</h4><p>' + esc(h.what) + '</p>' +
+      '<h4>What it does</h4><p>' + esc(h.role) + '</p>' +
+      '<h4>What it feels like</h4><p>' + esc(h.felt) + '</p>' +
+      '<h4>Looking after it</h4><p>' + esc(h.support) + '</p>' +
+      '<p class="tp-brief">The heights on the wheel are relative, each curve ' +
+      'scaled to its own range so four things measured in different units can ' +
+      'share one band. The shape and the order are the reading; the levels ' +
+      'are not, and they differ between women and between cycles.</p>';
+    $('menses-flyout').hidden = false;
+  }
+
   function openMoonNote(key) {
     var m = null;
     Menses.MOON_NOTES.forEach(function (x) { if (x.key === key) m = x; });

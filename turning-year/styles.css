@@ -418,7 +418,16 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 9px 0 2px;
   font-size: 10.5px; color: var(--ink-3); justify-content: center;
 }
-.readout .r-key span { display: inline-flex; align-items: center; gap: 5px; }
+.readout .r-key span, .readout .r-key .r-key-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.readout .r-key-btn {
+  background: none; border: 0; padding: 2px 4px; border-radius: 6px;
+  font: inherit; font-size: 10.5px; color: var(--ink-3);
+  cursor: pointer; pointer-events: auto;
+}
+.readout .r-key-btn:hover { color: var(--ink); background: var(--bg-2); }
+.mn-horm:hover + * { opacity: 1; }
 .readout .r-key i { width: 14px; height: 2.5px; border-radius: 2px; flex: 0 0 auto; }
 .readout .r-hint b { font-weight: 500; color: var(--ink-2); }
 .mn-phase:hover { fill-opacity: .5; }
