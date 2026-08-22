@@ -93,6 +93,91 @@
     { key: 'term', name: 'term', from: 37, to: 40 }
   ];
 
+  /* What the baby can take in, and when.
+   *
+   * This is the band where prenatal and perinatal psychology lives, and it is
+   * also where the evidence is at its most uneven, so the two are kept apart.
+   * The hearing findings are solid and old: the ear is built around week
+   * eighteen, outside sound reaches in by about twenty-three, and from
+   * twenty-six to twenty-eight the fetus responds to sound and can tell the
+   * mother's voice from another. DeCasper and Fifer showed in 1980 that
+   * newborns prefer their mother's voice, and DeCasper and Spence that a rhyme
+   * recited daily in late pregnancy is recognised afterwards, the fetal heart
+   * rate settling when it is heard.
+   *
+   * What the field around this then builds on it, that the baby is a conscious
+   * and communicating self whose birth leaves lifelong imprints, reaches well
+   * past what those findings establish. It is given here as a framework and
+   * labelled as one, the same way the organ watches and the moon readings are.
+   */
+  var SENSES = [
+    { key: 'quiet', name: 'before hearing', from: 1, to: 17,
+      measured: 'The ear is still being built. Nothing is being heard yet.',
+      ppne: 'The field treats even this stretch as relational, holding that the ' +
+        'mother\'s state reaches the baby chemically long before anything can ' +
+        'be heard. The chemistry is real; the reading put on it is a claim.' },
+    { key: 'ear', name: 'the ear is built', from: 18, to: 22,
+      measured: 'The structures of the ear have formed by about week eighteen. ' +
+        'Function comes later than the anatomy.',
+      ppne: 'Talking and singing to the belly is often begun here. It does no ' +
+        'harm and it is a way of starting something in the person doing it.' },
+    { key: 'sound', name: 'outside sound reaches in', from: 23, to: 25,
+      measured: 'Hearing sharpens around week twenty-three and outside sounds ' +
+        'begin to arrive. The mother\'s voice carries through her body as well ' +
+        'as through the air, which is why it comes across most strongly.',
+      ppne: 'This is where deliberate voice work is usually taught: the same ' +
+        'song or rhyme, often, so it becomes familiar rather than novel.' },
+    { key: 'knows', name: 'responds, and knows her voice', from: 26, to: 31,
+      measured: 'From about weeks twenty-six to twenty-eight the fetus reliably ' +
+        'responds to sound and can discriminate the mother\'s voice from ' +
+        'others, showing a marked preference for hers.',
+      ppne: 'Held to be the beginning of relationship rather than mere ' +
+        'reception. The preference is measured; what it means to the baby is ' +
+        'the part nobody can ask about.' },
+    { key: 'learns', name: 'listening and remembering', from: 32, to: 40,
+      measured: 'A rhyme recited daily through the last weeks is recognised ' +
+        'after birth, and the fetal heart rate settles on hearing it. Exposure ' +
+        'to one language or two shapes how a newborn\'s brain encodes speech ' +
+        'sounds.',
+      ppne: 'The strongest ground the field has. Learning before birth is not ' +
+        'in dispute; the question is how much of a self is doing the learning.' }
+  ];
+
+  /* The framework itself, stated plainly and separately. */
+  var PPNE = {
+    name: 'Prenatal and perinatal psychology',
+    what: 'A field, and a teaching certificate from APPPAH, built on the claim ' +
+      'that the primary period runs from before conception through the first ' +
+      'year, and that what happens in it shapes a person afterwards.',
+    holds: 'Its central assertions are that a baby before and around birth is ' +
+      'conscious, sentient and aware with a sense of self, able to perceive, ' +
+      'communicate and learn; that early experience is shaped by the mother\'s ' +
+      'mindset, support, diet, emotions and birth circumstances; and that the ' +
+      'mother and baby bond is foundational. It teaches that difficult births ' +
+      'leave imprints which can show later as trouble with stress, ' +
+      'self-regulation, attachment and learning.',
+    evidence: 'Parts of this are well established. Fetal hearing, the ' +
+      'preference for the mother\'s voice, learning a rhyme before birth, and ' +
+      'associations between prenatal maternal stress and later infant ' +
+      'development are all measured findings with decades behind them.',
+    caution: 'The larger claims are not settled in the same way. That a baby ' +
+      'holds a sense of self, that birth leaves retrievable imprints, and that ' +
+      'specific later difficulties trace to specific birth events all go ' +
+      'beyond what the research shows. Worth knowing as a framework people ' +
+      'work within, and worth holding more loosely than the hearing studies.',
+    useful: 'What survives either way is practical and gentle: your voice ' +
+      'reaches the baby and is preferred, repetition is what makes something ' +
+      'familiar, and stress in pregnancy is worth taking seriously as a health ' +
+      'matter in its own right rather than as something to feel guilty about.'
+  };
+
+  function senseOf(week) {
+    for (var i = 0; i < SENSES.length; i++) {
+      if (week >= SENSES[i].from && week <= SENSES[i].to) return SENSES[i];
+    }
+    return SENSES[SENSES.length - 1];
+  }
+
   function trimesterOf(week) {
     for (var i = 0; i < TRIMESTERS.length; i++) {
       if (week >= TRIMESTERS[i].from && week <= TRIMESTERS[i].to) return TRIMESTERS[i];
@@ -112,6 +197,7 @@
 
   global.Pregnancy = {
     WEEKS: WEEKS, TRIMESTERS: TRIMESTERS, MARKS: MARKS, STAGES: STAGES,
+    SENSES: SENSES, PPNE: PPNE, senseOf: senseOf,
     trimesterOf: trimesterOf, stageOf: stageOf, markAt: markAt
   };
 })(typeof window !== 'undefined' ? window : globalThis);

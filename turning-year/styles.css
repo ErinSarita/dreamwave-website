@@ -409,7 +409,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
  * usual share when it is not. */
 #preg-svg { width: min(100%, calc(68dvh - 80px)); height: min(100%, calc(68dvh - 80px));
   display: block; overflow: visible; touch-action: none; }
-.pg-tri:hover { fill-opacity: .48; }
+.pg-tri:hover, .pg-baby:hover, .pg-sense:hover { fill-opacity: .48; }
 .pg-week:hover { fill: var(--sun); fill-opacity: .2; }
 .pg-mark:hover { fill: var(--sun-bright); }
 #pg-sel { transition: opacity .1s; }

@@ -889,8 +889,9 @@
       $('pg-hub').innerHTML = PregnancyView.hub(t ? [
         { text: 'WEEK', size: 10, gap: 24, colour: 'var(--ink-3)' },
         { text: String(week), size: 42, serif: true, gap: 24, colour: 'var(--ink)' },
-        { text: t.name, size: 15, serif: true, gap: 20, colour: PregnancyView.COLOUR[t.key] },
-        { text: mk ? mk.label : st.name, size: 11, gap: 18,
+        { text: t.name, size: 14, serif: true, gap: 19, colour: PregnancyView.COLOUR[t.key] },
+        { text: st.name, size: 10.5, gap: 17, colour: 'var(--ink-3)' },
+        { text: mk ? mk.label : Pregnancy.senseOf(week).name, size: 10.5, gap: 16,
           colour: mk ? 'var(--sun)' : 'var(--ink-3)' }
       ] : [
         { text: 'FORTY WEEKS', size: 10, gap: 24, colour: 'var(--ink-3)' },
@@ -912,6 +913,22 @@
           e.stopPropagation();
           var mk = Pregnancy.markAt(w);
           if (mk) openPregMark(w); else openPregTrimester(Pregnancy.trimesterOf(w).key);
+        });
+      });
+    Array.prototype.forEach.call($('pregwheel').querySelectorAll('.pg-baby'),
+      function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openPregTrimester(Pregnancy.trimesterOf(
+            Pregnancy.STAGES.filter(function (x) {
+              return x.key === el.getAttribute('data-stage'); })[0].from).key);
+        });
+      });
+    Array.prototype.forEach.call($('pregwheel').querySelectorAll('.pg-sense'),
+      function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openPregSense(el.getAttribute('data-sense'));
         });
       });
     Array.prototype.forEach.call($('pregwheel').querySelectorAll('.pg-tri'),
@@ -937,11 +954,20 @@
         return '<div><span>' + esc(t.name.split(' ')[0]) + '</span> · weeks ' +
           t.from + '–' + t.to + '</div>';
       }).join('') + '</div>' +
+      '<div class="r-key"><button class="r-key-btn" id="ppne-open">' +
+      'what reaches the baby, and the field that studies it</button></div>' +
       '<div class="r-hint">The first fortnight is spent before there is ' +
       'anything to be pregnant with: that is how the counting works, rather ' +
       'than an error. <b>Only about five births in a hundred land on the ' +
       'estimated date</b>; seventy fall within ten days of it and ninety ' +
-      'within a fortnight. Hover a week, tap a trimester or a marked week.</div>';
+      'within a fortnight. The baby is drawn <b>inside</b> her, with the ring ' +
+      'between them showing what can reach it. Hover a week; tap any ring.</div>';
+
+    if ($('ppne-open')) {
+      $('ppne-open').addEventListener('click', function (e) {
+        e.stopPropagation(); openPPNE();
+      });
+    }
   }
 
   function openPregTrimester(key) {
@@ -958,6 +984,47 @@
       '<p class="tp-brief">General information, and no substitute for the ' +
       'people looking after you. Anything that worries you is worth a call ' +
       'rather than a wait.</p>';
+    $('menses-flyout').hidden = false;
+  }
+
+  /* What can reach the baby, and the field built around that. */
+  function openPregSense(key) {
+    var sn = null;
+    Pregnancy.SENSES.forEach(function (x) { if (x.key === key) sn = x; });
+    if (!sn) return;
+    var P = Pregnancy.PPNE;
+    $('menses-prose').innerHTML =
+      '<h4 style="margin-top:0;color:' + PregnancyView.SENSE_COLOUR[sn.key] + '">' +
+        esc(sn.name) + '</h4>' +
+      '<p class="tp-brief">Weeks ' + sn.from + ' to ' + sn.to +
+        ', in the ring between the baby and the mother.</p>' +
+      '<h4>What is measured</h4><p>' + esc(sn.measured) + '</p>' +
+      '<h4>What the field makes of it</h4><p>' + esc(sn.ppne) + '</p>' +
+      '<button class="mr-info-more" id="ppne-more">Read about the field itself</button>';
+    $('menses-flyout').hidden = false;
+    if ($('ppne-more')) {
+      $('ppne-more').addEventListener('click', function (e) {
+        e.stopPropagation(); openPPNE();
+      });
+    }
+  }
+
+  function openPPNE() {
+    var P = Pregnancy.PPNE;
+    $('menses-prose').innerHTML =
+      '<h4 style="margin-top:0">' + esc(P.name) + '</h4>' +
+      '<h4>What it is</h4><p>' + esc(P.what) + '</p>' +
+      '<h4>What it holds</h4><p>' + esc(P.holds) + '</p>' +
+      '<h4>What the evidence supports</h4><p>' + esc(P.evidence) + '</p>' +
+      '<h4>Where to hold it loosely</h4><p>' + esc(P.caution) + '</p>' +
+      '<h4>What survives either way</h4><p>' + esc(P.useful) + '</p>' +
+      '<ul class="tp-refs">' +
+      '<li><a href="https://birthpsychology.com/ppne/" target="_blank" rel="noopener">APPPAH, the PPNE programme</a></li>' +
+      '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4595376/" target="_blank" rel="noopener">The maternal voice and infant development</a></li>' +
+      '<li><a href="https://www.sciencedirect.com/science/article/abs/pii/S0163638308000866" target="_blank" rel="noopener">Fetal sensitivity to maternal speech</a></li>' +
+      '<li><a href="https://www.frontiersin.org/journals/human-neuroscience/articles/10.3389/fnhum.2024.1379660/full" target="_blank" rel="noopener">Maternal speech and neonatal speech encoding</a></li>' +
+      '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10109481/" target="_blank" rel="noopener">Prenatal maternal stress and infant development</a></li>' +
+      '</ul>';
     $('menses-flyout').hidden = false;
   }
 

@@ -4,16 +4,22 @@
   var Preg = global.Pregnancy;
   var CX = 500, CY = 500;
 
+  /* The baby innermost, then what reaches it, then the mother around them
+   * both, then her weeks. The nesting is the diagram: the child is drawn
+   * inside her, because that is where it is. */
   var R = {
-    hub: 150,
-    triIn: 158, triOut: 230, triLabel: 194,
-    stageIn: 238, stageOut: 300, stageLabel: 269,
-    weekIn: 308, weekOut: 356, weekNum: 332,
-    markTick: 364, markLabel: 384
+    hub: 128,
+    babyIn: 136, babyOut: 212, babyLabel: 174,
+    senseIn: 220, senseOut: 286, senseLabel: 253,
+    motherIn: 294, motherOut: 372, motherLabel: 328,
+    weekIn: 380, weekOut: 424, weekNum: 402,
+    markTick: 432, markLabel: 452
   };
   var COLOUR = { first: '#c96a9a', second: '#6b9e5a', third: '#4f8fb8' };
   var STAGE_COLOUR = { pre: '#8d8ab5', embryo: '#c96a9a', fetal: '#6b9e5a',
                        viable: '#d8a13a', term: '#4f8fb8' };
+  var SENSE_COLOUR = { quiet: '#6f7690', ear: '#8d8ab5', sound: '#7a8fb8',
+                       knows: '#6b9e9a', learns: '#6b9e5a' };
 
   function polar(r, a) {
     var t = (a - 90) * Math.PI / 180;
@@ -39,14 +45,47 @@
     function edge(i) { return i * step; }
     function mid(i) { return (i + 0.5) * step; }
 
+    /* -- the baby, innermost ------------------------------------------- */
+    Preg.STAGES.forEach(function (st) {
+      var a1 = edge(st.from - 1), a2 = edge(st.to);
+      parts.push('<path class="pg-baby" data-stage="' + st.key + '" d="' +
+        sector(R.babyIn, R.babyOut, a1, a2) + '" fill="' + STAGE_COLOUR[st.key] +
+        '" fill-opacity=".3" stroke="' + STAGE_COLOUR[st.key] +
+        '" stroke-width="1" stroke-opacity=".6" style="cursor:pointer"><title>' +
+        esc(st.name) + ' · weeks ' + st.from + ' to ' + st.to + '</title></path>');
+      if (a2 - a1 < 20) return;
+      var c = (a1 + a2) / 2, lp = polar(R.babyLabel, c);
+      parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
+        'dominant-baseline="middle" font-size="10.5" fill="var(--ink-2)" ' +
+        'pointer-events="none" transform="' + rot(c, lp[0], lp[1]) + '">' +
+        esc(st.name) + '</text>');
+    });
+
+    /* -- what reaches the baby ------------------------------------------ */
+    Preg.SENSES.forEach(function (sn) {
+      var a1 = edge(sn.from - 1), a2 = edge(sn.to);
+      parts.push('<path class="pg-sense" data-sense="' + sn.key + '" d="' +
+        sector(R.senseIn, R.senseOut, a1, a2) + '" fill="' + SENSE_COLOUR[sn.key] +
+        '" fill-opacity=".22" stroke="var(--line-soft)" stroke-width=".8" ' +
+        'style="cursor:pointer"><title>' + esc(sn.name) + ' · weeks ' +
+        sn.from + ' to ' + sn.to + '</title></path>');
+      if (a2 - a1 < 24) return;
+      var c = (a1 + a2) / 2, lp = polar(R.senseLabel, c);
+      parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
+        'dominant-baseline="middle" font-size="10" fill="var(--ink-2)" ' +
+        'pointer-events="none" transform="' + rot(c, lp[0], lp[1]) + '">' +
+        esc(sn.name) + '</text>');
+    });
+
+    /* -- the mother, around them both ------------------------------------ */
     Preg.TRIMESTERS.forEach(function (t) {
       var a1 = edge(t.from - 1), a2 = edge(t.to);
       parts.push('<path class="pg-tri" data-tri="' + t.key + '" d="' +
-        sector(R.triIn, R.triOut, a1, a2) + '" fill="' + COLOUR[t.key] +
+        sector(R.motherIn, R.motherOut, a1, a2) + '" fill="' + COLOUR[t.key] +
         '" fill-opacity=".3" stroke="' + COLOUR[t.key] + '" stroke-width="1" ' +
         'stroke-opacity=".7" style="cursor:pointer"><title>' + esc(t.name) +
         ' · weeks ' + t.from + ' to ' + t.to + ' · tap to read it</title></path>');
-      var c = (a1 + a2) / 2, lp = polar(R.triLabel, c);
+      var c = (a1 + a2) / 2, lp = polar(R.motherLabel, c);
       parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
         'dominant-baseline="middle" font-size="15" font-family="var(--serif)" ' +
         'fill="' + COLOUR[t.key] + '" pointer-events="none" transform="' +
@@ -55,19 +94,6 @@
         'dominant-baseline="middle" font-size="10" fill="var(--ink-3)" ' +
         'pointer-events="none" transform="' + rot(c, lp[0], lp[1] + 17) + '">' +
         t.from + '–' + t.to + '</text>');
-    });
-
-    Preg.STAGES.forEach(function (s) {
-      var a1 = edge(s.from - 1), a2 = edge(s.to);
-      parts.push('<path d="' + sector(R.stageIn, R.stageOut, a1, a2) + '" fill="' +
-        STAGE_COLOUR[s.key] + '" fill-opacity=".22" stroke="var(--line-soft)" ' +
-        'stroke-width=".8" pointer-events="none"/>');
-      if (a2 - a1 < 22) return;
-      var c = (a1 + a2) / 2, lp = polar(R.stageLabel, c);
-      parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
-        'dominant-baseline="middle" font-size="10.5" fill="var(--ink-2)" ' +
-        'pointer-events="none" transform="' + rot(c, lp[0], lp[1]) + '">' +
-        esc(s.name) + '</text>');
     });
 
     parts.push('<path d="' + sector(R.weekIn, R.weekOut, 0, 359.99) +
@@ -124,9 +150,10 @@
     if (!el) return;
     if (!week) { el.setAttribute('opacity', '0'); return; }
     var step = 360 / Preg.WEEKS;
-    el.setAttribute('d', sector(R.triIn - 6, R.weekOut + 5, (week - 1) * step, week * step));
+    el.setAttribute('d', sector(R.babyIn - 6, R.weekOut + 5, (week - 1) * step, week * step));
     el.setAttribute('opacity', '.9');
   }
 
-  global.PregnancyView = { render: render, hub: hub, highlight: highlight, COLOUR: COLOUR };
+  global.PregnancyView = { render: render, hub: hub, highlight: highlight,
+    COLOUR: COLOUR, STAGE_COLOUR: STAGE_COLOUR, SENSE_COLOUR: SENSE_COLOUR };
 })(typeof window !== 'undefined' ? window : globalThis);
