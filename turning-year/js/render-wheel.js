@@ -503,6 +503,18 @@
       parts.push('<circle cx="500" cy="500" r="' + ((R.monthIn + R.monthOut) / 2) + '" fill="none" ' +
                  'stroke="var(--line-soft)" stroke-width="' + (R.monthOut - R.monthIn) + '" opacity=".6"/>');
       var runs = monthRuns(cycle);
+      /* Each month is a door into its own fan. The band is thin, so the
+       * target reaches a little past it on both sides. */
+      runs.forEach(function (run, ri) {
+        var hitA = dayEdge(cycle, run.start);
+        var hitB = dayEdge(cycle, Math.min(run.end + 1, N + 1));
+        if (hitB > hitA) {
+          parts.push('<path class="month-hit" data-run="' + ri + '" d="' +
+            sector(R.monthIn - 9, R.monthOut + 9, hitA, hitB) +
+            '" fill="transparent" style="cursor:pointer"><title>' +
+            TZ.MONTHS[run.month - 1] + ' ' + run.year + ' · open this month</title></path>');
+        }
+      });
       runs.forEach(function (run) {
         var aStart = dayEdge(cycle, run.start);
         var e1 = polar(R.monthIn, aStart), e2 = polar(R.monthOut, aStart);
@@ -826,6 +838,7 @@
 
   global.WheelView = {
     render: render, renderSky: renderSky, highlight: highlight, transformFor: transformFor,
-    applyRotation: applyRotation, seasonOfDay: seasonOfDay, dayAngle: dayAngle, R: R, polar: polar
+    applyRotation: applyRotation, seasonOfDay: seasonOfDay, dayAngle: dayAngle,
+    monthRuns: monthRuns, R: R, polar: polar
   };
 })(typeof window !== 'undefined' ? window : globalThis);

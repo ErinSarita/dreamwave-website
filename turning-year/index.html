@@ -219,6 +219,21 @@
   </main>
 </div>
 
+<div class="modal" id="month" hidden>
+  <div class="modal-card month-card" role="dialog" aria-modal="true" aria-labelledby="month-h">
+    <button class="close" id="month-close" aria-label="Close">&times;</button>
+    <h2 id="month-h">The month, opened out</h2>
+    <p>A calendar month is one slice of the year's pie, so here it is as one:
+    the apex below, the days fanning up and out, and the same layers the wheel
+    carries stacked in the same order. The month's own edges are the only thing
+    here that owes nothing to the sky. Everything else cuts across it wherever
+    the sun and moon decide, which is the interesting part.</p>
+    <svg id="month-svg" viewBox="0 0 1200 800" role="img"
+         aria-label="One calendar month drawn as a slice of the year"></svg>
+    <p class="meta" id="month-meta"></p>
+  </div>
+</div>
+
 <div class="modal" id="watch" hidden>
   <div class="modal-card watch-card" role="dialog" aria-modal="true" aria-labelledby="watch-h">
     <button class="close" id="watch-close" aria-label="Close">&times;</button>
@@ -734,6 +749,7 @@
 <script src="js/zodiac.js"></script>
 <script src="js/orrery.js"></script>
 <script src="js/orrery.js"></script>
+<script src="js/render-month.js"></script>
 <script src="js/render-day.js"></script>
 <script src="js/render-moon.js"></script>
 <script src="js/spiral.js"></script>

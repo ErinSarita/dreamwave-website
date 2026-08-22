@@ -280,6 +280,13 @@
       hits[i].addEventListener('click', onPick);
       hits[i].addEventListener('focus', onHover);
     }
+    var monthHits = $('wheel').querySelectorAll('.month-hit');
+    for (var q = 0; q < monthHits.length; q++) {
+      monthHits[q].addEventListener('click', function (e) {
+        e.stopPropagation();          // the day sector underneath must not also fire
+        openMonth(+e.currentTarget.getAttribute('data-run'));
+      });
+    }
     var moonHits = $('wheel').querySelectorAll('.moon-hit');
     for (var m = 0; m < moonHits.length; m++) {
       moonHits[m].addEventListener('click', function (e) {
@@ -658,6 +665,50 @@
     return TZ.formatDate(cycle.tz, when) + ' · ' +
       Clock.time(cycle, when, state.useDST, state.hour12) +
       (state.moment ? ' (chosen)' : '');
+  }
+
+  /* One month, opened out of the year wheel into its own fan. */
+  function openMonth(runIndex) {
+    if (!global.MonthView || !cycle) return;
+    var runs = WheelView.monthRuns(cycle);
+    var run = runs[runIndex];
+    if (!run) return;
+    var out = MonthView.render(cycle, run, {});
+    $('month-svg').innerHTML = out.svg;
+    $('month-h').textContent = TZ.MONTHS[run.month - 1] + ' ' + run.year;
+
+    var d0 = out.days[0], dN = out.days[out.days.length - 1];
+    var terms = {}, lunations = {};
+    out.days.forEach(function (d) {
+      if (d.inTerm) terms[d.inTerm.number] = d.inTerm.name;
+      if (d.lunation) lunations[d.lunation.k] = d.lunation.yearMoonNumber || '·';
+    });
+    var tk = Object.keys(terms), lk = Object.keys(lunations);
+    var events = out.days.filter(function (d) { return d.moonEvent; })
+      .map(function (d) { return d.moonEvent + ' on the ' + d.day; });
+    var stations = out.days.filter(function (d) { return d.station; })
+      .map(function (d) { return d.station.name + ' on the ' + d.day; });
+
+    $('month-meta').textContent =
+      out.days.length + ' days, running solar day ' + d0.n + ' to ' + dN.n +
+      ' of ' + cycle.length + '. ' +
+      'It crosses ' + tk.length + ' solar term' + (tk.length === 1 ? '' : 's') +
+      ' (' + tk.map(function (k) { return terms[k]; }).join(', ') + ') and ' +
+      lk.length + ' lunation' + (lk.length === 1 ? '' : 's') + '. ' +
+      (events.length ? events.join(', ') + '. ' : '') +
+      (stations.length ? stations.join(', ') + '. ' : '') +
+      'Tap any day to open its twenty-four hours.';
+
+    Array.prototype.forEach.call($('month-svg').querySelectorAll('.mv-day'),
+      function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          $('month').hidden = true;
+          state.day = +el.getAttribute('data-day');
+          setLevel('day');
+        });
+      });
+    $('month').hidden = false;
   }
 
   /* The ecliptic wheel, in its own window because its angle means something
@@ -2125,6 +2176,11 @@
     $('tool-body').addEventListener('click', function () { openTool('body'); });
     syncDayTools();
 
+    $('month-close').addEventListener('click', function () { $('month').hidden = true; });
+    $('month').addEventListener('click', function (e) {
+      if (e.target === $('month')) $('month').hidden = true;
+    });
+
     $('watch-close').addEventListener('click', function () { $('watch').hidden = true; });
     $('watch').addEventListener('click', function (e) {
       if (e.target === $('watch')) $('watch').hidden = true;
@@ -2214,6 +2270,7 @@
     document.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.key === 'Escape') {
+        if (!$('month').hidden) { $('month').hidden = true; return; }
         if (!$('watch').hidden) { $('watch').hidden = true; return; }
         if (!$('zodiac').hidden) { $('zodiac').hidden = true; return; }
         if (!$('ethos').hidden) { $('ethos').hidden = true; return; }
