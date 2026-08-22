@@ -15,13 +15,17 @@
   'use strict';
   var TZ = global.TZ, MoonGlyph = global.MoonGlyph;
 
-  var CX = 600, CY = 762, HALF = 65;          // degrees either side of vertical
+  var CX = 600, CY = 762, HALF = 60;          // degrees either side of vertical
+  /* Inner to outer, the same order the year wheel stacks them: the slow things
+   * near the apex, the fast ones out at the rim. The light and dark band sits
+   * outside the moon, as it does on the wheel. */
   var R = {
-    growIn: 236, growOut: 288,
-    seasonIn: 300, seasonOut: 372, seasonLabel: 336,
-    termIn: 384, termOut: 458, termLabel: 428, termDayNum: 396,
-    moonIn: 470, moonOut: 552, moonGlyph: 500, moonLabel: 538,
-    dayIn: 566, dayOut: 648, solarNum: 588, dateNum: 622
+    growIn: 208, growOut: 254,
+    seasonIn: 266, seasonOut: 332, seasonLabel: 299,
+    termIn: 344, termOut: 418, termLabel: 388, termDayNum: 354,
+    moonIn: 430, moonOut: 504, moonGlyph: 460, moonLabel: 492,
+    lightIn: 516, lightOut: 594,
+    dayIn: 606, dayOut: 688, solarNum: 626, dateNum: 662
   };
 
   function polar(r, a) {
@@ -46,6 +50,9 @@
     var days = cycle.days.slice(run.start - 1, run.end);
     var N = days.length;
     var parts = [];
+    parts.push('<defs><linearGradient id="mv-gold" x1="0" y1="1" x2="0" y2="0">' +
+      '<stop offset="0%" stop-color="var(--sun-deep)"/>' +
+      '<stop offset="100%" stop-color="var(--sun-bright)"/></linearGradient></defs>');
     var span = HALF * 2;
     function edge(i) { return -HALF + span * (i / N); }        // day i's leading edge
     function mid(i) { return -HALF + span * ((i + 0.5) / N); }
@@ -68,6 +75,57 @@
         'dominant-baseline="middle" font-size="10" font-family="var(--mono)" ' +
         'fill="var(--ink-3)" pointer-events="none" transform="' + tilt(m, sp[0], sp[1]) + '">' +
         d.n + '</text>');
+    });
+
+    /* -- light and dark, the same wave the year wheel carries -------------
+     * The boundary rides at the day's own share of the twenty-four hours, so
+     * the gold swells toward midsummer and thins toward midwinter, and a month
+     * is long enough to see it moving. */
+    var lightSpan = R.lightOut - R.lightIn;
+    function lightR(d) {
+      var fr = d.sunAlwaysUp ? 1 : d.sunAlwaysDown ? 0
+             : Math.max(0, Math.min(1, d.daylightHours / 24));
+      return R.lightIn + lightSpan * fr;
+    }
+    var bound = [];
+    bound.push([edge(0), lightR(days[0])]);
+    days.forEach(function (d, i) { bound.push([mid(i), lightR(d)]); });
+    bound.push([edge(N), lightR(days[N - 1])]);
+
+    function alongInner(r, from, to, step) {
+      var out = '';
+      for (var a = from; step > 0 ? a <= to : a >= to; a += step) {
+        var q = polar(r, a);
+        out += 'L' + f(q[0]) + ' ' + f(q[1]);
+      }
+      return out;
+    }
+    var q0 = polar(R.lightIn, -HALF);
+    var gold = 'M' + f(q0[0]) + ' ' + f(q0[1]) +
+      alongInner(R.lightIn, -HALF, HALF, 3);
+    for (var bi = bound.length - 1; bi >= 0; bi--) {
+      var qb = polar(bound[bi][1], bound[bi][0]);
+      gold += 'L' + f(qb[0]) + ' ' + f(qb[1]);
+    }
+    parts.push('<path d="' + gold + 'Z" fill="url(#mv-gold)" opacity=".9"/>');
+
+    var q1 = polar(R.lightOut, -HALF);
+    var dark = 'M' + f(q1[0]) + ' ' + f(q1[1]) +
+      alongInner(R.lightOut, -HALF, HALF, 3);
+    for (var di = bound.length - 1; di >= 0; di--) {
+      var qd = polar(bound[di][1], bound[di][0]);
+      dark += 'L' + f(qd[0]) + ' ' + f(qd[1]);
+    }
+    parts.push('<path d="' + dark + 'Z" fill="var(--night, #2b3050)" opacity=".55"/>');
+    parts.push('<path d="' + sector(R.lightIn, R.lightOut, -HALF, HALF) +
+      '" fill="none" stroke="var(--line-soft)" stroke-width=".7"/>');
+    days.forEach(function (d, i) {
+      if (i % 5) return;
+      var q = polar(lightR(d), mid(i));
+      parts.push('<text x="' + f(q[0]) + '" y="' + f(q[1] - 7) + '" text-anchor="middle" ' +
+        'font-size="8.5" font-family="var(--mono)" fill="var(--ink-2)" ' +
+        'pointer-events="none" transform="' + tilt(mid(i), q[0], q[1] - 7) + '">' +
+        (d.daylightHours ? d.daylightHours.toFixed(1) + 'h' : '') + '</text>');
     });
 
     /* -- the moon: a face a day, and the lunations they belong to -------- */

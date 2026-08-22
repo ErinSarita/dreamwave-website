@@ -737,27 +737,67 @@
       '<div class="r-lab">' + esc(TZ.MONTHS[run.month - 1]) + '</div>' +
       '<div class="r-date">' + esc(tk.map(function (k) { return terms[k]; }).join(' · ')) + '</div>' +
       '<div class="r-rows">' + rows + '</div>' +
-      (events.length ? '<div class="r-lunation">' + events.map(function (d) {
-        return d.moonEvent + ' on the ' + d.day; }).join(' · ') + '</div>' : '') +
-      (stations.length ? '<div class="r-station">' + stations.map(function (d) {
-        return d.station.name + ' on the ' + d.day; }).join(' · ') + '</div>' : '') +
-      '<div class="r-hint">The month is the one ring here that owes nothing to ' +
-      'the sky. Everything else cuts across it as the sun and moon decide. ' +
-      'Click a day for its twenty-four hours.</div>';
+      '<div class="r-body"></div>' +
+      '<div class="r-hint">Hover a day to read it, click it for its ' +
+      'twenty-four hours. The month is the one ring here that owes nothing to ' +
+      'the sky; everything else cuts across it as the sun and moon decide.</div>';
 
     $('month-min').addEventListener('click', function (e) {
       e.stopPropagation();
       state.monthMin = !state.monthMin;
       save(); drawMonth();
     });
-    Array.prototype.forEach.call($('monthfan').querySelectorAll('.mv-day'),
-      function (el) {
-        el.addEventListener('click', function (e) {
-          e.stopPropagation();
-          state.day = +el.getAttribute('data-day');
-          setLevel('day');
-        });
+
+    /* The day under the pointer, read out below the fan and marked on it, the
+     * way the year wheel behaves. It settles back on the day in hand when the
+     * pointer leaves, so the box is never blank. */
+    var body = $('month-readout').querySelector('.r-body');
+    var sectors = $('monthfan').querySelectorAll('.mv-day');
+    function markDay(n) {
+      Array.prototype.forEach.call(sectors, function (el) {
+        el.classList.toggle('is-sel', +el.getAttribute('data-day') === n);
       });
+    }
+    function showDay(n) {
+      var d = cycle.days[n - 1];
+      if (!d || !body) return;
+      markDay(n);
+      var bits = [];
+      bits.push('<div class="r-num">' + d.day + '</div>');
+      bits.push('<div class="r-lab">' + TZ.weekdayName(cycle.tz, d.date) + ' &#183; solar day ' +
+        d.n + '</div>');
+      bits.push('<div class="r-rows">' +
+        row('Daylight', d.sunAlwaysUp ? 'all day' : d.sunAlwaysDown ? 'none'
+          : DayView.hm(d.daylightHours)) +
+        (d.sunrise ? row('Sunrise', Clock.time(cycle, d.sunrise, state.useDST, state.hour12)) : '') +
+        (d.sunset ? row('Sunset', Clock.time(cycle, d.sunset, state.useDST, state.hour12)) : '') +
+        '</div>');
+      bits.push('<div class="r-moon">' + MoonGlyph.svg(d.moonAge, 18) + '<span>' +
+        Math.round(d.moonIllumination * 100) + '% &#183; ' + esc(d.moonPhaseName) + '</span></div>');
+      if (d.inTerm) bits.push('<div class="r-lunation">' + esc(d.inTerm.english) +
+        ' &#183; day ' + d.dayInTerm + ' of ' + d.inTerm.days + '</div>');
+      if (d.station) bits.push('<div class="r-station">' + esc(d.station.name) + '</div>');
+      body.innerHTML = bits.join('');
+    }
+    function restDay() {
+      var n = (state.day && state.day >= run.start && state.day <= run.end)
+        ? state.day
+        : (todayNumber() >= run.start && todayNumber() <= run.end ? todayNumber() : run.start);
+      showDay(n);
+    }
+
+    Array.prototype.forEach.call(sectors, function (el) {
+      var n = +el.getAttribute('data-day');
+      el.addEventListener('mouseenter', function () { showDay(n); });
+      el.addEventListener('focus', function () { showDay(n); });
+      el.addEventListener('click', function (e) {
+        e.stopPropagation();
+        state.day = n;
+        setLevel('day');
+      });
+    });
+    $('monthfan').addEventListener('mouseleave', restDay);
+    restDay();
   }
 
   /* The ecliptic wheel, in its own window because its angle means something
