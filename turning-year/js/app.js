@@ -43,6 +43,8 @@
     showOrgans: false,
     orbitsMin: false,   // the system readout collapsed to a single line
     monthRun: null,     // which calendar month is open, as an index
+    mensesOpen: false,  // the cycle wheel showing instead of the dials
+    mensesDay: null,    // the day of the cycle under the pointer
     monthMin: false,
     /* A chosen instant, when someone wants a particular moment rather than
      * now: a birth time, an eclipse, a date in 1969. Held as an ISO string so
@@ -65,6 +67,7 @@
         panelMin: state.panelMin, moonMin: state.moonMin,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
         monthRun: state.monthRun, monthMin: state.monthMin,
+        mensesOpen: state.mensesOpen,
         showPlanets: state.showPlanets,
         showBio: state.showBio, showOrgans: state.showOrgans,
         orbitsMin: state.orbitsMin,
@@ -99,6 +102,7 @@
       if (typeof o.orbitsMin === 'boolean') state.orbitsMin = o.orbitsMin;
       if (typeof o.monthRun === 'number' || o.monthRun === null) state.monthRun = o.monthRun;
       if (typeof o.monthMin === 'boolean') state.monthMin = o.monthMin;
+      if (typeof o.mensesOpen === 'boolean') state.mensesOpen = o.mensesOpen;
       if (typeof o.moment === 'string' || o.moment === null) state.moment = o.moment;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
         if (typeof o.moonPhases[k] === 'boolean') state.moonPhases[k] = o.moonPhases[k];
@@ -348,6 +352,13 @@
     if (level !== 'moon') stopMoonClock();
     if (level !== 'day') stopDayRing();
     if (level !== 'month') stopMonthNow();
+    if (level !== 'menses') {
+      $('menses-flyout').hidden = true;
+      $('menses-btn').setAttribute('aria-expanded', 'false');
+      $('menses-btn').classList.remove('is-on');
+    } else {
+      $('menses-btn').classList.add('is-on');
+    }
     if (level === 'year') { state.season = null; state.day = null; state.lunationK = null; state.monthRun = null; }
     if (level === 'season') state.lunationK = null;
     if (level === 'season' && state.season === null) {
@@ -361,13 +372,14 @@
     $('zoom-controls').hidden = false;
     var wheelScene = $('scene-wheel'), dayScene = $('scene-day'), moonScene = $('scene-moon');
     var orbitsScene = $('scene-orbits'), monthScene = $('scene-month');
+    var mensesScene = $('scene-menses');
 
     /* Three scenes share the stage. Whichever the new level wants comes
      * forward and the other two step back, on the same fade the wheel and the
      * day already used between them. */
     function showScene(want) {
-      var all = [['orbits', orbitsScene], ['wheel', wheelScene],
-                 ['month', monthScene], ['day', dayScene], ['moon', moonScene]];
+      var all = [['orbits', orbitsScene], ['wheel', wheelScene], ['month', monthScene],
+                 ['day', dayScene], ['moon', moonScene], ['menses', mensesScene]];
       var current = null;
       all.forEach(function (pair) { if (!pair[1].hidden) current = pair; });
       var target = all.filter(function (pair) { return pair[0] === want; })[0];
@@ -388,6 +400,12 @@
       drawOrbits();
       showScene('orbits');
       syncCrumbs(); syncLegend(); writeHash();
+      return;
+    }
+    if (level === 'menses') {
+      drawMenses();
+      showScene('menses');
+      syncCrumbs(); syncLegend();
       return;
     }
     if (level === 'month') {
@@ -449,7 +467,7 @@
     var cs = $('crumbs').querySelectorAll('.crumb');
     // A lunation sits in the same middle slot a season does, so it lights the
     // same crumb; without this nothing is highlighted at that level at all.
-    var slot = state.level;
+    var slot = state.level === 'menses' ? null : state.level;
     for (var i = 0; i < cs.length; i++) {
       var lvl = cs[i].getAttribute('data-level');
       cs[i].classList.toggle('is-on', lvl === slot);
@@ -681,6 +699,122 @@
     return TZ.formatDate(cycle.tz, when) + ' · ' +
       Clock.time(cycle, when, state.useDST, state.hour12) +
       (state.moment ? ' (chosen)' : '');
+  }
+
+  /* ------------------------------------------------------------ the cycle
+   *
+   * A wheel of its own, because a cycle is its own turning and reads badly as
+   * a stripe across somebody else's calendar.
+   *
+   * The blueprint hangs day one on a new moon, so bleeding sits at the dark
+   * and ovulation near the full. That is the old teaching picture rather than
+   * a finding: the evidence for real cycles keeping step with the moon is weak
+   * and has failed to replicate. Drawing it this way gives a woman something
+   * to read her own days against, and the moment she logs her own the wheel
+   * will follow her instead.
+   */
+  function mensesFrame(length) {
+    /* The lunation the blueprint is laid on: the one holding today, so the
+     * outer rings show real dates, real solar days and the real moon. */
+    var k = Lunar.kAt(A.jdFromDate(new Date()));
+    var newMoon = Lunar.newMoonJD(k);
+    var out = [];
+    for (var i = 0; i < length; i++) {
+      var jd = newMoon + i;
+      var date = A.dateFromJD(jd);
+      var d = null;
+      if (cycle) {
+        var p = TZ.civilParts(cycle.tz, date);
+        var key = p.year + '-' + (p.month < 10 ? '0' : '') + p.month + '-' +
+                  (p.day < 10 ? '0' : '') + p.day;
+        d = cycle.dayByISO[key] || null;
+      }
+      out.push({
+        date: date, tz: cycle ? cycle.tz : 'UTC',
+        moonAge: A.moonPhase(A.jdeFromJD(jd)).age,
+        solarDay: d ? d.n : null
+      });
+    }
+    return out;
+  }
+
+  function drawMenses() {
+    if (!global.MensesView || !cycle) return;
+    var length = Menses.BLUEPRINT_DAYS;
+    var frame = mensesFrame(length);
+    var out = MensesView.render({ length: length, days: frame });
+    $('menseswheel').innerHTML = out.svg;
+
+    function showHub(day) {
+      var ph = day ? Menses.phaseOfDay(day, length) : null;
+      $('mn-hub').innerHTML = MensesView.hub(ph ? [
+        { text: 'CYCLE DAY', size: 10, gap: 26, colour: 'var(--ink-3)' },
+        { text: String(day), size: 44, serif: true, gap: 26, colour: 'var(--ink)' },
+        { text: ph.name, size: 17, serif: true, gap: 22,
+          colour: MensesView.COLOUR[ph.key] },
+        { text: 'at the ' + ph.moon, size: 11, gap: 20, colour: 'var(--ink-3)' }
+      ] : [
+        { text: 'THE BLUEPRINT', size: 10, gap: 26, colour: 'var(--ink-3)' },
+        { text: String(length), size: 44, serif: true, gap: 24, colour: 'var(--ink)' },
+        { text: 'day cycle', size: 13, gap: 22, colour: 'var(--ink-3)' },
+        { text: 'an average, laid on a lunation', size: 10.5, gap: 18,
+          colour: 'var(--ink-3)' }
+      ]);
+      MensesView.highlight($('menseswheel'), day, length);
+      state.mensesDay = day;
+    }
+    showHub(null);
+
+    Array.prototype.forEach.call($('menseswheel').querySelectorAll('.mn-day'),
+      function (el) {
+        var d = +el.getAttribute('data-day');
+        el.addEventListener('mouseenter', function () { showHub(d); });
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openMensesPhase(Menses.phaseOfDay(d, length).key);
+        });
+      });
+    Array.prototype.forEach.call($('menseswheel').querySelectorAll('.mn-phase'),
+      function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openMensesPhase(el.getAttribute('data-phase'));
+        });
+      });
+    $('menseswheel').addEventListener('mouseleave', function () { showHub(null); });
+
+    var spans = Menses.spans(length);
+    $('menses-readout').innerHTML =
+      '<div class="r-lab">The blueprint</div>' +
+      '<div class="r-date">' + length + ' days, laid on one lunation</div>' +
+      '<div class="r-rows">' + spans.map(function (s) {
+        return '<div><span>' + esc(s.phase.name) + '</span> · ' + s.from + '–' + s.to + '</div>';
+      }).join('') + '</div>' +
+      '<div class="r-hint">Bleeding at the dark moon, ovulation near the full. ' +
+      'That is the old teaching picture rather than a finding, and it is here ' +
+      'as something to read your own days against. Hover a day, tap a phase.</div>';
+  }
+
+  function openMensesPhase(key) {
+    var ph = null;
+    Menses.PHASES.forEach(function (p) { if (p.key === key) ph = p; });
+    if (!ph) return;
+    $('menses-prose').innerHTML =
+      '<h4 style="margin-top:0;color:' + MensesView.COLOUR[ph.key] + '">' +
+        esc(ph.name) + '</h4>' +
+      '<p class="tp-brief">Days ' + ph.from + ' to ' + ph.to +
+        ' of the blueprint, at the ' + esc(ph.moon) + '.</p>' +
+      '<h4>What the hormones do</h4><p>' + esc(ph.hormones) + '</p>' +
+      '<h4>What the body does</h4><p>' + esc(ph.body) + '</p>' +
+      '<h4>What the tradition holds</h4><p>' + esc(ph.tradition) + '</p>' +
+      '<p class="tp-brief">The first two are measured. The third is Nu Dan, ' +
+      'the women\'s branch of Daoist internal alchemy, where the cycle is ' +
+      'treated as something to work with rather than a process to manage. ' +
+      'Kept apart on purpose.</p>' +
+      '<p class="tp-brief">These spans are an average. A real cycle moves, and ' +
+      'moves most in the stretch before ovulation. Once you log your own days ' +
+      'the wheel will follow them instead of this.</p>';
+    $('menses-flyout').hidden = false;
   }
 
   /* One month, opened out of the year wheel into its own fan.
@@ -2352,6 +2486,24 @@
     $('tool-planets').addEventListener('click', function () { openTool('planets'); });
     $('tool-body').addEventListener('click', function () { openTool('body'); });
     syncDayTools();
+
+    /* The wheel is opened from the sidebar rather than the trail: it is not a
+     * zoom level of the year, it is a different clock entirely. */
+    $('menses-btn').addEventListener('click', function () {
+      var showing = state.level === 'menses';
+      if (showing) {
+        $('menses-flyout').hidden = true;
+        $('menses-btn').setAttribute('aria-expanded', 'false');
+        setLevel(state.day ? 'day' : 'year');
+      } else {
+        state.mensesOpen = true; save();
+        $('menses-btn').setAttribute('aria-expanded', 'true');
+        setLevel('menses');
+      }
+    });
+    $('menses-close').addEventListener('click', function () {
+      $('menses-flyout').hidden = true;
+    });
 
     $('month-prev').addEventListener('click', function () {
       state.monthRun = Math.max(0, (state.monthRun || 0) - 1); drawMonth(); writeHash();

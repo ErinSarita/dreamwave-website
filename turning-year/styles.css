@@ -396,6 +396,22 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .day-panel .d-pl-rule {
   height: 1px; background: var(--line-soft); margin: 7px 0 6px;
 }
+/* The cycle's own flyout, hinged off the sidebar rather than the right-hand
+ * tools, because it is opened from the left and belongs to its own wheel. */
+.menses-flyout {
+  position: absolute; top: 14px; left: 14px; z-index: 7;
+  width: min(340px, calc(100% - 28px)); max-height: min(80dvh, 700px);
+  overflow-y: auto; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: var(--shadow); backdrop-filter: blur(14px);
+}
+.menses-flyout[hidden] { display: none; }
+#menses-svg { width: min(100%, calc(68dvh - 80px)); height: min(100%, calc(68dvh - 80px));
+  display: block; overflow: visible; touch-action: none; }
+.ghost-btn.is-on { border-color: var(--sun); color: var(--sun); }
+.mn-phase:hover { fill-opacity: .5; }
+.mn-day:hover { fill: var(--sun); fill-opacity: .2; }
+#mn-sel { transition: opacity .1s; }
+
 /* The prose drawers: same shell as the lists, but they scroll and hold
  * paragraphs rather than rows. */
 .tool-panel.is-prose { max-height: min(76dvh, 660px); overflow-y: auto; }

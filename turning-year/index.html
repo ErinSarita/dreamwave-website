@@ -97,6 +97,14 @@
       <p class="meta" id="notes-meta">Saved in this browser only. Download a backup to keep them or move them to another device.</p>
     </section>
 
+    <section class="field">
+      <label>Cycle</label>
+      <button id="menses-btn" class="ghost-btn" aria-expanded="false"
+              aria-haspopup="true">The menstrual wheel</button>
+      <p class="meta">A blueprint to read your own days against. Nothing typed
+      here leaves this device.</p>
+    </section>
+
     <section class="field legend">
       <label>Legend</label>
       <p class="meta" id="legend-context" hidden>Reading this day's 24-hour clock</p>
@@ -145,6 +153,22 @@
         <g id="orrery"></g>
       </svg>
       <div class="readout" id="orrery-readout"></div>
+    </div>
+
+    <div class="menses-flyout" id="menses-flyout" hidden>
+      <div class="tool-panel-head">
+        <strong>The menstrual wheel</strong>
+        <button id="menses-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="tool-panel-prose" id="menses-prose"></div>
+    </div>
+
+    <div class="scene scene-menses" id="scene-menses" hidden>
+      <svg id="menses-svg" viewBox="-40 -40 1080 1080" role="img"
+           aria-label="The menstrual cycle drawn as a wheel">
+        <g id="menseswheel"></g>
+      </svg>
+      <div class="readout" id="menses-readout"></div>
     </div>
 
     <div class="scene scene-month" id="scene-month" hidden>
@@ -749,6 +773,8 @@
 <script src="js/zodiac.js"></script>
 <script src="js/orrery.js"></script>
 <script src="js/orrery.js"></script>
+<script src="js/menses.js"></script>
+<script src="js/render-menses.js"></script>
 <script src="js/render-month.js"></script>
 <script src="js/render-day.js"></script>
 <script src="js/render-moon.js"></script>
