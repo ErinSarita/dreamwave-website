@@ -680,8 +680,8 @@
     var d0 = out.days[0], dN = out.days[out.days.length - 1];
     var terms = {}, lunations = {};
     out.days.forEach(function (d) {
-      if (d.inTerm) terms[d.inTerm.number] = d.inTerm.name;
-      if (d.lunation) lunations[d.lunation.k] = d.lunation.yearMoonNumber || '·';
+      if (d.inTerm) terms[d.inTerm.number] = d.inTerm.english;
+      if (d.lunation) lunations[d.lunation.startDay] = d.lunation.yearMoonNumber || '\u00b7';
     });
     var tk = Object.keys(terms), lk = Object.keys(lunations);
     var events = out.days.filter(function (d) { return d.moonEvent; })

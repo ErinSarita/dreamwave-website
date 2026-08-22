@@ -85,7 +85,7 @@
           esc(d.moonEvent.replace(' Moon', '')) + '</text>');
       }
     });
-    runsOf(days, function (d) { return d.lunation ? d.lunation.k : null; })
+    runsOf(days, function (d) { return d.lunation ? d.lunation.startDay : null; })
       .forEach(function (r) {
         var a1 = edge(r.from), a2 = edge(r.to + 1);
         if (a2 - a1 < 7) return;
@@ -93,8 +93,9 @@
         parts.push('<path d="M' + f(e1[0]) + ' ' + f(e1[1]) + 'L' + f(e2[0]) + ' ' +
           f(e2[1]) + '" stroke="var(--moon)" stroke-width="1.2" opacity=".7"/>');
         var d0 = days[r.from];
-        var lab = d0.lunation && d0.lunation.yearMoonNumber
-          ? 'Lunation ' + d0.lunation.yearMoonNumber : 'lunation';
+        var lab = (d0.lunation && d0.lunation.yearLabel) ||
+          (d0.lunation && d0.lunation.yearMoonNumber
+            ? 'Lunation ' + d0.lunation.yearMoonNumber : 'lunation');
         var mp = polar(R.moonIn + 9, (a1 + a2) / 2);
         parts.push('<text x="' + f(mp[0]) + '" y="' + f(mp[1]) + '" text-anchor="middle" ' +
           'dominant-baseline="middle" font-size="10" fill="var(--moon)" ' +
@@ -117,7 +118,7 @@
         parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" text-anchor="middle" ' +
           'dominant-baseline="middle" font-size="' + (wide ? 12 : 10) + '" ' +
           'fill="var(--ink-2)" pointer-events="none" transform="' +
-          tilt(c, lp[0], lp[1]) + '">' + esc(t.name) + '</text>');
+          tilt(c, lp[0], lp[1]) + '">' + esc(t.english) + '</text>');
         parts.push('<text x="' + f(lp[0]) + '" y="' + f(lp[1] + 15) + '" text-anchor="middle" ' +
           'dominant-baseline="middle" font-size="9" fill="var(--ink-3)" ' +
           'pointer-events="none" transform="' + tilt(c, lp[0], lp[1] + 15) + '">' +
