@@ -423,6 +423,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .readout .r-hint b { font-weight: 500; color: var(--ink-2); }
 .mn-phase:hover { fill-opacity: .5; }
 .mn-day:hover { fill: var(--sun); fill-opacity: .2; }
+.mn-moon:hover { fill: var(--moon); fill-opacity: .22; }
 #mn-sel { transition: opacity .1s; }
 
 /* The prose drawers: same shell as the lists, but they scroll and hold

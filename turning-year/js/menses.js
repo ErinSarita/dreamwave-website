@@ -84,6 +84,66 @@
         'phase closes and the next bleed approaches.' }
   ];
 
+  /* The moon read on its own terms, as a second clock running beside the
+   * cycle rather than inside it.
+   *
+   * This matters most when the two disagree. A woman whose bleeding has just
+   * finished but who still feels heavy and slow may be looking at a dark moon,
+   * and the tradition has a name for that rather than treating it as a fault.
+   *
+   * The readings below come from the Huangdi Neijing, which describes blood
+   * and qi as thin at the new moon, filling as it waxes, replete at the full
+   * with the flesh firm and the pores closed, and draining away as it wanes
+   * until the channels stand empty. The clinical rule attached is explicit:
+   * on a waxing moon do not drain, on a full moon do not supplement, on the
+   * new moon do not treat. The Nanjing, a century or so later, ties the
+   * moon's 29.5 days to the menstrual cycle and to the waxing and waning of
+   * kidney jing.
+   *
+   * It is a framework, and it is labelled as one. Modern evidence for the
+   * moon acting on human physiology is weak and has failed to replicate.
+   * What it offers is a second reading when your own cycle does not explain
+   * how you feel.
+   */
+  var MOON_NOTES = [
+    { key: 'new', name: 'Dark moon', from: 0, to: 45,
+      classical: 'Blood and qi are at their thinnest, and the defensive qi is ' +
+        'only beginning to move. The channels are relatively empty.',
+      living: 'The lowest point of the lunar month. Rest reads as sensible ' +
+        'here even if your cycle says you should be picking up, and feeling ' +
+        'slow just after a period that has ended is exactly what this would ' +
+        'predict.',
+      rule: 'On the new moon, do not treat.' },
+    { key: 'waxing', name: 'Waxing moon', from: 45, to: 135,
+      classical: 'Qi and blood fill steadily. The defensive qi gathers and ' +
+        'begins to hold the surface.',
+      living: 'The building half. Begin things, take on the work that needs ' +
+        'the most from you, and let the load rise with the light.',
+      rule: 'On a waxing moon, do not drain.' },
+    { key: 'full', name: 'Full moon', from: 135, to: 225,
+      classical: 'Blood and qi are replete. The flesh and muscles are full, ' +
+        'the pores close, and the body is at its most defended.',
+      living: 'The peak. The most to spend, and the least need to be given ' +
+        'anything. Some find sleep lighter here, which the closed pores and ' +
+        'abundant qi are the old way of describing.',
+      rule: 'On a full moon, do not supplement.' },
+    { key: 'waning', name: 'Waning moon', from: 225, to: 315,
+      classical: 'The fluids diminish and the channels begin to empty again ' +
+        'as the defensive qi withdraws.',
+      living: 'The drawing-down half. Better for finishing than starting, and ' +
+        'for letting go of what has run its course.',
+      rule: '' }
+  ];
+
+  function moonNoteAt(age) {
+    var a = ((age % 360) + 360) % 360;
+    for (var i = 0; i < MOON_NOTES.length; i++) {
+      var m = MOON_NOTES[i];
+      if (a >= m.from && a < m.to) return m;
+    }
+    return MOON_NOTES[0];      // wraps past 315 back into the dark
+  }
+
   /* Hormone levels across the cycle, each scaled to its own range so four
    * quantities measured in different units can share one band. The shapes are
    * the textbook ones: oestrogen climbing to a sharp pre-ovulatory peak and
@@ -154,6 +214,7 @@
     BLUEPRINT_DAYS: BLUEPRINT_DAYS,
     PHASES: PHASES,
     CURVE_ORDER: CURVE_ORDER, CURVE_LABEL: CURVE_LABEL,
+    MOON_NOTES: MOON_NOTES, moonNoteAt: moonNoteAt,
     levelAt: levelAt,
     phaseOfDay: phaseOfDay,
     spans: spans

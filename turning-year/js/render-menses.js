@@ -140,6 +140,11 @@
       var fr = frame[i];
       var age = fr && fr.moonAge !== undefined ? fr.moonAge : (360 * i / n);
       var mq = polar(R.moonGlyph, mid(i));
+      var note = Menses.moonNoteAt(age);
+      parts.push('<path class="mn-moon" data-moon="' + note.key + '" d="' +
+        sector(R.moonIn, R.moonOut, edge(i), edge(i + 1)) + '" fill="transparent" ' +
+        'style="cursor:pointer"><title>' + esc(note.name) +
+        ' · tap to read the moon on its own</title></path>');
       parts.push('<g transform="translate(' + f(mq[0] - 11) + ' ' + f(mq[1] - 11) + ')" ' +
         'pointer-events="none">' + MoonGlyph.svg(age, 22) + '</g>');
     }

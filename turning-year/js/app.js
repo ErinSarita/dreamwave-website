@@ -728,12 +728,13 @@
 
     function showHub(day) {
       var ph = day ? Menses.phaseOfDay(day, length) : null;
+      var mn = day ? Menses.moonNoteAt(360 * (day - 1) / length) : null;
       $('mn-hub').innerHTML = MensesView.hub(ph ? [
-        { text: 'CYCLE DAY', size: 10, gap: 26, colour: 'var(--ink-3)' },
-        { text: String(day), size: 44, serif: true, gap: 26, colour: 'var(--ink)' },
-        { text: ph.name, size: 17, serif: true, gap: 22,
+        { text: 'CYCLE DAY', size: 10, gap: 24, colour: 'var(--ink-3)' },
+        { text: String(day), size: 42, serif: true, gap: 24, colour: 'var(--ink)' },
+        { text: ph.name, size: 17, serif: true, gap: 20,
           colour: MensesView.COLOUR[ph.key] },
-        { text: 'at the ' + ph.moon, size: 11, gap: 20, colour: 'var(--ink-3)' }
+        { text: mn ? mn.name : '', size: 12, gap: 18, colour: 'var(--moon)' }
       ] : [
         { text: 'ONE COMMON CYCLE', size: 10, gap: 26, colour: 'var(--ink-3)' },
         { text: String(length), size: 44, serif: true, gap: 24, colour: 'var(--ink)' },
@@ -753,6 +754,13 @@
         el.addEventListener('click', function (e) {
           e.stopPropagation();
           openMensesPhase(Menses.phaseOfDay(d, length).key);
+        });
+      });
+    Array.prototype.forEach.call($('menseswheel').querySelectorAll('.mn-moon'),
+      function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openMoonNote(el.getAttribute('data-moon'));
         });
       });
     Array.prototype.forEach.call($('menseswheel').querySelectorAll('.mn-phase'),
@@ -784,13 +792,42 @@
       '<div class="r-hint">This is <b>one possible shape of a common cycle</b>, ' +
       'not a template. Bleeding is drawn at the dark moon and ovulation near ' +
       'the full because that is the old teaching picture, rather than because ' +
-      'cycles are known to follow the moon. Hover a day, tap a phase.</div>';
+      'cycles are known to follow the moon. <b>Tap a phase</b> for the body, ' +
+      '<b>tap the moon ring</b> for the moon read on its own: when yours runs ' +
+      'out of step with it, that second reading is often the one that ' +
+      'explains the day.</div>';
 
     $('menses-min').addEventListener('click', function (e) {
       e.stopPropagation();
       state.mensesMin = !state.mensesMin;
       save(); drawMenses();
     });
+  }
+
+  /* The moon read on its own, for the days when the cycle does not explain
+   * how someone feels. Two clocks, each with something to say. */
+  function openMoonNote(key) {
+    var m = null;
+    Menses.MOON_NOTES.forEach(function (x) { if (x.key === key) m = x; });
+    if (!m) return;
+    $('menses-prose').innerHTML =
+      '<h4 style="margin-top:0;color:var(--moon)">' + esc(m.name) + '</h4>' +
+      '<p class="tp-brief">The moon on its own, beside the cycle rather than ' +
+      'inside it.</p>' +
+      '<h4>What the classics say</h4><p>' + esc(m.classical) + '</p>' +
+      '<h4>Living with it</h4><p>' + esc(m.living) + '</p>' +
+      (m.rule ? '<h4>The old clinical rule</h4><p><i>' + esc(m.rule) + '</i></p>' : '') +
+      '<p class="tp-brief">These readings are from the Huangdi Neijing, which ' +
+      'describes blood and qi as thin at the new moon, filling as it waxes, ' +
+      'replete at the full, and draining as it wanes. The Nanjing, a century ' +
+      'or so later, ties the moon\'s 29.5 days to the menstrual cycle and to ' +
+      'the waxing and waning of kidney jing.</p>' +
+      '<p class="tp-brief">It is a framework, not a finding. Modern evidence ' +
+      'for the moon acting on the body is weak and has failed to replicate. ' +
+      'What it gives you is a second thing to read when your own cycle does ' +
+      'not account for how you feel: if a period has finished but everything ' +
+      'still feels slow, the moon may be dark, and that is the reading.</p>';
+    $('menses-flyout').hidden = false;
   }
 
   function openMensesPhase(key) {
