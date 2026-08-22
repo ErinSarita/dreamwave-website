@@ -268,9 +268,13 @@
     /* One radial marker cutting the whole stack, the same way the year wheel
      * marks a day: everything that shares this day lights at once, because the
      * spoke passes through all of it. Drawn last so it sits over the lot. */
-    parts.push('<path id="mv-sel" d="" fill="var(--ink)" fill-opacity=".14" ' +
-      'stroke="var(--ink)" stroke-width=".8" stroke-opacity=".5" opacity="0" ' +
-      'pointer-events="none"/>');
+    parts.push('<path id="mv-sel" d="" fill="var(--ink)" fill-opacity=".12" ' +
+      'stroke="none" opacity="0" pointer-events="none"/>');
+    /* The two dividers bounding the day, drawn the whole depth of the stack so
+     * the eye can run straight down them from the date to the growing band and
+     * see what the day sits inside at every level. */
+    parts.push('<path id="mv-sel-edge" d="" fill="none" stroke="var(--ink)" ' +
+      'stroke-width="1.4" stroke-opacity=".8" opacity="0" pointer-events="none"/>');
 
     return { svg: parts.join(''), days: days };
   }
@@ -340,11 +344,27 @@
     if (!el) return;
     var i = dayNumber - run.start;
     var N = run.end - run.start + 1;
-    if (i < 0 || i >= N) { el.setAttribute('opacity', '0'); return; }
+    if (i < 0 || i >= N) {
+      el.setAttribute('opacity', '0');
+      var off = root.querySelector('#mv-sel-edge');
+      if (off) off.setAttribute('opacity', '0');
+      return;
+    }
     var span = HALF * 2;
     var a1 = -HALF + span * (i / N), a2 = -HALF + span * ((i + 1) / N);
-    el.setAttribute('d', sector(R.growIn - 8, R.dayOut + 4, a1, a2));
+    var rIn = R.growIn - 8, rOut = R.dayOut + 4;
+    el.setAttribute('d', sector(rIn, rOut, a1, a2));
     el.setAttribute('opacity', '.9');
+    var edgeEl = root.querySelector('#mv-sel-edge');
+    if (edgeEl) {
+      var d = '';
+      [a1, a2].forEach(function (a) {
+        var p1 = polar(rIn, a), p2 = polar(rOut, a);
+        d += 'M' + f(p1[0]) + ' ' + f(p1[1]) + 'L' + f(p2[0]) + ' ' + f(p2[1]);
+      });
+      edgeEl.setAttribute('d', d);
+      edgeEl.setAttribute('opacity', '.9');
+    }
   }
 
   global.MonthView = { render: render, nowMark: nowMark, highlight: highlight };
