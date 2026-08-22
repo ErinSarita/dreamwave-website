@@ -15,18 +15,24 @@
   'use strict';
   var TZ = global.TZ, MoonGlyph = global.MoonGlyph;
 
-  var CX = 600, CY = 762, HALF = 60;          // degrees either side of vertical
+  var CX = 600, CY = 762, HALF = 59;          // degrees either side of vertical
   /* Inner to outer, the same order the year wheel stacks them: the slow things
-   * near the apex, the fast ones out at the rim. The light and dark band sits
-   * outside the moon, as it does on the wheel. */
+   * near the apex, the fast ones out at the rim.
+   *
+   * The light and dark band sits outside the moon, and it is given far more
+   * depth than the rest because it carries a whole axis rather than a value:
+   * midnight at its inner edge, midnight again at its outer, and the day's
+   * real hours laid out between. The season and term bands were shortened to
+   * pay for it, since a word and a number each need much less room. */
   var R = {
-    growIn: 208, growOut: 254,
-    seasonIn: 266, seasonOut: 332, seasonLabel: 299,
-    termIn: 344, termOut: 418, termLabel: 388, termDayNum: 354,
-    moonIn: 430, moonOut: 504, moonGlyph: 460, moonLabel: 492,
-    lightIn: 516, lightOut: 594,
-    dayIn: 606, dayOut: 688, solarNum: 626, dateNum: 662
+    growIn: 128, growOut: 158,
+    seasonIn: 166, seasonOut: 202, seasonLabel: 184,
+    termIn: 210, termOut: 262, termLabel: 243, termDayNum: 219,
+    moonIn: 270, moonOut: 330, moonGlyph: 294, moonLabel: 321,
+    lightIn: 340, lightOut: 620,
+    dayIn: 632, dayOut: 692, solarNum: 648, dateNum: 677
   };
+  var HOUR_SPAN = 24;
 
   function polar(r, a) {
     var t = a * Math.PI / 180;
@@ -77,56 +83,71 @@
         d.n + '</text>');
     });
 
-    /* -- light and dark, the same wave the year wheel carries -------------
-     * The boundary rides at the day's own share of the twenty-four hours, so
-     * the gold swells toward midsummer and thins toward midwinter, and a month
-     * is long enough to see it moving. */
-    var lightSpan = R.lightOut - R.lightIn;
-    function lightR(d) {
-      var fr = d.sunAlwaysUp ? 1 : d.sunAlwaysDown ? 0
-             : Math.max(0, Math.min(1, d.daylightHours / 24));
-      return R.lightIn + lightSpan * fr;
+    /* -- light and dark, as an actual clock -------------------------------
+     * The band is a twenty-four hour axis: midnight at the inner edge,
+     * midnight again at the outer, noon in the middle. Each day's column is
+     * dark until its sunrise, gold until its sunset, dark again after, so the
+     * block of daylight is drawn where it really falls rather than merely how
+     * long it lasts. Across a month you can watch sunrise sliding later and
+     * sunset earlier, and the gold narrowing from both ends at once.
+     */
+    var hourR = function (h) {
+      return R.lightIn + (R.lightOut - R.lightIn) * Math.max(0, Math.min(HOUR_SPAN, h)) / HOUR_SPAN;
+    };
+    function arcPath(r, a1, a2) {
+      var p1 = polar(r, a1), p2 = polar(r, a2);
+      return 'M' + f(p1[0]) + ' ' + f(p1[1]) + 'A' + r + ' ' + r + ' 0 0 1 ' +
+             f(p2[0]) + ' ' + f(p2[1]);
     }
-    var bound = [];
-    bound.push([edge(0), lightR(days[0])]);
-    days.forEach(function (d, i) { bound.push([mid(i), lightR(d)]); });
-    bound.push([edge(N), lightR(days[N - 1])]);
 
-    function alongInner(r, from, to, step) {
-      var out = '';
-      for (var a = from; step > 0 ? a <= to : a >= to; a += step) {
-        var q = polar(r, a);
-        out += 'L' + f(q[0]) + ' ' + f(q[1]);
-      }
-      return out;
-    }
-    var q0 = polar(R.lightIn, -HALF);
-    var gold = 'M' + f(q0[0]) + ' ' + f(q0[1]) +
-      alongInner(R.lightIn, -HALF, HALF, 3);
-    for (var bi = bound.length - 1; bi >= 0; bi--) {
-      var qb = polar(bound[bi][1], bound[bi][0]);
-      gold += 'L' + f(qb[0]) + ' ' + f(qb[1]);
-    }
-    parts.push('<path d="' + gold + 'Z" fill="url(#mv-gold)" opacity=".9"/>');
-
-    var q1 = polar(R.lightOut, -HALF);
-    var dark = 'M' + f(q1[0]) + ' ' + f(q1[1]) +
-      alongInner(R.lightOut, -HALF, HALF, 3);
-    for (var di = bound.length - 1; di >= 0; di--) {
-      var qd = polar(bound[di][1], bound[di][0]);
-      dark += 'L' + f(qd[0]) + ' ' + f(qd[1]);
-    }
-    parts.push('<path d="' + dark + 'Z" fill="var(--night, #2b3050)" opacity=".55"/>');
     parts.push('<path d="' + sector(R.lightIn, R.lightOut, -HALF, HALF) +
-      '" fill="none" stroke="var(--line-soft)" stroke-width=".7"/>');
+      '" fill="var(--night, #232845)" fill-opacity=".55"/>');
+
     days.forEach(function (d, i) {
-      if (i % 5) return;
-      var q = polar(lightR(d), mid(i));
-      parts.push('<text x="' + f(q[0]) + '" y="' + f(q[1] - 7) + '" text-anchor="middle" ' +
-        'font-size="8.5" font-family="var(--mono)" fill="var(--ink-2)" ' +
-        'pointer-events="none" transform="' + tilt(mid(i), q[0], q[1] - 7) + '">' +
-        (d.daylightHours ? d.daylightHours.toFixed(1) + 'h' : '') + '</text>');
+      var a1 = edge(i), a2 = edge(i + 1);
+      var lit = null;
+      if (d.sunAlwaysUp) lit = [0, HOUR_SPAN];
+      else if (d.sunAlwaysDown) lit = null;
+      else if (d.sunrise && d.sunset) {
+        var sr = TZ.hoursIntoDay(cycle.tz, d.sunrise);
+        var ss = TZ.hoursIntoDay(cycle.tz, d.sunset);
+        if (ss > sr) lit = [sr, ss];
+      }
+      if (!lit) return;
+      parts.push('<path d="' + sector(hourR(lit[0]), hourR(lit[1]), a1, a2) +
+        '" fill="url(#mv-gold)" opacity=".92"/>');
     });
+
+    /* the hours themselves, so the block can be read against a clock */
+    for (var hh = 0; hh <= HOUR_SPAN; hh += 3) {
+      var major = hh % 6 === 0;
+      parts.push('<path d="' + arcPath(hourR(hh), -HALF, HALF) + '" fill="none" ' +
+        'stroke="var(--line-soft)" stroke-width="' + (major ? '.9' : '.5') +
+        '" opacity="' + (major ? '.75' : '.45') + '"/>');
+      if (major) {
+        [[-HALF, 'end'], [HALF, 'start']].forEach(function (side) {
+          var q = polar(hourR(hh), side[0]);
+          var off = side[1] === 'end' ? -7 : 7;
+          parts.push('<text x="' + f(q[0] + off) + '" y="' + f(q[1]) + '" ' +
+            'text-anchor="' + side[1] + '" dominant-baseline="middle" font-size="9.5" ' +
+            'font-family="var(--mono)" fill="var(--ink-3)" pointer-events="none" ' +
+            'transform="' + tilt(side[0], q[0] + off, q[1]) + '">' + hh + '</text>');
+        });
+      }
+    }
+    /* sunrise and sunset written on once a week, where the eye can catch them */
+    days.forEach(function (d, i) {
+      if (i % 7 || !d.sunrise || !d.sunset) return;
+      var m = mid(i);
+      [[d.sunrise, 'rise'], [d.sunset, 'set']].forEach(function (ev) {
+        var h = TZ.hoursIntoDay(cycle.tz, ev[0]);
+        var q = polar(hourR(h), m);
+        parts.push('<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="2.4" ' +
+          'fill="var(--ink)" opacity=".65" pointer-events="none"/>');
+      });
+    });
+    parts.push('<path d="' + sector(R.lightIn, R.lightOut, -HALF, HALF) +
+      '" fill="none" stroke="var(--line)" stroke-width=".8"/>');
 
     /* -- the moon: a face a day, and the lunations they belong to -------- */
     parts.push('<path d="' + sector(R.moonIn, R.moonOut, -HALF, HALF) +
@@ -238,14 +259,9 @@
         esc(grow.label) + '</text>');
     }
 
-    /* -- the apex --------------------------------------------------------- */
-    parts.push('<text x="' + CX + '" y="' + (CY - 150) + '" text-anchor="middle" ' +
-      'font-size="34" font-family="var(--serif)" fill="var(--ink)">' +
-      esc(TZ.MONTHS[run.month - 1]) + ' <tspan font-size="20" fill="var(--ink-3)">' +
-      run.year + '</tspan></text>');
-    parts.push('<text x="' + CX + '" y="' + (CY - 122) + '" text-anchor="middle" ' +
-      'font-size="12" fill="var(--ink-3)">' + N + ' days · solar days ' +
-      days[0].n + ' to ' + days[N - 1].n + ' of ' + cycle.length + '</text>');
+    /* No caption at the apex. The title bar above the fan already carries the
+     * month and its span, and clearing the middle is what lets the rings reach
+     * inward far enough to give the hour band real depth. */
 
     return { svg: parts.join(''), days: days };
   }
