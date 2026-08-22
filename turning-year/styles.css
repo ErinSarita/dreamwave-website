@@ -730,11 +730,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 
 .month-hit:hover { fill: var(--sun); fill-opacity: .14; }
 .mv-day:hover { fill: var(--sun); fill-opacity: .22; }
-.mv-day.is-sel { fill: var(--ink); fill-opacity: .18; stroke: var(--ink); stroke-opacity: .5; }
-/* A run the hovered day belongs to. Kept to a rim rather than a wash, so the
- * layer underneath still reads while it is picked out. */
-.mv-run { transition: fill-opacity .12s; }
-.mv-run.is-lit { stroke: var(--sun); stroke-width: 1.6; stroke-opacity: .9; fill-opacity: .16; }
+#mv-sel { transition: opacity .1s; }
 .scene-month .readout .r-body {
   margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line-soft);
 }

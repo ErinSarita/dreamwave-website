@@ -754,19 +754,11 @@
      * pointer leaves, so the box is never blank. */
     var body = $('month-readout').querySelector('.r-body');
     var sectors = $('monthfan').querySelectorAll('.mv-day');
-    var runsEls = $('monthfan').querySelectorAll('.mv-run');
-    /* Marking a day lights the day itself and every run it belongs to: its
-     * term, its lunation, its season, its stretch of growing weather. The
-     * point of the fan is that those boundaries fall wherever the sky puts
-     * them, so seeing which ones a day sits inside is the whole reading. */
+    /* One spoke through the whole stack, as on the year wheel. Everything
+     * that shares the day is lit by the marker passing through it, rather
+     * than by each layer being picked out separately. */
     function markDay(n) {
-      Array.prototype.forEach.call(sectors, function (el) {
-        el.classList.toggle('is-sel', +el.getAttribute('data-day') === n);
-      });
-      Array.prototype.forEach.call(runsEls, function (el) {
-        var a = +el.getAttribute('data-from'), b = +el.getAttribute('data-to');
-        el.classList.toggle('is-lit', n >= a && n <= b);
-      });
+      MonthView.highlight($('monthfan'), cycle, run, n);
     }
     function showDay(n) {
       var d = cycle.days[n - 1];

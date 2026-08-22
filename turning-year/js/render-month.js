@@ -169,9 +169,6 @@
       .forEach(function (r) {
         var a1 = edge(r.from), a2 = edge(r.to + 1);
         if (a2 - a1 < 7) return;
-        parts.push('<path class="mv-run" data-from="' + days[r.from].n + '" data-to="' +
-          days[r.to].n + '" d="' + sector(R.moonIn, R.moonOut, a1, a2) +
-          '" fill="var(--moon)" fill-opacity=".01" pointer-events="none"/>');
         var e1 = polar(R.moonIn, a1), e2 = polar(R.moonOut, a1);
         parts.push('<path d="M' + f(e1[0]) + ' ' + f(e1[1]) + 'L' + f(e2[0]) + ' ' +
           f(e2[1]) + '" stroke="var(--moon)" stroke-width="1.2" opacity=".7"/>');
@@ -193,9 +190,6 @@
       .forEach(function (r) {
         var a1 = edge(r.from), a2 = edge(r.to + 1);
         var t = days[r.from].inTerm;
-        parts.push('<path class="mv-run" data-from="' + days[r.from].n + '" data-to="' +
-          days[r.to].n + '" d="' + sector(R.termIn, R.termOut, a1, a2) +
-          '" fill="var(--bg-2)" fill-opacity=".01" pointer-events="none"/>');
         var e1 = polar(R.termIn, a1), e2 = polar(R.termOut, a1);
         parts.push('<path d="M' + f(e1[0]) + ' ' + f(e1[1]) + 'L' + f(e2[0]) + ' ' +
           f(e2[1]) + '" stroke="var(--line)" stroke-width="1"/>');
@@ -230,8 +224,7 @@
     runsOf(days, function (d) { return d.season; }).forEach(function (r) {
       var a1 = edge(r.from), a2 = edge(r.to + 1);
       var s = cycle.stations[days[r.from].season * 2] || cycle.stations[0];
-      parts.push('<path class="mv-run" data-from="' + days[r.from].n + '" data-to="' +
-        days[r.to].n + '" d="' + sector(R.seasonIn, R.seasonOut, a1, a2) +
+      parts.push('<path d="' + sector(R.seasonIn, R.seasonOut, a1, a2) +
         '" fill="var(--bg-2)" fill-opacity=".6" stroke="var(--line-soft)" ' +
         'stroke-width=".7" pointer-events="none"/>');
       var c = (a1 + a2) / 2, lp = polar(R.seasonLabel, c);
@@ -259,9 +252,7 @@
     parts.push('<path d="' + sector(R.growIn, R.growOut, -HALF, HALF) +
       '" fill="var(--bg-2)" fill-opacity=".35" stroke="var(--line-soft)" stroke-width=".7"/>');
     if (grow) {
-      parts.push('<path class="mv-run" data-from="' + days[grow.from].n + '" data-to="' +
-        days[grow.to].n + '" d="' +
-        sector(R.growIn, R.growOut, edge(grow.from), edge(grow.to + 1)) +
+      parts.push('<path d="' + sector(R.growIn, R.growOut, edge(grow.from), edge(grow.to + 1)) +
         '" fill="var(--grow, #6b9e5a)" fill-opacity=".45" pointer-events="none"/>');
       var gc = (edge(grow.from) + edge(grow.to + 1)) / 2, gp = polar(R.growIn + 26, gc);
       parts.push('<text x="' + f(gp[0]) + '" y="' + f(gp[1]) + '" text-anchor="middle" ' +
@@ -273,6 +264,13 @@
     /* No caption at the apex. The title bar above the fan already carries the
      * month and its span, and clearing the middle is what lets the rings reach
      * inward far enough to give the hour band real depth. */
+
+    /* One radial marker cutting the whole stack, the same way the year wheel
+     * marks a day: everything that shares this day lights at once, because the
+     * spoke passes through all of it. Drawn last so it sits over the lot. */
+    parts.push('<path id="mv-sel" d="" fill="var(--ink)" fill-opacity=".14" ' +
+      'stroke="var(--ink)" stroke-width=".8" stroke-opacity=".5" opacity="0" ' +
+      'pointer-events="none"/>');
 
     return { svg: parts.join(''), days: days };
   }
@@ -336,5 +334,18 @@
            '-' + (p.day < 10 ? '0' : '') + p.day;
   }
 
-  global.MonthView = { render: render, nowMark: nowMark };
+  /* Move the marker onto one day of this month. */
+  function highlight(root, cycle, run, dayNumber) {
+    var el = root.querySelector('#mv-sel');
+    if (!el) return;
+    var i = dayNumber - run.start;
+    var N = run.end - run.start + 1;
+    if (i < 0 || i >= N) { el.setAttribute('opacity', '0'); return; }
+    var span = HALF * 2;
+    var a1 = -HALF + span * (i / N), a2 = -HALF + span * ((i + 1) / N);
+    el.setAttribute('d', sector(R.growIn - 8, R.dayOut + 4, a1, a2));
+    el.setAttribute('opacity', '.9');
+  }
+
+  global.MonthView = { render: render, nowMark: nowMark, highlight: highlight };
 })(typeof window !== 'undefined' ? window : globalThis);
