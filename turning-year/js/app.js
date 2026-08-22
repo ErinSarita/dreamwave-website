@@ -58,7 +58,7 @@
   var cycle = null;
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
   var wheelZoom = null, dayZoom = null, moonZoom = null, orbitsZoom = null,
-      monthZoom = null, mensesZoom = null;
+      monthZoom = null, mensesZoom = null, pregZoom = null;
 
   /* ------------------------------------------------------------ persistence */
   function save() {
@@ -347,6 +347,7 @@
     if (orbitsZoom) orbitsZoom.reset();
     if (monthZoom) monthZoom.reset();
     if (mensesZoom) mensesZoom.reset();
+    if (pregZoom) pregZoom.reset();
     if (wheelZoom) wheelZoom.reset();
     if (dayZoom) dayZoom.reset();
     if (moonZoom) moonZoom.reset();
@@ -356,13 +357,13 @@
     if (level !== 'moon') stopMoonClock();
     if (level !== 'day') stopDayRing();
     if (level !== 'month') stopMonthNow();
-    if (level !== 'menses') {
+    if (level !== 'menses' && level !== 'preg') {
       $('menses-flyout').hidden = true;
       $('menses-btn').setAttribute('aria-expanded', 'false');
-      $('menses-btn').classList.remove('is-on');
-    } else {
-      $('menses-btn').classList.add('is-on');
+      $('preg-btn').setAttribute('aria-expanded', 'false');
     }
+    $('menses-btn').classList.toggle('is-on', level === 'menses');
+    $('preg-btn').classList.toggle('is-on', level === 'preg');
     if (level === 'year') { state.season = null; state.day = null; state.lunationK = null; state.monthRun = null; }
     if (level === 'season') state.lunationK = null;
     if (level === 'season' && state.season === null) {
@@ -376,14 +377,15 @@
     $('zoom-controls').hidden = false;
     var wheelScene = $('scene-wheel'), dayScene = $('scene-day'), moonScene = $('scene-moon');
     var orbitsScene = $('scene-orbits'), monthScene = $('scene-month');
-    var mensesScene = $('scene-menses');
+    var mensesScene = $('scene-menses'), pregScene = $('scene-preg');
 
     /* Three scenes share the stage. Whichever the new level wants comes
      * forward and the other two step back, on the same fade the wheel and the
      * day already used between them. */
     function showScene(want) {
       var all = [['orbits', orbitsScene], ['wheel', wheelScene], ['month', monthScene],
-                 ['day', dayScene], ['moon', moonScene], ['menses', mensesScene]];
+                 ['day', dayScene], ['moon', moonScene], ['menses', mensesScene],
+                 ['preg', pregScene]];
       var current = null;
       all.forEach(function (pair) { if (!pair[1].hidden) current = pair; });
       var target = all.filter(function (pair) { return pair[0] === want; })[0];
@@ -404,6 +406,12 @@
       drawOrbits();
       showScene('orbits');
       syncCrumbs(); syncLegend(); writeHash();
+      return;
+    }
+    if (level === 'preg') {
+      drawPregnancy();
+      showScene('preg');
+      syncCrumbs(); syncLegend();
       return;
     }
     if (level === 'menses') {
@@ -471,7 +479,7 @@
     var cs = $('crumbs').querySelectorAll('.crumb');
     // A lunation sits in the same middle slot a season does, so it lights the
     // same crumb; without this nothing is highlighted at that level at all.
-    var slot = state.level === 'menses' ? null : state.level;
+    var slot = (state.level === 'menses' || state.level === 'preg') ? null : state.level;
     for (var i = 0; i < cs.length; i++) {
       var lvl = cs[i].getAttribute('data-level');
       cs[i].classList.toggle('is-on', lvl === slot);
@@ -859,6 +867,110 @@
       'What it gives you is a second thing to read when your own cycle does ' +
       'not account for how you feel: if a period has finished but everything ' +
       'still feels slow, the moon may be dark, and that is the reading.</p>';
+    $('menses-flyout').hidden = false;
+  }
+
+  /* ---------------------------------------------------------- forty weeks
+   *
+   * Counted from the first day of the last period, which is how medicine
+   * counts it, so the first fortnight is spent before there is anything to be
+   * pregnant with. The wheel says that rather than quietly starting at
+   * conception.
+   */
+  function drawPregnancy() {
+    if (!global.PregnancyView) return;
+    var out = PregnancyView.render();
+    $('pregwheel').innerHTML = out.svg;
+
+    function showHub(week) {
+      var t = week ? Pregnancy.trimesterOf(week) : null;
+      var st = week ? Pregnancy.stageOf(week) : null;
+      var mk = week ? Pregnancy.markAt(week) : null;
+      $('pg-hub').innerHTML = PregnancyView.hub(t ? [
+        { text: 'WEEK', size: 10, gap: 24, colour: 'var(--ink-3)' },
+        { text: String(week), size: 42, serif: true, gap: 24, colour: 'var(--ink)' },
+        { text: t.name, size: 15, serif: true, gap: 20, colour: PregnancyView.COLOUR[t.key] },
+        { text: mk ? mk.label : st.name, size: 11, gap: 18,
+          colour: mk ? 'var(--sun)' : 'var(--ink-3)' }
+      ] : [
+        { text: 'FORTY WEEKS', size: 10, gap: 24, colour: 'var(--ink-3)' },
+        { text: '40', size: 42, serif: true, gap: 22, colour: 'var(--ink)' },
+        { text: 'counted from the last period', size: 11.5, gap: 19,
+          colour: 'var(--ink-3)' },
+        { text: 'hover a week, tap a trimester', size: 10, gap: 18,
+          colour: 'var(--ink-3)' }
+      ]);
+      PregnancyView.highlight($('pregwheel'), week);
+    }
+    showHub(null);
+
+    Array.prototype.forEach.call($('pregwheel').querySelectorAll('.pg-week'),
+      function (el) {
+        var w = +el.getAttribute('data-week');
+        el.addEventListener('mouseenter', function () { showHub(w); });
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var mk = Pregnancy.markAt(w);
+          if (mk) openPregMark(w); else openPregTrimester(Pregnancy.trimesterOf(w).key);
+        });
+      });
+    Array.prototype.forEach.call($('pregwheel').querySelectorAll('.pg-tri'),
+      function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openPregTrimester(el.getAttribute('data-tri'));
+        });
+      });
+    Array.prototype.forEach.call($('pregwheel').querySelectorAll('.pg-mark'),
+      function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openPregMark(+el.getAttribute('data-week'));
+        });
+      });
+    $('pregwheel').addEventListener('mouseleave', function () { showHub(null); });
+
+    $('preg-readout').innerHTML =
+      '<div class="r-lab">Forty weeks</div>' +
+      '<div class="r-date">counted from the last period</div>' +
+      '<div class="r-rows">' + Pregnancy.TRIMESTERS.map(function (t) {
+        return '<div><span>' + esc(t.name.split(' ')[0]) + '</span> · weeks ' +
+          t.from + '–' + t.to + '</div>';
+      }).join('') + '</div>' +
+      '<div class="r-hint">The first fortnight is spent before there is ' +
+      'anything to be pregnant with: that is how the counting works, rather ' +
+      'than an error. <b>Only about five births in a hundred land on the ' +
+      'estimated date</b>; seventy fall within ten days of it and ninety ' +
+      'within a fortnight. Hover a week, tap a trimester or a marked week.</div>';
+  }
+
+  function openPregTrimester(key) {
+    var t = null;
+    Pregnancy.TRIMESTERS.forEach(function (x) { if (x.key === key) t = x; });
+    if (!t) return;
+    $('menses-prose').innerHTML =
+      '<h4 style="margin-top:0;color:' + PregnancyView.COLOUR[t.key] + '">' +
+        esc(t.name) + '</h4>' +
+      '<p class="tp-brief">Weeks ' + t.from + ' to ' + t.to + '.</p>' +
+      '<h4>The baby</h4><p>' + esc(t.baby) + '</p>' +
+      '<h4>The mother</h4><p>' + esc(t.mother) + '</p>' +
+      '<h4>What tends to help</h4><p>' + esc(t.helps) + '</p>' +
+      '<p class="tp-brief">General information, and no substitute for the ' +
+      'people looking after you. Anything that worries you is worth a call ' +
+      'rather than a wait.</p>';
+    $('menses-flyout').hidden = false;
+  }
+
+  function openPregMark(week) {
+    var mk = Pregnancy.markAt(week);
+    if (!mk) return;
+    $('menses-prose').innerHTML =
+      '<h4 style="margin-top:0;color:var(--sun)">Week ' + week + '</h4>' +
+      '<p class="tp-brief">' + esc(mk.label) + '</p>' +
+      '<p>' + esc(mk.note) + '</p>' +
+      '<p class="tp-brief">Weeks are markers, not deadlines. Almost everything ' +
+      'here happens across a span rather than on a day, and the spans differ ' +
+      'between pregnancies.</p>';
     $('menses-flyout').hidden = false;
   }
 
@@ -2570,6 +2682,16 @@
         setLevel('menses');
       }
     });
+    $('preg-btn').addEventListener('click', function () {
+      if (state.level === 'preg') {
+        $('menses-flyout').hidden = true;
+        $('preg-btn').setAttribute('aria-expanded', 'false');
+        setLevel(state.day ? 'day' : 'year');
+      } else {
+        $('preg-btn').setAttribute('aria-expanded', 'true');
+        setLevel('preg');
+      }
+    });
     $('menses-close').addEventListener('click', function () {
       $('menses-flyout').hidden = true;
     });
@@ -2754,6 +2876,7 @@
     monthZoom = ZoomPan.attach($('month-svg'), $('scene-month'));
     orbitsZoom = ZoomPan.attach($('orrery-svg'), $('scene-orbits'));
     mensesZoom = ZoomPan.attach($('menses-svg'), $('scene-menses'));
+    pregZoom = ZoomPan.attach($('preg-svg'), $('scene-preg'));
     /* Every scene that can be zoomed needs a line here. The month and system
      * views were falling through to the year wheel, so their buttons appeared
      * to do nothing while quietly zooming a face that was not on screen. */
@@ -2762,7 +2885,8 @@
       moon: function () { return moonZoom; },
       month: function () { return monthZoom; },
       orbits: function () { return orbitsZoom; },
-      menses: function () { return mensesZoom; }
+      menses: function () { return mensesZoom; },
+      preg: function () { return pregZoom; }
     };
     function active() {
       var pick = ZOOMS[state.level];

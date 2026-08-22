@@ -101,6 +101,8 @@
       <label>Cycle</label>
       <button id="menses-btn" class="ghost-btn" aria-expanded="false"
               aria-haspopup="true">The menstrual wheel</button>
+      <button id="preg-btn" class="ghost-btn" aria-expanded="false"
+              aria-haspopup="true">The pregnancy wheel</button>
       <p class="meta">A blueprint to read your own days against. Nothing typed
       here leaves this device.</p>
     </section>
@@ -161,6 +163,14 @@
         <button id="menses-close" aria-label="Close">&times;</button>
       </div>
       <div class="tool-panel-prose" id="menses-prose"></div>
+    </div>
+
+    <div class="scene scene-preg" id="scene-preg" hidden>
+      <svg id="preg-svg" viewBox="-40 -40 1080 1080" role="img"
+           aria-label="Forty weeks of pregnancy drawn as a wheel">
+        <g id="pregwheel"></g>
+      </svg>
+      <div class="readout" id="preg-readout"></div>
     </div>
 
     <div class="scene scene-menses" id="scene-menses" hidden>
@@ -774,6 +784,8 @@
 <script src="js/orrery.js"></script>
 <script src="js/orrery.js"></script>
 <script src="js/menses.js"></script>
+<script src="js/pregnancy.js"></script>
+<script src="js/render-pregnancy.js"></script>
 <script src="js/render-menses.js"></script>
 <script src="js/render-month.js"></script>
 <script src="js/render-day.js"></script>
