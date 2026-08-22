@@ -909,6 +909,24 @@
           (w.avoid ? '<div class="tp-now-avoid">Easier another hour: ' + esc(w.avoid) + '</div>' : '') +
           '</div>';
       }
+      /* All twelve as a list, which is the dependable way in on a phone: the
+       * ring is under nine pixels deep at that size, well below a comfortable
+       * touch target. The clock times beside each also make plain how far the
+       * solar reckoning sits from the hour numerals. */
+      organs += '<ul class="tp-watches">' + BC.WATCHES.map(function (x, j) {
+        var ck = watchClock(j, d);
+        return '<li><button data-watch="' + j + '"' +
+          (w === x ? ' class="is-now"' : '') + '>' +
+          '<span class="tw-organ">' + esc(x.organ) + '</span>' +
+          '<span class="tw-branch">' + esc(x.branch) + '</span>' +
+          '<span class="tw-hours">' + esc(x.hours) + ' sun' +
+          (ck ? '<em>' + esc(ck) + '</em>' : '') + '</span></button></li>';
+      }).join('') + '</ul>' +
+      '<p class="tp-brief">Those hours are <b>solar</b> hours, so they drift ' +
+      'from the clock by your longitude inside the timezone, by daylight ' +
+      'saving, and by the equation of time. Here that comes to more than an ' +
+      'hour, which is why the ring sits off the hour numerals: the ring ' +
+      'follows the sun, and the numerals follow the timezone.</p>';
       organs +=
         '<h4>Zi and wu</h4>' +
         '<p><i>Zi</i> is the double hour around midnight, when yin is at its ' +
@@ -953,13 +971,32 @@
       'positions, open the <b>System</b> view.</p>';
   }
 
-  /* One watch, opened from the ring. */
+  /* When a watch actually falls today, on this place's clock.
+   *
+   * The hours in the table are solar hours, and solar time drifts from clock
+   * time by longitude within the timezone, by daylight saving, and by the
+   * equation of time. At this longitude that runs past an hour, which reads as
+   * an error if the ring is compared against the hour numerals with no real
+   * times printed anywhere. So they are printed. */
+  function watchClock(i, d) {
+    if (!d || !d.solarNoon) return '';
+    var sm = new Date(d.solarNoon.getTime() - 12 * 3600000);
+    var a = new Date(sm.getTime() + (i * 2 - 1) * 3600000);
+    var b = new Date(sm.getTime() + (i * 2 + 1) * 3600000);
+    return Clock.time(cycle, a, state.useDST, state.hour12) + ' to ' +
+           Clock.time(cycle, b, state.useDST, state.hour12);
+  }
+
+  /* One watch, opened from the ring or from the list. */
   function openWatch(i) {
     var w = global.BodyClock && global.BodyClock.WATCHES[i];
     if (!w) return;
+    var wd = state.day ? cycle.days[state.day - 1] : null;
+    var wclock = watchClock(i, wd);
     $('watch-h').textContent = w.organ;
     $('watch-when').textContent = 'The ' + w.branch + ' watch · ' + w.animal +
-      ' · ' + w.hours + ' by the sun';
+      ' · ' + w.hours + ' by the sun' +
+      (wclock ? ' · today that is ' + wclock : '');
     $('watch-body').innerHTML =
       (w.pole ? '<p class="watch-pole">' + esc(w.pole) + '</p>' : '') +
       '<h3>Suits it</h3><p>' + esc(w.best) + '</p>' +
