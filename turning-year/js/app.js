@@ -687,6 +687,58 @@
    *
    * A level of its own rather than a window, so it can be zoomed, stepped and
    * linked like every other view, and so the trail says where you are. */
+  /* The cycle either side of this one, built once and kept.
+   *
+   * A solar cycle opens and closes mid-December, so the first and last months
+   * on the wheel are both stumps: eleven days of December at one end and
+   * twenty at the other. Drawn as they fall they look broken, as though the
+   * calendar had lost some days. They have not gone anywhere; they belong to
+   * the neighbouring cycle, and that cycle numbers them from its own solstice.
+   * So the fan borrows them and shows the month whole, with each day carrying
+   * the count its own cycle gives it. */
+  var neighbours = {};
+  function neighbourCycle(dir) {
+    var year = state.anchorYear + dir;
+    if (neighbours[year] === undefined) {
+      try {
+        var c = CycleModel.build({
+          lat: state.place.lat, lon: state.place.lon, tz: state.place.tz,
+          anchorYear: year
+        });
+        CycleModel.applyFrost(c, state.frost);
+        neighbours[year] = c;
+      } catch (e) { neighbours[year] = null; }
+    }
+    return neighbours[year];
+  }
+
+  /* One calendar month, complete, however the solar cycle cuts it. */
+  function monthDaysFor(idx) {
+    var runs = WheelView.monthRuns(cycle);
+    var run = runs[idx];
+    if (!run) return null;
+    var days = cycle.days.slice(run.start - 1, run.end);
+    var first = days[0], last = days[days.length - 1];
+
+    if (idx === 0 && first.day > 1) {
+      var prev = neighbourCycle(-1);
+      if (prev) {
+        days = prev.days.filter(function (d) {
+          return d.year === first.year && d.month === first.month && d.day < first.day;
+        }).concat(days);
+      }
+    }
+    if (idx === runs.length - 1) {
+      var next = neighbourCycle(1);
+      if (next) {
+        days = days.concat(next.days.filter(function (d) {
+          return d.year === last.year && d.month === last.month && d.day > last.day;
+        }));
+      }
+    }
+    return { run: run, days: days };
+  }
+
   function monthRunOfDay(n) {
     var runs = WheelView.monthRuns(cycle);
     for (var i = 0; i < runs.length; i++) {
@@ -700,8 +752,9 @@
     var runs = WheelView.monthRuns(cycle);
     var idx = Math.max(0, Math.min(runs.length - 1, state.monthRun || 0));
     state.monthRun = idx;
-    var run = runs[idx];
-    var out = MonthView.render(cycle, run, {});
+    var pack = monthDaysFor(idx);
+    var run = pack.run;
+    var out = MonthView.render(cycle, run, { days: pack.days });
     $('monthfan').innerHTML = out.svg;
 
     $('month-head').innerHTML =
@@ -709,7 +762,8 @@
       ' <span class="mh-year">' + run.year + '</span></div>' +
       '<div class="mh-sub">' + out.days.length + ' days &#183; solar day ' +
       out.days[0].n + ' to ' + out.days[out.days.length - 1].n +
-      ' of ' + cycle.length + '</div>';
+      (out.foreign ? ' &#183; ' + out.foreign + ' from the neighbouring cycle' : '') +
+      '</div>';
     $('month-prev').disabled = idx === 0;
     $('month-next').disabled = idx === runs.length - 1;
 
@@ -758,10 +812,10 @@
      * that shares the day is lit by the marker passing through it, rather
      * than by each layer being picked out separately. */
     function markDay(n) {
-      MonthView.highlight($('monthfan'), cycle, run, n);
+      MonthView.highlight($('monthfan'), out.days, n);
     }
-    function showDay(n) {
-      var d = cycle.days[n - 1];
+    function showDay(n, iso) {
+      var d = iso ? findDay(iso) : cycle.days[n - 1];
       if (!d || !body) return;
       markDay(n);
       var bits = [];
@@ -787,30 +841,43 @@
         : (todayNumber() >= run.start && todayNumber() <= run.end ? todayNumber() : run.start);
       showDay(n);
     }
+    /* A day borrowed from the neighbouring cycle has no entry in this one, so
+     * the readout reads it from the slice rather than from cycle.days. */
+    var byNumber = {};
+    out.days.forEach(function (d) { byNumber[d.n + ':' + d.iso] = d; });
 
+    function findDay(iso) {
+      for (var i = 0; i < out.days.length; i++) if (out.days[i].iso === iso) return out.days[i];
+      return null;
+    }
     Array.prototype.forEach.call(sectors, function (el) {
       var n = +el.getAttribute('data-day');
-      el.addEventListener('mouseenter', function () { showDay(n); });
-      el.addEventListener('focus', function () { showDay(n); });
+      var iso = el.getAttribute('data-iso');
+      el.addEventListener('mouseenter', function () { showDay(n, iso); });
+      el.addEventListener('focus', function () { showDay(n, iso); });
       el.addEventListener('click', function (e) {
         e.stopPropagation();
+        /* A borrowed day belongs to the cycle next door, so opening it moves
+         * the whole view there rather than pretending it sits in this one. */
+        if (!cycle.dayByISO[iso]) { openISO(iso); return; }
         state.day = n;
         setLevel('day');
       });
     });
     $('monthfan').addEventListener('mouseleave', restDay);
     restDay();
+    monthDaysNow = out.days;
     startMonthNow(run);
   }
 
   /* The clock's own position on today's column, kept current while the fan is
    * on the stage. A minute is plenty: the tick moves a fraction of its own
    * width in that time. */
-  var monthNowTimer = null;
+  var monthNowTimer = null, monthDaysNow = [];
   function tickMonthNow(run) {
     var g = document.getElementById('mv-now');
     if (!g || !global.MonthView) { stopMonthNow(); return; }
-    g.innerHTML = MonthView.nowMark(cycle, run, new Date());
+    g.innerHTML = MonthView.nowMark(cycle, monthDaysNow, new Date());
   }
   function startMonthNow(run) {
     stopMonthNow();

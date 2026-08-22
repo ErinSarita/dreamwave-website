@@ -56,8 +56,14 @@
   function tilt(a, x, y) { return 'rotate(' + f(a) + ' ' + f(x) + ' ' + f(y) + ')'; }
 
   function render(cycle, run, opts) {
-    var days = cycle.days.slice(run.start - 1, run.end);
+    /* The caller may hand over a completed month, with the days at either end
+     * borrowed from the cycle next door. Those days carry their own cycle's
+     * numbering, which is the honest count for them. */
+    var days = (opts && opts.days && opts.days.length)
+      ? opts.days : cycle.days.slice(run.start - 1, run.end);
     var N = days.length;
+    var foreign = 0;
+    days.forEach(function (d) { if (!cycle.dayByISO[d.iso]) foreign++; });
     var parts = [];
     parts.push('<defs><linearGradient id="mv-gold" x1="0" y1="1" x2="0" y2="0">' +
       '<stop offset="0%" stop-color="var(--sun-deep)"/>' +
@@ -69,11 +75,15 @@
     /* -- the days ------------------------------------------------------- */
     days.forEach(function (d, i) {
       var a1 = edge(i), a2 = edge(i + 1);
-      parts.push('<path class="mv-day" data-day="' + d.n + '" d="' +
+      var away = !cycle.dayByISO[d.iso];
+      parts.push('<path class="mv-day' + (away ? ' is-away' : '') + '" data-day="' + d.n +
+        '" data-iso="' + d.iso + '" d="' +
         sector(R.dayIn, R.dayOut, a1, a2) + '" fill="var(--bg-2)" fill-opacity="' +
-        (i % 2 ? '.75' : '.4') + '" stroke="var(--line-soft)" stroke-width=".7" ' +
-        'style="cursor:pointer"><title>' + esc(TZ.formatDate(cycle.tz, d.date)) +
-        ' · solar day ' + d.n + ' of ' + cycle.length + ' · tap to open</title></path>');
+        (away ? '.18' : (i % 2 ? '.75' : '.4')) + '" stroke="var(--line-soft)" ' +
+        'stroke-width=".7" style="cursor:pointer"><title>' +
+        esc(TZ.formatDate(cycle.tz, d.date)) + ' · solar day ' + d.n +
+        (away ? ' of the neighbouring cycle' : ' of ' + cycle.length) +
+        ' · tap to open</title></path>');
       var m = mid(i);
       var dp = polar(R.dateNum, m), sp = polar(R.solarNum, m);
       parts.push('<text x="' + f(dp[0]) + '" y="' + f(dp[1]) + '" text-anchor="middle" ' +
@@ -82,7 +92,8 @@
         d.day + '</text>');
       parts.push('<text x="' + f(sp[0]) + '" y="' + f(sp[1]) + '" text-anchor="middle" ' +
         'dominant-baseline="middle" font-size="10" font-family="var(--mono)" ' +
-        'fill="var(--ink-3)" pointer-events="none" transform="' + tilt(m, sp[0], sp[1]) + '">' +
+        'fill="var(--' + (away ? 'sun' : 'ink-3') + ')" opacity="' + (away ? '.75' : '1') +
+        '" pointer-events="none" transform="' + tilt(m, sp[0], sp[1]) + '">' +
         d.n + '</text>');
     });
 
@@ -280,7 +291,7 @@
     parts.push('<path id="mv-sel-edge" d="" fill="none" stroke="var(--ink)" ' +
       'stroke-width="1.4" stroke-opacity=".8" opacity="0" pointer-events="none"/>');
 
-    return { svg: parts.join(''), days: days };
+    return { svg: parts.join(''), days: days, foreign: foreign };
   }
 
   var SEASONS = ['Winter', 'Spring', 'Summer', 'Autumn'];
@@ -319,8 +330,8 @@
 
   /* The current hour, ticked on today's column. Exported so it can be redrawn
    * on a timer without rebuilding the fan underneath it. */
-  function nowMark(cycle, run, when) {
-    var days = cycle.days.slice(run.start - 1, run.end);
+  function nowMark(cycle, days, when) {
+    if (!days || !days.length) return '';
     var N = days.length, span = HALF * 2;
     for (var i = 0; i < N; i++) {
       if (days[i].iso !== isoOf(cycle, when)) continue;
@@ -343,11 +354,11 @@
   }
 
   /* Move the marker onto one day of this month. */
-  function highlight(root, cycle, run, dayNumber) {
+  function highlight(root, days, dayNumber) {
     var el = root.querySelector('#mv-sel');
     if (!el) return;
-    var i = dayNumber - run.start;
-    var N = run.end - run.start + 1;
+    var i = -1, N = days.length;
+    for (var k = 0; k < N; k++) if (days[k].n === dayNumber) { i = k; break; }
     if (i < 0 || i >= N) {
       el.setAttribute('opacity', '0');
       var off = root.querySelector('#mv-sel-edge');
