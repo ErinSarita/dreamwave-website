@@ -45,6 +45,7 @@
     monthRun: null,     // which calendar month is open, as an index
     mensesOpen: false,  // the cycle wheel showing instead of the dials
     mensesDay: null,    // the day of the cycle under the pointer
+    mensesMin: false,   // the blueprint readout folded to one line
     monthMin: false,
     /* A chosen instant, when someone wants a particular moment rather than
      * now: a birth time, an eclipse, a date in 1969. Held as an ISO string so
@@ -56,7 +57,8 @@
   };
   var cycle = null;
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
-  var wheelZoom = null, dayZoom = null, moonZoom = null, orbitsZoom = null, monthZoom = null;
+  var wheelZoom = null, dayZoom = null, moonZoom = null, orbitsZoom = null,
+      monthZoom = null, mensesZoom = null;
 
   /* ------------------------------------------------------------ persistence */
   function save() {
@@ -67,7 +69,7 @@
         panelMin: state.panelMin, moonMin: state.moonMin,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
         monthRun: state.monthRun, monthMin: state.monthMin,
-        mensesOpen: state.mensesOpen,
+        mensesOpen: state.mensesOpen, mensesMin: state.mensesMin,
         showPlanets: state.showPlanets,
         showBio: state.showBio, showOrgans: state.showOrgans,
         orbitsMin: state.orbitsMin,
@@ -103,6 +105,7 @@
       if (typeof o.monthRun === 'number' || o.monthRun === null) state.monthRun = o.monthRun;
       if (typeof o.monthMin === 'boolean') state.monthMin = o.monthMin;
       if (typeof o.mensesOpen === 'boolean') state.mensesOpen = o.mensesOpen;
+      if (typeof o.mensesMin === 'boolean') state.mensesMin = o.mensesMin;
       if (typeof o.moment === 'string' || o.moment === null) state.moment = o.moment;
       if (o.moonPhases) Object.keys(state.moonPhases).forEach(function (k) {
         if (typeof o.moonPhases[k] === 'boolean') state.moonPhases[k] = o.moonPhases[k];
@@ -343,6 +346,7 @@
   function setLevel(level, opts) {
     if (orbitsZoom) orbitsZoom.reset();
     if (monthZoom) monthZoom.reset();
+    if (mensesZoom) mensesZoom.reset();
     if (wheelZoom) wheelZoom.reset();
     if (dayZoom) dayZoom.reset();
     if (moonZoom) moonZoom.reset();
@@ -784,7 +788,13 @@
     $('menseswheel').addEventListener('mouseleave', function () { showHub(null); });
 
     var spans = Menses.spans(length);
+    $('menses-readout').className = 'readout' + (state.mensesMin ? ' min' : '');
     $('menses-readout').innerHTML =
+      '<button class="panel-min" id="menses-min" aria-label="' +
+        (state.mensesMin ? 'Expand the blueprint' : 'Minimise the blueprint') +
+        '" title="' + (state.mensesMin ? 'Expand' : 'Minimise') + '">' +
+        (state.mensesMin ? '\u25B4' : '\u25BE') + '</button>' +
+      '<div class="r-mini">The blueprint &#183; ' + length + ' days</div>' +
       '<div class="r-lab">The blueprint</div>' +
       '<div class="r-date">' + length + ' days, laid on one lunation</div>' +
       '<div class="r-rows">' + spans.map(function (s) {
@@ -793,6 +803,12 @@
       '<div class="r-hint">Bleeding at the dark moon, ovulation near the full. ' +
       'That is the old teaching picture rather than a finding, and it is here ' +
       'as something to read your own days against. Hover a day, tap a phase.</div>';
+
+    $('menses-min').addEventListener('click', function (e) {
+      e.stopPropagation();
+      state.mensesMin = !state.mensesMin;
+      save(); drawMenses();
+    });
   }
 
   function openMensesPhase(key) {
@@ -2684,9 +2700,20 @@
     moonZoom = ZoomPan.attach($('moon-svg'), $('scene-moon'));
     monthZoom = ZoomPan.attach($('month-svg'), $('scene-month'));
     orbitsZoom = ZoomPan.attach($('orrery-svg'), $('scene-orbits'));
+    mensesZoom = ZoomPan.attach($('menses-svg'), $('scene-menses'));
+    /* Every scene that can be zoomed needs a line here. The month and system
+     * views were falling through to the year wheel, so their buttons appeared
+     * to do nothing while quietly zooming a face that was not on screen. */
+    var ZOOMS = {
+      day: function () { return dayZoom; },
+      moon: function () { return moonZoom; },
+      month: function () { return monthZoom; },
+      orbits: function () { return orbitsZoom; },
+      menses: function () { return mensesZoom; }
+    };
     function active() {
-      return state.level === 'day' ? dayZoom
-           : state.level === 'moon' ? moonZoom : wheelZoom;
+      var pick = ZOOMS[state.level];
+      return (pick && pick()) || wheelZoom;
     }
     $('zoom-in').addEventListener('click', function () { active().zoomIn(); });
     $('zoom-out').addEventListener('click', function () { active().zoomOut(); });

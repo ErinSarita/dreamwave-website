@@ -405,8 +405,14 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   border-radius: 14px; box-shadow: var(--shadow); backdrop-filter: blur(14px);
 }
 .menses-flyout[hidden] { display: none; }
+/* The wheel takes the whole stage when the blueprint is folded away, and the
+ * usual share when it is not. */
 #menses-svg { width: min(100%, calc(68dvh - 80px)); height: min(100%, calc(68dvh - 80px));
   display: block; overflow: visible; touch-action: none; }
+.scene-menses:has(.readout.min) #menses-svg {
+  width: min(100%, calc(88dvh - 80px)); height: min(100%, calc(88dvh - 80px));
+}
+.scene-menses:has(.readout.min) { padding-bottom: 88px; }
 .ghost-btn.is-on { border-color: var(--sun); color: var(--sun); }
 .mn-phase:hover { fill-opacity: .5; }
 .mn-day:hover { fill: var(--sun); fill-opacity: .2; }
