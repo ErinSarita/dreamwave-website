@@ -17,17 +17,15 @@
   var CX = 500, CY = 500;
 
   var R = {
-    hub: 130,
-    phaseIn: 138, phaseOut: 206, phaseLabel: 172,
+    hub: 150,
+    phaseIn: 158, phaseOut: 250, phaseLabel: 204,
     /* The hormones sit straight outside the phases, because they are what the
      * phases are. Four quantities in different units share one band, each
      * scaled to its own range: the shapes and their order are the reading, not
      * the heights. */
-    hormIn: 214, hormOut: 318,
-    dayIn: 326, dayOut: 370, dayNum: 348,
-    moonIn: 378, moonOut: 426, moonGlyph: 402,
-    solarIn: 434, solarOut: 470, solarNum: 452,
-    dateIn: 478, dateOut: 522, dateLabel: 500
+    hormIn: 258, hormOut: 392,
+    dayIn: 400, dayOut: 448, dayNum: 424,
+    moonIn: 456, moonOut: 512, moonGlyph: 484
   };
 
   var HORMONE_COLOUR = {
@@ -146,26 +144,10 @@
         'pointer-events="none">' + MoonGlyph.svg(age, 22) + '</g>');
     }
 
-    /* -- the solar day, and the ordinary date ----------------------------- */
-    [[R.solarIn, R.solarOut, R.solarNum, 'solar'],
-     [R.dateIn, R.dateOut, R.dateLabel, 'date']].forEach(function (band) {
-      parts.push('<path d="' + sector(band[0], band[1], 0, 360) +
-        '" fill="var(--bg-2)" fill-opacity="' + (band[3] === 'date' ? '.35' : '.5') +
-        '" stroke="var(--line-soft)" stroke-width=".8"/>');
-      for (var k = 0; k < n; k++) {
-        var g = frame[k];
-        var txt = '';
-        if (g) txt = band[3] === 'solar'
-          ? (g.solarDay ? String(g.solarDay) : '')
-          : TZ.formatDate(g.tz, g.date, 'short');
-        if (!txt) continue;
-        var mm = mid(k), qq = polar(band[2], mm);
-        parts.push('<text x="' + f(qq[0]) + '" y="' + f(qq[1]) + '" text-anchor="middle" ' +
-          'dominant-baseline="middle" font-size="' + (band[3] === 'solar' ? 11 : 10) + '" ' +
-          'font-family="var(--mono)" fill="var(--ink-3)" pointer-events="none" ' +
-          'transform="' + rot(mm, qq[0], qq[1]) + '">' + esc(txt) + '</text>');
-      }
-    });
+    /* No calendar rings. Real dates and solar days would make this look like
+     * a record of somebody's cycle, and it is an example: a shape to read your
+     * own against. They belong here once there are days logged to hang them on.
+     */
 
     /* -- the middle -------------------------------------------------------- */
     parts.push('<circle cx="' + CX + '" cy="' + CY + '" r="' + R.hub +
@@ -197,7 +179,7 @@
     if (!el) return;
     if (!day) { el.setAttribute('opacity', '0'); return; }
     var step = 360 / n;
-    el.setAttribute('d', sector(R.phaseIn - 6, R.dateOut + 5, (day - 1) * step, day * step));
+    el.setAttribute('d', sector(R.phaseIn - 6, R.moonOut + 5, (day - 1) * step, day * step));
     el.setAttribute('opacity', '.9');
   }
 

@@ -717,36 +717,13 @@
    * to read her own days against, and the moment she logs her own the wheel
    * will follow her instead.
    */
-  function mensesFrame(length) {
-    /* The lunation the blueprint is laid on: the one holding today, so the
-     * outer rings show real dates, real solar days and the real moon. */
-    var k = Lunar.kAt(A.jdFromDate(new Date()));
-    var newMoon = Lunar.newMoonJD(k);
-    var out = [];
-    for (var i = 0; i < length; i++) {
-      var jd = newMoon + i;
-      var date = A.dateFromJD(jd);
-      var d = null;
-      if (cycle) {
-        var p = TZ.civilParts(cycle.tz, date);
-        var key = p.year + '-' + (p.month < 10 ? '0' : '') + p.month + '-' +
-                  (p.day < 10 ? '0' : '') + p.day;
-        d = cycle.dayByISO[key] || null;
-      }
-      out.push({
-        date: date, tz: cycle ? cycle.tz : 'UTC',
-        moonAge: A.moonPhase(A.jdeFromJD(jd)).age,
-        solarDay: d ? d.n : null
-      });
-    }
-    return out;
-  }
-
   function drawMenses() {
     if (!global.MensesView || !cycle) return;
     var length = Menses.BLUEPRINT_DAYS;
-    var frame = mensesFrame(length);
-    var out = MensesView.render({ length: length, days: frame });
+    /* No day-frame: the moon ring falls back to the idealised progression,
+     * dark at day one and full at the middle, which is the whole point of an
+     * example. Real dates arrive with real logged days. */
+    var out = MensesView.render({ length: length });
     $('menseswheel').innerHTML = out.svg;
 
     function showHub(day) {
