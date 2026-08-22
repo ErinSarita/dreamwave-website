@@ -15,6 +15,12 @@
     /* The body layer rides outside everything else, where there is room for
      * two bands that must not be mistaken for each other. */
     organIn: 522, organOut: 552, organLabel: 537,
+    /* The band a finger aims at, rather than the band the eye sees. Drawn to
+     * scale the visible ring is under nine pixels deep on a phone, against the
+     * forty-four a touch target is meant to be, so a mouse could hit it and a
+     * fingertip could not. The hit area reaches from just inside the day ring
+     * to just short of the curves. */
+    organHitIn: 500, organHitOut: 557,
     physIn: 560, physOut: 596,
     /* The planets' own band, in the clear space between the moon ring and the
      * reach of the altitude curves, which stop at 322. */
@@ -460,6 +466,7 @@
           return new Date(solarMidnight.getTime() + ph * 3600000);
         };
 
+        var organHits = [];
         if (opts.organs) {
         /* The twelve watches, two solar hours each.
          *
@@ -476,12 +483,14 @@
             if (a1 === null || a2 === null) return;
             var lo = Math.max(0, Math.min(a1, a2)), hi = Math.min(360, Math.max(a1, a2));
             if (hi - lo < 0.25) return;
-            parts.push('<path class="organ-hit" data-watch="' + i + '" d="' +
-              sector(R.organIn, R.organOut, lo, hi) +
+            parts.push('<path d="' + sector(R.organIn, R.organOut, lo, hi) +
               '" fill="var(--bg-2)" fill-opacity="' + (i % 2 ? '.85' : '.5') +
-              '" stroke="var(--line-soft)" stroke-width=".7" style="cursor:pointer">' +
+              '" stroke="var(--line-soft)" stroke-width=".7" pointer-events="none"/>');
+            organHits.push('<path class="organ-hit" data-watch="' + i + '" d="' +
+              sector(R.organHitIn, R.organHitOut, lo, hi) +
+              '" fill="transparent" style="cursor:pointer">' +
               '<title>' + esc(w.organ) + ' (' + esc(w.branch) + ') · ' +
-              esc(w.best) + ' · click for more</title></path>');
+              esc(w.best) + ' · tap for more</title></path>');
             /* A sliver clipped by the day's edge has no room for a word. */
             if (hi - lo < 12) return;
             var mid = (lo + hi) / 2;
@@ -505,6 +514,7 @@
             'dominant-baseline="middle" font-size="11" font-style="italic" ' +
             'fill="var(--sun)" pointer-events="none">' + m[1] + '</text>');
         });
+        parts.push(organHits.join(''));
         }
 
         /* the measured curves, each across the full outer band */

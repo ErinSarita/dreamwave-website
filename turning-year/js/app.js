@@ -1562,6 +1562,14 @@
       toolOpen = kind;
       $('tool-' + kind).setAttribute('aria-expanded', 'true');
       wireToolProse(kind);
+      Array.prototype.forEach.call(
+        $('tool-panel-prose').querySelectorAll('.tp-watches button'),
+        function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openWatch(+btn.getAttribute('data-watch'));
+          });
+        });
       return;
     }
     $('tool-panel-prose').hidden = true;
