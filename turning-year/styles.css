@@ -414,6 +414,13 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 }
 .scene-menses:has(.readout.min) { padding-bottom: 88px; }
 .ghost-btn.is-on { border-color: var(--sun); color: var(--sun); }
+.readout .r-key {
+  display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 9px 0 2px;
+  font-size: 10.5px; color: var(--ink-3); justify-content: center;
+}
+.readout .r-key span { display: inline-flex; align-items: center; gap: 5px; }
+.readout .r-key i { width: 14px; height: 2.5px; border-radius: 2px; flex: 0 0 auto; }
+.readout .r-hint b { font-weight: 500; color: var(--ink-2); }
 .mn-phase:hover { fill-opacity: .5; }
 .mn-day:hover { fill: var(--sun); fill-opacity: .2; }
 #mn-sel { transition: opacity .1s; }

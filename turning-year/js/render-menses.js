@@ -17,12 +17,21 @@
   var CX = 500, CY = 500;
 
   var R = {
-    hub: 150,
-    phaseIn: 158, phaseOut: 244, phaseLabel: 201,
-    dayIn: 252, dayOut: 306, dayNum: 279,
-    moonIn: 316, moonOut: 372, moonGlyph: 344,
-    solarIn: 380, solarOut: 424, solarNum: 402,
-    dateIn: 432, dateOut: 486, dateLabel: 459
+    hub: 130,
+    phaseIn: 138, phaseOut: 206, phaseLabel: 172,
+    /* The hormones sit straight outside the phases, because they are what the
+     * phases are. Four quantities in different units share one band, each
+     * scaled to its own range: the shapes and their order are the reading, not
+     * the heights. */
+    hormIn: 214, hormOut: 318,
+    dayIn: 326, dayOut: 370, dayNum: 348,
+    moonIn: 378, moonOut: 426, moonGlyph: 402,
+    solarIn: 434, solarOut: 470, solarNum: 452,
+    dateIn: 478, dateOut: 522, dateLabel: 500
+  };
+
+  var HORMONE_COLOUR = {
+    oestrogen: '#c96a9a', progesterone: '#7a6bb0', lh: '#d8a13a', fsh: '#4f9ea8'
   };
 
   var COLOUR = {
@@ -85,6 +94,30 @@
         'dominant-baseline="middle" font-size="10" fill="var(--ink-3)" ' +
         'pointer-events="none" transform="' + rot(c, lp[0], lp[1] + 17) + '">' +
         s.from + '–' + s.to + '</text>');
+    });
+
+    /* -- the hormones ------------------------------------------------------ */
+    parts.push('<path d="' + sector(R.hormIn, R.hormOut, 0, 360) +
+      '" fill="var(--bg-2)" fill-opacity=".4" stroke="var(--line-soft)" stroke-width=".8"/>');
+    [0.25, 0.5, 0.75].forEach(function (fr) {
+      var rr = R.hormIn + (R.hormOut - R.hormIn) * fr;
+      parts.push('<circle cx="' + CX + '" cy="' + CY + '" r="' + f(rr) + '" fill="none" ' +
+        'stroke="var(--line-soft)" stroke-width=".4" opacity=".4" ' +
+        'stroke-dasharray="2 5" pointer-events="none"/>');
+    });
+    Menses.CURVE_ORDER.forEach(function (key) {
+      var d = '';
+      for (var t = 0; t <= n * 4; t++) {
+        var day = 1 + (t / 4);
+        if (day > n + 1) break;
+        var v = Math.max(0, Math.min(1, Menses.levelAt(key, Math.min(day, n), n)));
+        var rr = R.hormIn + (R.hormOut - R.hormIn) * v;
+        var q = polar(rr, ((day - 1) / n) * 360);
+        d += (t ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1]);
+      }
+      parts.push('<path d="' + d + '" fill="none" stroke="' + HORMONE_COLOUR[key] +
+        '" stroke-width="2" opacity=".92" pointer-events="none"><title>' +
+        esc(Menses.CURVE_LABEL[key]) + '</title></path>');
     });
 
     /* -- the cycle's own days --------------------------------------------- */
@@ -168,5 +201,6 @@
     el.setAttribute('opacity', '.9');
   }
 
-  global.MensesView = { render: render, hub: hub, highlight: highlight, COLOUR: COLOUR, R: R };
+  global.MensesView = { render: render, hub: hub, highlight: highlight,
+    COLOUR: COLOUR, HORMONE_COLOUR: HORMONE_COLOUR, R: R };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -758,10 +758,10 @@
           colour: MensesView.COLOUR[ph.key] },
         { text: 'at the ' + ph.moon, size: 11, gap: 20, colour: 'var(--ink-3)' }
       ] : [
-        { text: 'THE BLUEPRINT', size: 10, gap: 26, colour: 'var(--ink-3)' },
+        { text: 'ONE COMMON CYCLE', size: 10, gap: 26, colour: 'var(--ink-3)' },
         { text: String(length), size: 44, serif: true, gap: 24, colour: 'var(--ink)' },
-        { text: 'day cycle', size: 13, gap: 22, colour: 'var(--ink-3)' },
-        { text: 'an average, laid on a lunation', size: 10.5, gap: 18,
+        { text: 'days, laid on a lunation', size: 12, gap: 20, colour: 'var(--ink-3)' },
+        { text: 'an example to read your own against', size: 10, gap: 18,
           colour: 'var(--ink-3)' }
       ]);
       MensesView.highlight($('menseswheel'), day, length);
@@ -794,15 +794,20 @@
         (state.mensesMin ? 'Expand the blueprint' : 'Minimise the blueprint') +
         '" title="' + (state.mensesMin ? 'Expand' : 'Minimise') + '">' +
         (state.mensesMin ? '\u25B4' : '\u25BE') + '</button>' +
-      '<div class="r-mini">The blueprint &#183; ' + length + ' days</div>' +
-      '<div class="r-lab">The blueprint</div>' +
+      '<div class="r-mini">One common cycle &#183; ' + length + ' days</div>' +
+      '<div class="r-lab">One common cycle</div>' +
       '<div class="r-date">' + length + ' days, laid on one lunation</div>' +
       '<div class="r-rows">' + spans.map(function (s) {
         return '<div><span>' + esc(s.phase.name) + '</span> · ' + s.from + '–' + s.to + '</div>';
       }).join('') + '</div>' +
-      '<div class="r-hint">Bleeding at the dark moon, ovulation near the full. ' +
-      'That is the old teaching picture rather than a finding, and it is here ' +
-      'as something to read your own days against. Hover a day, tap a phase.</div>';
+      '<div class="r-key">' + Menses.CURVE_ORDER.map(function (k) {
+        return '<span><i style="background:' + MensesView.HORMONE_COLOUR[k] + '"></i>' +
+          esc(Menses.CURVE_LABEL[k]) + '</span>';
+      }).join('') + '</div>' +
+      '<div class="r-hint">This is <b>one possible shape of a common cycle</b>, ' +
+      'not a template. Bleeding is drawn at the dark moon and ovulation near ' +
+      'the full because that is the old teaching picture, rather than because ' +
+      'cycles are known to follow the moon. Hover a day, tap a phase.</div>';
 
     $('menses-min').addEventListener('click', function (e) {
       e.stopPropagation();
@@ -819,17 +824,19 @@
       '<h4 style="margin-top:0;color:' + MensesView.COLOUR[ph.key] + '">' +
         esc(ph.name) + '</h4>' +
       '<p class="tp-brief">Days ' + ph.from + ' to ' + ph.to +
-        ' of the blueprint, at the ' + esc(ph.moon) + '.</p>' +
+        ' of this example, at the ' + esc(ph.moon) + '.</p>' +
       '<h4>What the hormones do</h4><p>' + esc(ph.hormones) + '</p>' +
       '<h4>What the body does</h4><p>' + esc(ph.body) + '</p>' +
-      '<h4>What the tradition holds</h4><p>' + esc(ph.tradition) + '</p>' +
-      '<p class="tp-brief">The first two are measured. The third is Nu Dan, ' +
-      'the women\'s branch of Daoist internal alchemy, where the cycle is ' +
-      'treated as something to work with rather than a process to manage. ' +
-      'Kept apart on purpose.</p>' +
-      '<p class="tp-brief">These spans are an average. A real cycle moves, and ' +
-      'moves most in the stretch before ovulation. Once you log your own days ' +
-      'the wheel will follow them instead of this.</p>';
+      '<h4>What tends to help</h4><p>' + esc(ph.support) + '</p>' +
+      '<h4>Eating for it</h4><p>' + esc(ph.food) + '</p>' +
+      '<p class="tp-brief">The hormones and the body are measured. The last ' +
+      'two are suggestions, part sense and part Chinese medicine, offered as ' +
+      'what tends to suit rather than what you ought to do. On movement in ' +
+      'particular the research is mixed: most studies find no reliable change ' +
+      'in strength across the cycle, so take how you feel over any schedule.</p>' +
+      '<p class="tp-brief">These spans are one common shape, and no more than ' +
+      'that. A real cycle moves, and moves most in the stretch before ' +
+      'ovulation. Once you log your own days the wheel will follow them.</p>';
     $('menses-flyout').hidden = false;
   }
 
