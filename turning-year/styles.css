@@ -1230,23 +1230,48 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
  * views draw then begins below both, which is what the scene padding buys.
  */
 @media (max-width: 560px) {
-  .panel-toggle { top: 12px; left: 10px; width: 36px; height: 36px; }
+  /* Every edge-anchored control is held off the hardware, not just off the
+   * viewport. A phone's status bar, notch and home indicator all sit inside
+   * the viewport when the page covers them, which `viewport-fit=cover` in the
+   * head asks it to do, so a button at 12px from the top can end up genuinely
+   * beneath the clock and the signal bars and take no taps at all. */
+  .panel-toggle {
+    top: calc(10px + env(safe-area-inset-top));
+    left: calc(10px + env(safe-area-inset-left));
+    width: 44px; height: 44px;
+  }
 
   .crumbs {
-    top: 14px; left: 54px; right: 10px; transform: none;
+    top: calc(10px + env(safe-area-inset-top));
+    left: calc(62px + env(safe-area-inset-left));
+    right: calc(10px + env(safe-area-inset-right));
+    transform: none; padding: 8px 12px;
     max-width: none; width: auto; justify-content: flex-start;
   }
+  /* 44 is the size a fingertip needs; the trail was giving each step 20. */
+  .crumb { min-height: 44px; display: inline-flex; align-items: center; padding: 0 11px; }
+  .crumbs { padding: 3px 8px; }
 
-  .top-tools { top: 58px; left: 10px; right: auto; padding: 4px; gap: 4px; }
+  .top-tools {
+    top: calc(72px + env(safe-area-inset-top));
+    left: calc(10px + env(safe-area-inset-left)); right: auto;
+    padding: 4px; gap: 4px;
+  }
   .zoom-controls {
-    top: 58px; right: 10px; bottom: auto;
+    top: calc(72px + env(safe-area-inset-top));
+    right: calc(10px + env(safe-area-inset-right)); bottom: auto;
     flex-direction: row; padding: 4px; gap: 4px;
   }
-  .tool-btn, .zoom-controls button { width: 32px; height: 32px; }
+  .tool-btn, .zoom-controls button { width: 44px; height: 44px; }
 
-  /* Clear of both rows. */
-  .scene { padding-top: 106px; }
-  .scene-moon { padding-top: 106px; }
+  /* Clear of both rows, and of the notch above them. */
+  .scene { padding-top: calc(128px + env(safe-area-inset-top)); }
+  .scene-moon { padding-top: calc(128px + env(safe-area-inset-top)); }
+  .scene.scene-strip { padding-top: calc(126px + env(safe-area-inset-top)); }
+
+  .day-panel, .moon-readout, .readout {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 /* ---------------------------------------------------------------- schedule --
@@ -1279,14 +1304,41 @@ body[data-theme="day"] .sc-tx { fill: #fffaf0; }
 .sc-hit:hover { fill: var(--line-soft); fill-opacity: .35; }
 
 /* ---- the editor ---------------------------------------------------------- */
+/* The editor is centred but never larger than the room it has. A long list of
+ * other things on the day, or a keyboard rising over the bottom half, used to
+ * push Save off the screen where it could not be reached at all: the box is
+ * capped to the visible height minus the hardware insets and a margin, and
+ * scrolls inside itself instead of growing past the edges.
+ *
+ * `dvh` rather than `vh` on purpose: it follows the browser chrome as it
+ * shrinks and grows, which `vh` does not, and that difference is exactly the
+ * strip of screen a Save button goes missing into. */
 .sc-editor {
-  position: absolute; z-index: 40; inset-inline-start: 50%; top: 50%;
+  position: fixed; z-index: 60; inset-inline-start: 50%; top: 50%;
   transform: translate(-50%, -50%);
   width: min(340px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  display: flex; flex-direction: column;
   background: var(--panel, #12141f);
   border: 1px solid var(--line); border-radius: 14px;
   padding: 16px; box-shadow: 0 18px 50px rgba(0,0,0,.55);
+  overflow: hidden;
 }
+/* Everything above the buttons scrolls; the buttons themselves stay put, so
+ * Save and Cancel are reachable however much is in the box. */
+.sc-editor > :not(.sc-actions) { flex: 0 0 auto; }
+.sc-editor .sc-list { flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  -webkit-overflow-scrolling: touch; }
+.sc-editor .sc-actions { flex: 0 0 auto; position: sticky; bottom: 0;
+  background: var(--panel, #12141f); padding-top: 12px; margin-top: 12px;
+  border-top: 1px solid var(--line-soft); }
+.sc-actions button { min-height: 44px; }
+.sc-sw { width: 34px; height: 34px; }
+.sc-when button { min-height: 44px; }
+
+/* A quiet backing behind the editor, so a tap outside it lands somewhere
+ * sensible rather than on whatever was underneath. */
+.sc-scrim { position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,.45); }
 .sc-editor h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
 .sc-editor label { display: block; font-size: 11px; letter-spacing: .06em;
   text-transform: uppercase; color: var(--ink-3); margin: 10px 0 4px; }
@@ -1326,8 +1378,13 @@ body[data-theme="day"] .sc-tx { fill: #fffaf0; }
  * fixed-height framing every other face of the day uses. */
 .scene.scene-strip { display: block; place-items: stretch; padding: 44px 0 0;
   touch-action: pan-y; overflow: hidden; }
+/* Two classes outrank `.scene[hidden]` on a tie of specificity by being later
+ * in the file, so hiding has to be restated here or the strip stays drawn
+ * underneath whatever replaced it. */
+.scene.scene-strip[hidden] { display: none; }
 .st-wrap { height: 100%; overflow-y: auto; overflow-x: hidden;
-  padding: 8px 12px 24px; -webkit-overflow-scrolling: touch; }
+  padding: 8px 12px calc(24px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch; }
 .st-body { max-width: 720px; margin: 0 auto; }
 
 .st-grid {
@@ -1407,6 +1464,10 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
   top: 8px; inset-inline-start: 8px;
   border: 1px solid var(--line); border-radius: 9px; overflow: hidden;
   background: var(--panel, rgba(10,12,20,.8)); backdrop-filter: blur(6px); }
+/* A class that sets `display` beats the browser's own rule for [hidden], so
+ * the attribute has to be honoured explicitly or the switch shows on every
+ * view rather than only on the day. */
+.view-switch[hidden] { display: none; }
 .view-switch button { background: transparent; border: 0; color: var(--ink-3);
   font: inherit; font-size: 13px; padding: 7px 12px; cursor: pointer; }
 .view-switch button[aria-pressed="true"] { background: var(--line-soft); color: var(--ink); }

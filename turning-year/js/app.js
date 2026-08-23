@@ -298,6 +298,9 @@
     return CycleModel.dayNumberForInstant(cycle, new Date());
   }
 
+  /* Which scene swap is the current one, so an older timer cannot undo it. */
+  var sceneSwapId = 0, sceneSwap = 0;
+
   /* ----------------------------------------------------------------- render */
   function drawWheel() {
     var svg = $('wheel-svg');
@@ -420,20 +423,45 @@
                  ['day', dayScene], ['moon', moonScene], ['menses', mensesScene],
                  ['preg', pregScene], ['strip', stripScene]]
                  .filter(function (pair) { return !!pair[1]; });
-      var current = null;
-      all.forEach(function (pair) { if (!pair[1].hidden) current = pair; });
       var target = all.filter(function (pair) { return pair[0] === want; })[0];
-      if (current && current[0] === want) { if (want === 'wheel') applyZoom(); return; }
-      if (!current) { target[1].hidden = false; target[1].classList.remove('fading'); return; }
-      current[1].classList.add('fading');
-      setTimeout(function () {
-        current[1].hidden = true;
+      if (!target) return;
+
+      /* Every scene that is not the wanted one, rather than just the one that
+       * happened to be up. Switching faster than the fade used to leave a
+       * stale timer to hide only what it remembered, so two scenes could end
+       * up drawn over each other: the strip's hours showing through the dial.
+       * Sweeping the whole set makes the outcome the same however the clicks
+       * are ordered. */
+      var showing = all.filter(function (pair) { return !pair[1].hidden; });
+      var already = showing.length === 1 && showing[0][0] === want;
+      if (already) { if (want === 'wheel') applyZoom(); return; }
+
+      if (!showing.length) {
         target[1].hidden = false;
-        requestAnimationFrame(function () {
-          target[1].classList.remove('fading');
-          if (want === 'wheel') applyZoom();
-        });
-      }, 260);
+        target[1].classList.remove('fading');
+        if (want === 'wheel') applyZoom();
+        return;
+      }
+
+      showing.forEach(function (pair) {
+        if (pair[0] !== want) pair[1].classList.add('fading');
+      });
+      sceneSwap = ++sceneSwapId;
+      (function (mine) {
+        setTimeout(function () {
+          if (mine !== sceneSwapId) return;   // a newer switch has taken over
+          all.forEach(function (pair) {
+            if (pair[0] === want) return;
+            pair[1].hidden = true;
+            pair[1].classList.remove('fading');
+          });
+          target[1].hidden = false;
+          requestAnimationFrame(function () {
+            target[1].classList.remove('fading');
+            if (want === 'wheel') applyZoom();
+          });
+        }, 260);
+      })(sceneSwap);
     }
 
     if (level === 'orbits') {
@@ -1671,6 +1699,10 @@
     $('dayclock').innerHTML = out.svg + '<g id="day-clock-ring"></g>';
     startDayRing();
     if (PLAN_ON) bindSchedule(d.iso);
+    /* Once now, and once more after the scene has finished fading in: until
+     * it has, the panel is still hidden and measures as nothing at all, which
+     * would leave the switch sitting on top of where it lands. */
+    if (STRIP_ON) { setTimeout(placeViewSwitch, 0); setTimeout(placeViewSwitch, 320); }
 
     var stationHTML = '';
     if (d.station) stationHTML += '<div class="d-station">' + d.station.name +
@@ -1717,6 +1749,7 @@
 
     $('panel-min').addEventListener('click', function () {
       state.panelMin = !state.panelMin;
+      if (STRIP_ON) setTimeout(placeViewSwitch, 0);
       save(); drawDay();
     });
     Array.prototype.forEach.call($('dayclock').querySelectorAll('.organ-hit'),
@@ -2582,9 +2615,28 @@
   }
   function syncViewSwitch() {
     if (!STRIP_ON || !$('view-switch')) return;
-    $('view-switch').hidden = state.level !== 'day';
+    var sw = $('view-switch');
+    sw.hidden = state.level !== 'day';
     $('view-circle').setAttribute('aria-pressed', String(state.dayView === 'dial'));
     $('view-strip').setAttribute('aria-pressed', String(state.dayView === 'strip'));
+    if (!sw.hidden) placeViewSwitch();
+  }
+
+  /* On a phone the switch lives at the bottom, where the day panel also
+   * lives. The panel's height changes with what is in it and with whether it
+   * has been expanded, so the switch is measured off the panel's real top
+   * rather than guessed at, and moves when the panel does. */
+  function placeViewSwitch() {
+    var sw = $('view-switch');
+    if (!sw || sw.hidden) return;
+    if (window.innerWidth > 560) { sw.style.bottom = ''; return; }
+    var panel = (state.dayView === 'dial') ? $('day-panel') : null;
+    if (!panel || panel.hidden || !panel.offsetHeight) {
+      sw.style.bottom = '';
+      return;
+    }
+    var gap = window.innerHeight - panel.getBoundingClientRect().top + 8;
+    sw.style.bottom = Math.round(gap) + 'px';
   }
 
   /* ------------------------------------------------------------- schedule --
@@ -2610,10 +2662,14 @@
   }
 
   function closeScheduleEditor() {
-    var el = $('sc-editor');
-    if (el && el.parentNode) el.parentNode.removeChild(el);
+    ['sc-editor', 'sc-scrim'].forEach(function (id) {
+      var el = $(id);
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    document.removeEventListener('keydown', scEscape);
     scEditorOpen = null;
   }
+  function scEscape(ev) { if (ev.key === 'Escape') closeScheduleEditor(); }
 
   function openScheduleEditor(iso, id, atMin, wantUntimed) {
     closeScheduleEditor();
@@ -2669,8 +2725,12 @@
         '<button class="sc-save" id="sc-save">Save</button>' +
       '</div>' +
       scheduleListMarkup(iso, id);
-    ((STRIP_ON && state.dayView === 'strip' && $('scene-strip')) || $('scene-day'))
-      .appendChild(box);
+    var scrim = document.createElement('div');
+    scrim.className = 'sc-scrim';
+    scrim.id = 'sc-scrim';
+    scrim.addEventListener('click', closeScheduleEditor);
+    document.body.appendChild(scrim);
+    document.body.appendChild(box);
 
     var chosen = draft.colour;
     Array.prototype.forEach.call(box.querySelectorAll('.sc-sw'), function (b) {
@@ -2725,7 +2785,13 @@
       redrawDay();
       drawWheel();
     });
-    setTimeout(function () { $('sc-title').focus(); }, 0);
+    document.addEventListener('keydown', scEscape);
+    /* On a phone the keyboard rises over the lower half as soon as this gains
+     * focus, so the box is scrolled back into view once it has. */
+    setTimeout(function () {
+      $('sc-title').focus();
+      if (box.scrollIntoView) box.scrollIntoView({ block: 'center' });
+    }, 0);
   }
 
   /* Everything else already on this day, so the ring is not the only way to
@@ -3273,7 +3339,17 @@
     }
     applyTheme();
     wirePlaceSearch(); wireGeo(); wireControls(); wireZoom();
-    if (STRIP_ON) wireViewSwitch();
+    if (STRIP_ON) {
+      wireViewSwitch();
+      window.addEventListener('resize', function () { setTimeout(placeViewSwitch, 0); });
+      /* The panel grows and shrinks on a transition, so a measurement taken
+       * the instant it is told to change catches it mid-animation and puts
+       * the switch back on top of it. Watching its box instead means the
+       * switch settles wherever the panel finally settles. */
+      if (typeof ResizeObserver === 'function' && $('day-panel')) {
+        new ResizeObserver(function () { placeViewSwitch(); }).observe($('day-panel'));
+      }
+    }
     boot();
   }
 
