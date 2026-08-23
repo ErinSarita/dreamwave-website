@@ -30,6 +30,14 @@
      * build that has the planner; when it is, the sun and moon labels move
      * out past the day ring to keep clear of it. */
     schedIn: 466, schedOut: 500, schedLabelPush: 530,
+    /* The band a finger aims at, as against the band the eye sees. Drawn to
+     * scale the visible ring is about nine pixels deep on a phone, against the
+     * forty-four a touch target is meant to be, so a mouse could hit it and a
+     * fingertip could not. The hit band reaches from just outside the hour
+     * ticks to well past the ring, into space that is empty anyway. When the
+     * organ band is showing it stops short of it rather than stealing its
+     * taps. */
+    schedHitIn: 452, schedHitOut: 566,
     eventLabel: 486, hourNum: 462, tickOut: 454, tickIn: 444,
     sunOut: 440, sunIn: 402,
     moonOut: 394, moonIn: 362, moonLabel: 378,
@@ -275,8 +283,16 @@
       var laneCount = Math.max(1, lanes.length);
       var depth = (R.schedOut - R.schedIn) / laneCount;
 
+      /* An arc in a three-lane band is about three pixels deep on a phone.
+       * Each one gets its own generous transparent twin, held back and pushed
+       * on after the hour wedges so it is the thing a finger lands on. */
+      var evHits = [];
+
       placed.forEach(function (p) {
         var r1 = R.schedIn + p.lane * depth, r2 = r1 + depth - (laneCount > 1 ? 1.5 : 0);
+        evHits.push('<path class="sc-hit sc-ev-hit" data-event="' + esc(p.e.id) + '" d="' +
+                    sector(R.schedHitIn, opts.organs ? R.schedOut + 6 : R.schedHitOut,
+                           p.a1, p.a2) + '" fill="transparent"/>');
         parts.push('<path class="sc-ev" data-event="' + esc(p.e.id) + '" d="' +
                    sector(r1, r2, p.a1, p.a2) + '" fill="var(--sc-' + p.e.colour + ')" ' +
                    'fill-opacity=".82" stroke="var(--sc-' + p.e.colour + ')" stroke-width="1">' +
@@ -295,6 +311,10 @@
                      ')" pointer-events="none">' + esc(txt) + '</text>');
         }
       });
+
+      /* Held until after the hour wedges are laid down, below, so that tapping
+       * an event edits that event rather than opening a blank new one. */
+      opts.schedule.__evHits = evHits;
     }
 
     /* ---- somewhere to aim at ------------------------------------------------
@@ -303,6 +323,9 @@
      * real-time steps as the hour marks, so a 23 or 25 hour day still divides
      * into the hours it actually had. */
     if (opts.schedule) {
+      /* Give way to the organ band rather than swallowing the taps meant for
+       * it, on the days someone has both showing. */
+      var hitOut = opts.organs ? R.schedOut + 6 : R.schedHitOut;
       var edges = [];
       for (var ems = win.start.getTime(); ems <= win.end.getTime(); ems += HOUR_MS) {
         edges.push(Math.min(ems, win.end.getTime()));
@@ -313,10 +336,15 @@
         if (ea2 - ea1 < 0.2) continue;
         var hmin = Math.round((edges[ei] - win.start.getTime()) / 60000);
         parts.push('<path class="sc-hit" data-hour-min="' + hmin + '" d="' +
-                   sector(R.schedIn - 6, R.schedOut + 6, ea1, ea2) +
+                   sector(R.schedHitIn, hitOut, ea1, ea2) +
                    '" fill="transparent"><title>Add something at ' +
                    esc(Clock.time(cycle, new Date(edges[ei]), useDST, opts.hour12)) +
                    '</title></path>');
+      }
+      /* Last on, so an event wins the tap over the empty hour beneath it. */
+      if (opts.schedule.__evHits) {
+        parts.push(opts.schedule.__evHits.join(''));
+        delete opts.schedule.__evHits;
       }
     }
 

@@ -36,7 +36,12 @@
     theme: 'night',
     hour12: false,
     useDST: true,       // off = the zone's winter offset all year; see clock.js
-    panelMin: false,    // day panel collapsed to a single line
+    /* Collapsed by default on a narrow screen. Open, this panel covers the
+     * lower two thirds of a phone, which hides half the day clock: on a
+     * 375-wide screen exactly twelve of the twenty-four hours sit underneath
+     * it, so half the day cannot be reached at all. Someone who has once
+     * opened it keeps their choice, since `load` overwrites this. */
+    panelMin: typeof window !== 'undefined' && window.innerWidth < 760,
     moonMin: false,     // lunation readout collapsed to a single line
     readoutMin: false,  // year readout collapsed to a single line
     /* The lunar clock counts up from the start of the lunar day, the way a
@@ -2468,18 +2473,16 @@
   var scEditorOpen = null;   // the id being edited, or 'new'
 
   function bindSchedule(iso) {
-    Array.prototype.forEach.call($('dayclock').querySelectorAll('.sc-hit'),
+    /* The targets a finger actually lands on are the wide invisible ones. A
+     * hit that names an event edits it; one that names an hour starts a new
+     * thing at that hour. The visible arc is bound too, for a mouse. */
+    Array.prototype.forEach.call($('dayclock').querySelectorAll('.sc-hit, .sc-ev'),
       function (el) {
         el.addEventListener('click', function (ev) {
           ev.stopPropagation();
-          openScheduleEditor(iso, null, +el.getAttribute('data-hour-min'));
-        });
-      });
-    Array.prototype.forEach.call($('dayclock').querySelectorAll('.sc-ev'),
-      function (el) {
-        el.addEventListener('click', function (ev) {
-          ev.stopPropagation();
-          openScheduleEditor(iso, el.getAttribute('data-event'), null);
+          var id = el.getAttribute('data-event');
+          if (id) openScheduleEditor(iso, id, null);
+          else openScheduleEditor(iso, null, +el.getAttribute('data-hour-min'));
         });
       });
   }
