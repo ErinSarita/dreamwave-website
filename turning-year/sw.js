@@ -14,7 +14,7 @@
  * cache is thrown away and the new files are taken. Without that, visitors
  * would sit on a stale copy forever, which is the classic way these go wrong.
  */
-var VERSION = '20260823-171300';
+var VERSION = '20260823-172428';
 var PREFIX = 'ty-public';          /* deploy.sh rewrites this for the lab */
 var CACHE = PREFIX + '-' + VERSION;
 
@@ -54,10 +54,19 @@ var SHELL = [
   "js/zoompan.js"
 ];
 
+/* Each file is taken separately rather than in one lot. addAll is all or
+ * nothing: a single missing file fails the whole install, the worker never
+ * activates, and the visitor is left on whatever stale copy they already had
+ * with no way of knowing why. One bad file should cost one bad file. */
 self.addEventListener('install', function (e) {
   e.waitUntil(
-    caches.open(CACHE).then(function (c) { return c.addAll(SHELL); })
-      .then(function () { return self.skipWaiting(); })
+    caches.open(CACHE).then(function (c) {
+      return Promise.all(SHELL.map(function (url) {
+        return c.add(new Request(url, { cache: 'reload' }))['catch'](function () {
+          /* Left out of the copy; the network can still answer for it. */
+        });
+      }));
+    }).then(function () { return self.skipWaiting(); })
   );
 });
 
