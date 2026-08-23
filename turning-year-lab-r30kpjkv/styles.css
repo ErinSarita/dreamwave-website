@@ -1,0 +1,1250 @@
+/* The Turning Year — night-sky first, with a parchment daylight theme. */
+
+:root {
+  --void: #05060d;
+  --bg: #080a15;
+  --bg-2: #0d1020;
+  --panel: rgba(13, 16, 32, .82);
+  --line: rgba(190, 200, 235, .14);
+  --line-soft: rgba(190, 200, 235, .07);
+  --ink: #e9ecf7;
+  --ink-2: #a8b0cc;
+  --ink-3: #6f7899;
+
+  --sun-bright: #ffd873;
+  --sun: #e8b84b;
+  --sun-deep: #b8791f;
+  --night: #1b2342;
+  --night-2: #26305a;
+  --twilight-1: #2b3565;   /* civil */
+  --twilight-2: #202a52;   /* nautical */
+  --twilight-3: #171e3d;   /* astronomical */
+
+
+  /* The eight stations, each its own colour, running the spectrum round the
+   * year: yellow at midsummer through orange and red into autumn, purple at
+   * midwinter, then blue and the greens back up into spring. Keyed by offset
+   * from the local winter solstice, so a southern cycle gets midsummer yellow
+   * in December where it belongs. */
+  --st-0: #9e7bd6;      /* winter solstice   purple      */
+  --st-45: #5a9be2;     /* winter midseason  blue        */
+  --st-90: #4cbe74;     /* spring equinox    green       */
+  --st-135: #a6d64a;    /* spring midseason  light green */
+  --st-180: #f5d046;    /* summer solstice   yellow      */
+  --st-225: #f2a03e;    /* summer midseason  yellow-orange */
+  --st-270: #ec7228;    /* autumn equinox    orange      */
+  --st-315: #e24c4c;    /* autumn midseason  red         */
+
+  --moon: #cfd8ef;
+  --moon-dim: #59637f;
+  /* The phase glyph needs "lit" and "unlit" explicitly. Reusing --moon for lit
+     broke in the daylight theme, where --moon is a dark ink picked to read on
+     parchment, so full moons drew darker than new ones. */
+  --moon-lit: #e8eeff;
+  --moon-shadow: #3d4763;
+  --grow: #6fbf8b;
+  --frost: #8fd3ff;
+  --solstice: #ff9d5c;
+  --equinox: #9db8ff;
+  --cross: #d98cff;
+  --today: #ff6b8a;
+  --sky-patch: #0a0e22;   /* the Dipper's own patch of night sky — stays dark in both themes */
+
+  --shadow: 0 18px 50px rgba(0,0,0,.55);
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+body[data-theme="day"] {
+  --void: #e6dcc6;
+  --bg: #f7f2e6;
+  --bg-2: #f1ead9;
+  --panel: rgba(253, 250, 244, .93);
+  --line: rgba(58, 46, 28, .28);
+  --line-soft: rgba(58, 46, 28, .13);
+  --ink: #1e180f;
+  --ink-2: #4a4133;
+  --ink-3: #786d5b;
+
+  --sun-bright: #f2a80f;
+  --sun: #dd8f10;
+  --sun-deep: #ad6704;
+  --night: #656d88;
+  --night-2: #566080;
+  --twilight-1: #a9aec2;
+  --twilight-2: #8f95ab;
+  --twilight-3: #787f97;
+
+
+  /* Deepened for the cream ground, same eight hues in the same order. */
+  --st-0: #6b4c9a;
+  --st-45: #2f6fb8;
+  --st-90: #2e8b4f;
+  --st-135: #6b9e24;
+  --st-180: #c2960a;
+  --st-225: #d4791a;
+  --st-270: #c2500f;
+  --st-315: #b02a2a;
+
+  --moon: #454c6b;
+  --moon-dim: #a29a89;
+  --moon-lit: #fffdf4;
+  --moon-shadow: #8a8296;
+  --grow: #2f7d4e;
+  --frost: #1c6b98;
+  --solstice: #b04a12;
+  --equinox: #2c4c9c;
+  --cross: #7a2c9c;
+  --today: #b32744;
+  --shadow: 0 14px 40px rgba(90, 70, 40, .2);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--sans); font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.app { display: flex; height: 100dvh; }
+
+/* ------------------------------------------------------------------ panel */
+.panel {
+  width: 316px; flex: 0 0 316px; height: 100%; overflow-y: auto;
+  background: var(--panel); backdrop-filter: blur(14px);
+  border-right: 1px solid var(--line);
+  padding: 22px 20px 28px; z-index: 5;
+}
+.panel-head h1 {
+  font-family: var(--serif); font-weight: 500; font-size: 26px;
+  margin: 0 0 2px; letter-spacing: .01em;
+}
+.panel-head .sub { margin: 0 0 12px; color: var(--ink-3); font-size: 12.5px; }
+/* Why the wheel is built this way, at the top rather than in the footer with
+ * the tools. It is the first thing to read, not the last. Sized to its own
+ * word so it reads as an invitation beside the title, not as another control
+ * in the stack below. */
+.panel-head .ethos-btn {
+  width: auto; margin: 0 0 22px; padding: 6px 16px; border-radius: 999px;
+  font-family: var(--serif); font-size: 13px; letter-spacing: .06em;
+  color: var(--sun); border-color: var(--line);
+}
+.panel-head .ethos-btn:hover { border-color: var(--sun); }
+
+
+.field { margin-bottom: 22px; }
+.field > label {
+  display: block; font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 8px;
+}
+.meta { color: var(--ink-3); font-size: 12px; margin: 7px 0 0; }
+
+input[type="text"] {
+  width: 100%; padding: 9px 11px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink);
+  font: inherit; font-size: 14px;
+}
+input[type="text"]:focus { outline: none; border-color: var(--sun); }
+input[type="date"] {
+  padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg-2); color: var(--ink); font: inherit; font-size: 13px;
+  color-scheme: dark;
+}
+body[data-theme="day"] input[type="date"] { color-scheme: light; }
+input[type="date"]:focus { outline: none; border-color: var(--sun); }
+
+.goto-row { display: flex; gap: 8px; margin-top: 8px; }
+.goto-row input[type="date"] { flex: 1; min-width: 0; }
+.goto-row .ghost-btn { width: auto; flex: 0 0 auto; padding: 8px 16px; }
+/* Date, then an optional time beside it. The time is narrower because it
+ * always holds five characters and the date does not. */
+.goto-row #goto-time { flex: 0 0 auto; width: 7.5em; }
+.goto-row #goto-date { min-width: 0; }
+
+.place-row { display: flex; gap: 8px; }
+.icon-btn {
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-2);
+  cursor: pointer; font-size: 16px; line-height: 1;
+}
+.icon-btn:hover { border-color: var(--sun); color: var(--sun); }
+
+.results {
+  list-style: none; margin: 6px 0 0; padding: 4px; max-height: 230px; overflow-y: auto;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--bg-2);
+}
+.results li { padding: 7px 9px; border-radius: 6px; cursor: pointer; font-size: 13.5px; }
+.results li:hover, .results li[aria-selected="true"] { background: rgba(232,184,75,.14); }
+.results li small { color: var(--ink-3); display: block; font-size: 11px; }
+
+.cycle-row { display: flex; align-items: center; gap: 8px; }
+.cycle-label { flex: 1; text-align: center; line-height: 1.25; }
+.cycle-label strong { font-family: var(--serif); font-size: 16px; font-weight: 500; }
+.cycle-label .meta { margin: 1px 0 0; }
+
+.ghost-btn {
+  width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: transparent; color: var(--ink-2);
+  font: inherit; font-size: 13px; cursor: pointer;
+}
+.ghost-btn:hover { border-color: var(--sun); color: var(--sun); }
+
+.toggles { display: grid; gap: 7px; }
+.tog { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; }
+.tog input { accent-color: var(--sun); width: 15px; height: 15px; }
+
+.frost-grid { display: grid; grid-template-columns: 1fr 92px; gap: 7px 10px; align-items: center; }
+.frost-tag { font-size: 12.5px; color: var(--ink-2); }
+.md-input { padding: 6px 8px !important; font-size: 13px !important; text-align: center; }
+
+.notes-row { display: flex; gap: 8px; }
+.notes-row .ghost-btn { flex: 1; }
+.legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.legend li { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--ink-2); }
+.sw { width: 13px; height: 13px; border-radius: 3px; flex: 0 0 auto; }
+.sw-day { background: linear-gradient(0deg, var(--sun-deep), var(--sun-bright)); }
+.sw-night { background: var(--night-2); }
+.sw-moon { background: var(--moon); border-radius: 50%; }
+.sw-grow { background: var(--grow); }
+/* The eight-station wheel, in one swatch and in order. */
+.sw-wheel {
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--st-0) 0 12.5%, var(--st-45) 12.5% 25%, var(--st-90) 25% 37.5%,
+    var(--st-135) 37.5% 50%, var(--st-180) 50% 62.5%, var(--st-225) 62.5% 75%,
+    var(--st-270) 75% 87.5%, var(--st-315) 87.5% 100%);
+}
+.sw-sol { background: var(--ink-3); border-radius: 50%; }
+.sw-cq { background: var(--cross); transform: rotate(45deg); border-radius: 2px; }
+.sw-noted { background: var(--sun-bright); border-radius: 50%; width: 8px; height: 8px; }
+.sw-sky { background: none; border: 1px solid var(--ink-3); border-radius: 50%; position: relative; }
+.sw-sky::after { content: ''; position: absolute; inset: 3px; background: var(--ink-2); border-radius: 1px; transform: rotate(20deg); }
+.sw-dec {
+  /* The two-tone swatch described a fill that no longer exists. It is the
+     curve now: a line crossing its own equator. */
+  background: linear-gradient(to bottom,
+    transparent 0 42%, var(--sun-bright) 42% 58%, transparent 58% 100%);
+}
+/* Backed by the same dark sky patch the real glyphs sit on, so a white star
+   stays visible in the daylight theme too. */
+.sw-polaris {
+  background:
+    radial-gradient(circle, #fff 0 22%, rgba(188,212,255,.5) 23% 48%, transparent 49%),
+    var(--sky-patch);
+  border-radius: 50%;
+}
+.sw-twi { background: linear-gradient(0deg, var(--twilight-3), var(--twilight-1)); }
+.sw-sunline { width: 14px; height: 0; border-top: 2px solid var(--sun-bright); border-radius: 0; background: none; }
+.sw-moonline { width: 14px; height: 0; border-top: 2px dashed var(--moon); border-radius: 0; background: none; }
+.sw-fill { background: var(--sun); opacity: .35; }
+.sw-ring { background: none; border: 1.5px dashed var(--ink-3); border-radius: 50%; }
+.sw-earth {
+  background: linear-gradient(115deg, var(--sun) 45%, var(--night-2) 47%);
+  border-radius: 50%; border: 1px solid var(--line);
+}
+
+.panel-foot { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+
+/* ------------------------------------------------------------------ stage */
+.stage { position: relative; flex: 1; min-width: 0; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, var(--bg-2), var(--bg) 70%); }
+
+.crumbs {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; z-index: 4;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 12px; backdrop-filter: blur(10px);
+  /* Four levels do not fit a phone's width. One line that scrolls beats a bar
+   * that wraps and grows down over whatever it is labelling. */
+  max-width: calc(100% - 150px); overflow-x: auto; scrollbar-width: none;
+}
+.crumbs::-webkit-scrollbar { display: none; }
+.crumb { flex: 0 0 auto; }
+.crumb-sep { flex: 0 0 auto; }
+.crumb {
+  border: 0; background: transparent; color: var(--ink-3); font: inherit; font-size: 12.5px;
+  cursor: pointer; padding: 3px 7px; border-radius: 999px;
+}
+.crumb:disabled { opacity: .35; cursor: default; }
+.crumb.is-on { color: var(--sun); }
+.crumb-sep { color: var(--ink-3); font-size: 11px; }
+
+/* Padding on the bottom carves out room for the summary card so the circle
+ * is centred in what's left, never behind it; the svg's own max-height (below)
+ * matches this reservation so the two can never overlap at any viewport size. */
+.scene { position: absolute; inset: 0; display: grid; place-items: center;
+  padding: 48px 12px calc(32dvh + 32px); touch-action: none;
+  transition: opacity .45s ease, transform .45s ease; }
+.scene[hidden] { display: none; }
+.scene.fading { opacity: 0; transform: scale(.94); }
+
+#wheel-svg, #day-svg, #orrery-svg {
+  width: min(100%, calc(68dvh - 80px)); height: min(100%, calc(68dvh - 80px));
+  display: block; overflow: visible; touch-action: none;
+}
+.scene { overflow: hidden; }
+.moon-glyph { display: inline-block; vertical-align: middle; flex: 0 0 auto; }
+
+#wheel, #dayclock { transform-box: view-box; }
+#wheel, #hud { transform-origin: 500px 500px;
+  transition: transform 900ms cubic-bezier(.5,.05,.2,1); }
+
+/* Both the year/season readout and the day-clock panel live in a card below
+ * the wheel, never on top of it — the circle stays fully visible, and the
+ * text has a fixed, predictable home regardless of zoom level or screen size.
+ * Its own max-height (matched by the space .scene reserves below the circle,
+ * and by the svg's own max-height) is what keeps it from ever growing into
+ * the wheel above it — it scrolls internally instead. */
+.readout, .day-panel {
+  position: absolute; left: 50%; top: auto; bottom: 16px; transform: translateX(-50%);
+  text-align: center; pointer-events: none; width: min(300px, calc(100% - 32px));
+  max-height: 40dvh; overflow-y: auto; box-sizing: border-box; touch-action: pan-y;
+  overscroll-behavior: contain;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 15px 20px; backdrop-filter: blur(10px); box-shadow: var(--shadow);
+}
+.readout .r-num { font-family: var(--serif); font-size: 34px; line-height: 1; color: var(--ink); }
+.readout .r-lab { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
+.readout .r-date { font-family: var(--serif); font-size: 15px; margin-top: 6px; color: var(--ink-2); }
+.readout .r-rows {
+  margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 2px 14px; font-size: 12px; color: var(--ink-2);
+}
+.readout .r-rows span { color: var(--ink-3); }
+.readout .r-station { margin-top: 9px; font-family: var(--serif); font-size: 14px; color: var(--sun-bright); }
+.readout .r-moon {
+  margin-top: 9px; display: flex; align-items: center; justify-content: center;
+  gap: 7px; font-size: 12px; color: var(--ink-2);
+}
+.readout .r-lunation { margin-top: 4px; font-size: 11.5px; color: var(--ink-3); }
+.readout .r-hint { margin-top: 12px; font-size: 11px; color: var(--ink-3); }
+
+/* -------------------------------------------------------------- day panel */
+/* The day panel carries far more than the readout does, so it is allowed to
+ * be taller, and it takes its own pointer events so the overflow can actually
+ * be scrolled. Without that the tail of it, the moon's rows, was clipped and
+ * out of reach. The readout keeps pointer-events: none, since the wheel
+ * underneath it still needs the hover. */
+/* Wider than the readout, because two columns of times stand half as tall as
+ * one, and the wheel behind matters more than the panel does. */
+.day-panel { max-height: min(58dvh, 520px); pointer-events: auto;
+  width: min(540px, calc(100% - 32px)); }
+.day-panel .d-num { font-family: var(--serif); font-size: 46px; line-height: .95; }
+.day-panel .d-of { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
+.day-panel .d-date { font-family: var(--serif); font-size: 17px; margin-top: 10px; }
+.day-panel .d-week { font-size: 12px; color: var(--ink-3); }
+.day-panel .d-station { margin-top: 10px; font-family: var(--serif); color: var(--sun-bright); font-size: 15px; }
+.day-panel .d-term { font-size: 12px; color: var(--ink-3); }
+.day-panel .d-split { margin-top: 13px; display: flex; justify-content: center; gap: 14px; font-size: 12px; }
+.day-panel .d-split b { display: block; font-family: var(--mono); font-size: 15px; font-weight: 500; }
+.day-panel .d-sun b { color: var(--sun); }
+.day-panel .d-dark b { color: var(--ink-2); }
+.day-panel .d-peaks { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.day-panel .d-peak {
+  display: flex; align-items: baseline; gap: 7px; font-size: 12px;
+  color: var(--ink-2); margin-bottom: 3px; text-align: left;
+}
+.day-panel .d-peak .pk { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;
+  align-self: center; }
+.day-panel .d-peak .pk-sun { background: var(--sun-bright); }
+.day-panel .d-peak .pk-dark { background: var(--equinox); }
+.day-panel .d-peak .pk-moon { background: var(--moon); }
+.day-panel .d-peak .pk-now { background: var(--today); }
+.day-panel .d-cols { display: grid; grid-template-columns: 1fr; }
+.day-panel .d-moonblock { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+.day-panel .d-moon-sub { font-size: 11px; color: var(--ink-3); text-align: left; margin: -2px 0 6px; }
+
+@media (min-width: 700px) {
+  /* The moon's rows carry a bearing as well as a height, so they need the
+   * wider half; the sun's are short. */
+  .day-panel .d-cols { grid-template-columns: 0.82fr 1.18fr; gap: 16px; align-items: start; }
+  .day-panel .d-moonblock {
+    margin-top: 0; padding-top: 0; border-top: none;
+    border-left: 1px solid var(--line-soft); padding-left: 16px;
+  }
+}
+.day-panel .d-peak .pk-name { flex: 1; text-align: left; white-space: nowrap; }
+.day-panel .d-peak b { font-family: var(--mono); font-weight: 500; color: var(--ink); white-space: nowrap; }
+.day-panel .d-peak .pk-at { font-family: var(--mono); color: var(--ink-3); min-width: 40px;
+  text-align: right; flex: 0 0 auto; }
+/* The planets, folded into the day panel behind their own switch. A grid so
+ * the glyph, the name, the sign and the constellation line up down the
+ * column rather than wandering with the length of each word. */
+.day-panel .d-planets {
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft);
+  text-align: left;
+}
+.day-panel .d-planets-tog { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.day-panel .d-pl-list { margin-top: 8px; }
+.day-panel .d-pl {
+  display: grid; grid-template-columns: 18px 1fr auto; align-items: baseline;
+  column-gap: 8px; row-gap: 0; font-size: 11.5px; padding: 2px 0;
+}
+.day-panel .d-pl-g { font-style: normal; font-size: 13px; line-height: 1; text-align: center; }
+.day-panel .d-pl-n { color: var(--ink-2); }
+.day-panel .d-pl b {
+  font-family: var(--mono); font-weight: 500; color: var(--ink); white-space: nowrap;
+}
+.day-panel .d-pl-c {
+  grid-column: 2 / 4; color: var(--ink-3); font-size: 10.5px; margin-top: -1px;
+}
+.day-panel .d-pl-c em { font-style: normal; color: var(--sun); }
+.day-panel .d-pl-c em.d-pl-down { color: var(--ink-3); opacity: .8; }
+.day-panel .d-pl-rule {
+  height: 1px; background: var(--line-soft); margin: 7px 0 6px;
+}
+/* The cycle's own flyout, hinged off the sidebar rather than the right-hand
+ * tools, because it is opened from the left and belongs to its own wheel. */
+.menses-flyout {
+  position: absolute; top: 14px; left: 14px; z-index: 7;
+  width: min(340px, calc(100% - 28px)); max-height: min(80dvh, 700px);
+  overflow-y: auto; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: var(--shadow); backdrop-filter: blur(14px);
+}
+.menses-flyout[hidden] { display: none; }
+/* The wheel takes the whole stage when the blueprint is folded away, and the
+ * usual share when it is not. */
+#preg-svg { width: min(100%, calc(68dvh - 80px)); height: min(100%, calc(68dvh - 80px));
+  display: block; overflow: visible; touch-action: none; }
+.pg-tri:hover, .pg-baby:hover, .pg-sense:hover { fill-opacity: .48; }
+.pg-week:hover { fill: var(--sun); fill-opacity: .2; }
+.pg-mark:hover { fill: var(--sun-bright); }
+#pg-sel { transition: opacity .1s; }
+
+#menses-svg { width: min(100%, calc(68dvh - 80px)); height: min(100%, calc(68dvh - 80px));
+  display: block; overflow: visible; touch-action: none; }
+.scene-menses:has(.readout.min) #menses-svg {
+  width: min(100%, calc(88dvh - 80px)); height: min(100%, calc(88dvh - 80px));
+}
+.scene-menses:has(.readout.min) { padding-bottom: 88px; }
+.ghost-btn.is-on { border-color: var(--sun); color: var(--sun); }
+.readout .r-key {
+  display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 9px 0 2px;
+  font-size: 10.5px; color: var(--ink-3); justify-content: center;
+}
+.readout .r-key span, .readout .r-key .r-key-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.readout .r-key-btn {
+  background: none; border: 0; padding: 2px 4px; border-radius: 6px;
+  font: inherit; font-size: 10.5px; color: var(--ink-3);
+  cursor: pointer; pointer-events: auto;
+}
+.readout .r-key-btn:hover { color: var(--ink); background: var(--bg-2); }
+.mn-horm:hover + * { opacity: 1; }
+.readout .r-key i { width: 14px; height: 2.5px; border-radius: 2px; flex: 0 0 auto; }
+.readout .r-hint b { font-weight: 500; color: var(--ink-2); }
+.mn-phase:hover { fill-opacity: .5; }
+.mn-day:hover { fill: var(--sun); fill-opacity: .2; }
+.mn-moon:hover { fill: var(--moon); fill-opacity: .22; }
+#mn-sel { transition: opacity .1s; }
+
+/* The prose drawers: same shell as the lists, but they scroll and hold
+ * paragraphs rather than rows. */
+.tool-panel.is-prose { max-height: min(76dvh, 660px); overflow-y: auto; }
+.tool-panel-prose { padding: 12px 14px 16px; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
+.tool-panel-prose p { margin: 0 0 9px; }
+.tool-panel-prose h4 {
+  margin: 16px 0 5px; font-family: var(--serif); font-weight: 500;
+  font-size: 13.5px; color: var(--sun-bright);
+}
+.tool-panel-prose b { font-weight: 500; color: var(--ink); }
+.tool-panel-prose .tp-intro { color: var(--ink-3); font-size: 11.5px; margin-bottom: 12px; }
+.tool-panel-prose .tp-sec {
+  padding: 10px 0 4px; border-top: 1px solid var(--line-soft);
+}
+.tool-panel-prose .tp-sec:first-of-type { border-top: 0; padding-top: 0; }
+.tool-panel-prose .tp-brief { font-size: 11.5px; color: var(--ink-3); }
+.tool-panel-prose .tp-foot {
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft);
+}
+.tool-panel-prose .tp-switch {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 10px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--bg-2); font-size: 12.5px;
+}
+.tool-panel-prose .tp-now {
+  padding: 10px 12px; border-radius: 10px; margin-bottom: 10px;
+  background: var(--bg-2); border: 1px solid var(--line-soft);
+}
+.tool-panel-prose .tp-now-lab {
+  font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3);
+}
+.tool-panel-prose .tp-now-organ {
+  font-family: var(--serif); font-size: 19px; color: var(--sun-bright); margin: 2px 0 4px;
+}
+.tool-panel-prose .tp-now-best { color: var(--ink-2); }
+.tool-panel-prose .tp-now-avoid { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+.tool-panel-prose .tp-levels { margin-top: 10px; }
+.tool-panel-prose .tp-lv {
+  display: grid; grid-template-columns: 88px 1fr 34px; align-items: center;
+  column-gap: 7px; font-size: 11px; margin-bottom: 3px;
+}
+.tool-panel-prose .tp-lv-n { color: var(--ink-3); }
+.tool-panel-prose .tp-lv-bar {
+  height: 5px; border-radius: 3px; background: var(--line); overflow: hidden;
+}
+.tool-panel-prose .tp-lv-bar i { display: block; height: 100%; border-radius: 3px; }
+.tool-panel-prose .tp-lv-v { font-family: var(--mono); color: var(--ink-2); text-align: right; }
+.tool-panel-prose .tp-lv-d {
+  grid-column: 2 / 4; font-size: 10px; color: var(--ink-3); margin: -2px 0 2px;
+}
+.tool-panel-prose .tp-lv-note {
+  margin: 8px 0 0; font-size: 10.5px; line-height: 1.45; color: var(--ink-3);
+}
+
+.tool-panel-prose .tp-watches { list-style: none; margin: 10px 0 8px; padding: 0; }
+.tool-panel-prose .tp-watches button {
+  display: grid; grid-template-columns: 1fr auto auto; align-items: baseline;
+  gap: 8px; width: 100%; min-height: 44px; padding: 7px 10px; text-align: left;
+  background: var(--bg-2); border: 1px solid var(--line-soft); border-radius: 8px;
+  margin-bottom: 4px; cursor: pointer; font: inherit; font-size: 12px; color: var(--ink-2);
+}
+.tool-panel-prose .tp-watches button:hover { border-color: var(--sun); }
+.tool-panel-prose .tp-watches button.is-now { border-color: var(--sun); background: var(--panel); }
+.tool-panel-prose .tp-watches .tw-organ { color: var(--ink); }
+.tool-panel-prose .tp-watches .tw-branch { color: var(--sun); font-style: italic; }
+.tool-panel-prose .tp-watches .tw-hours {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-align: right;
+}
+.tool-panel-prose .tp-watches .tw-hours em { display: block; font-style: normal; }
+.tool-panel-prose .tp-watches .tw-hours { font-size: 11px; }
+
+.tool-panel-prose .tp-refs { margin: 6px 0 0; padding-left: 16px; font-size: 11.5px; }
+.tool-panel-prose .tp-refs li { margin-bottom: 4px; color: var(--ink-3); }
+.tool-panel-prose .tp-refs a { color: var(--sun); }
+
+.tool-btn.is-on { border-color: var(--sun); color: var(--sun); background: var(--bg-2); }
+.tool-btn[hidden] { display: none; }
+
+.watch-card { width: min(94vw, 520px); }
+.watch-card h2 { margin-bottom: 4px; }
+.watch-card .watch-when {
+  font-size: 12px; letter-spacing: .06em; color: var(--ink-3);
+  text-transform: lowercase; margin: 0 0 16px;
+}
+.watch-card .watch-pole {
+  padding: 10px 12px; border-radius: 10px; background: var(--bg-2);
+  border: 1px solid var(--line-soft); color: var(--sun-bright); font-size: 13px;
+}
+.watch-card h3 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); margin: 18px 0 4px; font-family: inherit; }
+
+.day-panel .d-body-now {
+  margin: 10px 0 12px; padding: 10px 12px; border-radius: 10px;
+  background: var(--bg-2); border: 1px solid var(--line-soft);
+}
+.day-panel .d-body-now-lab {
+  font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3);
+}
+.day-panel .d-body-now-organ {
+  font-family: var(--serif); font-size: 19px; color: var(--sun-bright); margin: 2px 0 4px;
+}
+.day-panel .d-body-now-best { font-size: 12.5px; color: var(--ink-2); }
+.day-panel .d-body-now-avoid { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+
+.day-panel .d-body-key {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 9px 0 4px;
+  font-size: 10.5px; color: var(--ink-3);
+}
+.day-panel .d-body-key span { display: inline-flex; align-items: center; gap: 5px; }
+.day-panel .d-body-key i { width: 14px; height: 2.5px; border-radius: 2px; flex: 0 0 auto; }
+.day-panel .d-body .d-pl-note + .d-pl-note { margin-top: 7px; }
+.day-panel .d-pl-note {
+  margin: 9px 0 0; font-size: 10.5px; line-height: 1.45; color: var(--ink-3);
+}
+.day-panel .d-pl-note b { font-family: inherit; font-weight: 500; color: var(--ink-2); }
+
+.day-panel .d-peak-note { font-size: 11px; color: var(--ink-3); margin-top: 5px; line-height: 1.35; }
+.day-panel .d-moonblock .d-moon-row { justify-content: flex-start; margin-top: 0; margin-bottom: 6px; }
+.day-panel .d-moon-row {
+  margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.day-panel .d-moon-text { text-align: left; font-size: 12px; color: var(--ink-2); }
+.day-panel .d-moon-text b { display: block; font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--moon); }
+
+/* ------------------------------------------------------------- day notes */
+.note-btn {
+  margin-top: 12px; width: 32px; height: 32px; border-radius: 9px; position: relative;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-3);
+  font-size: 14px; line-height: 1; cursor: pointer; pointer-events: auto;
+}
+.note-btn:hover { border-color: var(--sun); color: var(--sun); }
+.note-btn.has-note { border-color: var(--sun-bright); color: var(--sun-bright); background: rgba(232, 184, 75, .12); }
+.note-dot { position: absolute; top: -3px; right: -3px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--sun-bright); border: 1.5px solid var(--panel); }
+.note-box { margin-top: 10px; text-align: left; pointer-events: auto; }
+.note-box textarea {
+  width: 100%; min-height: 68px; resize: vertical; box-sizing: border-box;
+  border-radius: 9px; border: 1px solid var(--line); background: var(--bg-2); color: var(--ink);
+  font: inherit; font-size: 12.5px; line-height: 1.4; padding: 9px 10px;
+}
+.note-box textarea:focus { outline: none; border-color: var(--sun); }
+.note-history { margin-top: 8px; font-size: 11px; color: var(--ink-3); max-height: 90px; overflow-y: auto; }
+.note-history-label { text-transform: uppercase; letter-spacing: .1em; font-size: 9px; margin-bottom: 4px; color: var(--ink-3); }
+.note-history-item { margin-bottom: 3px; line-height: 1.35; }
+.note-history-item b { color: var(--ink-2); font-family: var(--mono); font-weight: 500; margin-right: 5px; }
+.note-done {
+  /* Stays reachable while the card scrolls (a long note plus its history can
+     push this well below the fold), pinned to the bottom of the scrollport
+     with its own background so scrolled content doesn't show through. */
+  position: sticky; bottom: -15px; z-index: 1;
+  margin: 12px -20px -15px; width: calc(100% + 40px); padding: 10px 20px 12px;
+  box-sizing: border-box; border: 0; border-top: 1px solid var(--line);
+  background: var(--panel); color: var(--sun);
+  font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; pointer-events: auto;
+}
+.note-done:hover { color: var(--sun-bright); }
+
+/* SVG text defaults */
+#wheel text, #dayclock text { font-family: var(--sans); fill: var(--ink-2); }
+.tick-label { font-size: 13px; fill: var(--ink-3); }
+.station-label { font-family: var(--serif); font-size: 15px; fill: var(--ink); }
+.station-sub { font-size: 9.5px; fill: var(--ink-3); }
+.month-label { font-size: 11px; fill: var(--ink-3); letter-spacing: .1em; }
+/* Moon-cycle numbers show at every zoom level, unlike the solar terms: being
+   able to see where the moons fall across the whole year is the point of
+   them, so gating them behind a zoom would defeat it. */
+.moon-num { font-size: 12px; fill: var(--ink-2); }
+.moon-season { font-size: 8px; fill: var(--ink-3); }
+.moon-num.is-blue { fill: var(--frost); font-weight: 500; }
+/* The partial wedges at the ends of the cycle: named, but quieter,
+ * since their count belongs to the neighbouring year. */
+.moon-num.is-edge { font-size: 10px; fill: var(--ink-3); }
+.moon-season.is-edge { font-size: 7.5px; fill: var(--ink-3); opacity: .8; }
+.moon-hit { fill: transparent; cursor: pointer; }
+/* The moon band answers for itself, so it should look like it does. */
+.moon-hit:hover { fill: var(--moon); fill-opacity: .12; }
+.term-band { stroke: var(--night); opacity: .28; }
+.term-cut { stroke: var(--equinox); stroke-width: 1.1; opacity: .65; }
+.term-day { stroke: var(--ink-3); stroke-width: .6; opacity: .38; }
+.term-label { font-size: 8.5px; fill: var(--ink-2); }
+.frost-label { font-size: 9px; }
+.term-sub { font-size: 7.5px; fill: var(--ink-3); }
+/* The term labels used to be hidden until zoomed, back when they were a bare
+ * number crowded in among the frost marks. Now the layer has a ring of its
+ * own and is off by default, so turning it on should show it. */
+
+.rot { transition: transform .35s ease; }
+.rot.flip { transform: rotate(180deg); }
+.day-cell { cursor: pointer; }
+.hit { fill: transparent; cursor: pointer; }
+
+.loading {
+  position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 16px; font-size: 12.5px; color: var(--ink-2); display: flex; gap: 9px; align-items: center;
+}
+.loading[hidden] { display: none; }
+.spin { width: 12px; height: 12px; border: 2px solid var(--line); border-top-color: var(--sun);
+  border-radius: 50%; animation: sp .8s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+.panel-toggle {
+  position: absolute; top: 14px; left: 14px; z-index: 6; display: none;
+  width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink); font-size: 16px; cursor: pointer;
+}
+
+.top-tools {
+  position: absolute; top: 14px; right: 14px; z-index: 6; display: flex; gap: 6px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 5px;
+  backdrop-filter: blur(10px);
+}
+.tool-btn {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid transparent;
+  background: transparent; color: var(--ink-2); font-size: 16px; line-height: 1; cursor: pointer;
+}
+.tool-btn:hover { border-color: var(--sun); color: var(--sun); background: var(--bg-2); }
+.tool-btn.is-open { border-color: var(--sun); color: var(--sun); background: var(--bg-2); }
+
+.tool-panel {
+  position: absolute; top: 58px; right: 14px; z-index: 7; width: min(310px, calc(100vw - 28px));
+  max-height: min(60dvh, 460px); display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  backdrop-filter: blur(14px); box-shadow: var(--shadow); overflow: hidden;
+}
+.tool-panel[hidden] { display: none; }
+.tool-panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 11px 14px; border-bottom: 1px solid var(--line-soft); flex: 0 0 auto;
+}
+.tool-panel-head strong { font-family: var(--serif); font-weight: 500; font-size: 14.5px; }
+.tool-panel-head button {
+  background: none; border: 0; color: var(--ink-3); font-size: 20px; line-height: 1; cursor: pointer;
+}
+.tool-panel-head button:hover { color: var(--sun); }
+.tool-panel ul { list-style: none; margin: 0; padding: 6px; overflow-y: auto; flex: 1 1 auto; }
+.tool-panel li { margin: 0; }
+.tool-panel li button {
+  width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
+  padding: 8px 9px; border-radius: 8px; border: 0; background: transparent;
+  color: var(--ink-2); font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.tool-panel li button:hover { background: rgba(232,184,75,.14); color: var(--ink); }
+.tool-panel li button.is-today { color: var(--today); }
+.tool-panel .ti-name { flex: 1; min-width: 0; }
+.tool-panel .ti-date { color: var(--ink-3); font-size: 11.5px; white-space: nowrap; }
+.tool-panel .ti-day { color: var(--ink-3); font-family: var(--mono); font-size: 10.5px; min-width: 42px; text-align: right; }
+.tool-panel .ti-sub { display: block; color: var(--ink-3); font-size: 10.5px; }
+.tool-panel-empty { padding: 14px; color: var(--ink-3); font-size: 12.5px; }
+
+.zoom-controls {
+  position: absolute; right: 14px; bottom: 14px; z-index: 6;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 5px;
+  backdrop-filter: blur(10px);
+}
+/* display:flex above outranks the browser's own [hidden] rule, so hiding the
+ * stack needs saying explicitly, the same way .scene[hidden] does. */
+.zoom-controls[hidden] { display: none; }
+.zoom-controls button {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid transparent;
+  background: transparent; color: var(--ink-2); font-size: 16px; line-height: 1; cursor: pointer;
+}
+.zoom-controls button:hover { border-color: var(--sun); color: var(--sun); background: var(--bg-2); }
+#zoom-reset { font-size: 14px; }
+
+.scene.is-zoomed #wheel-svg, .scene.is-zoomed #day-svg { cursor: grab; }
+.scene.is-zoomed #wheel-svg:active, .scene.is-zoomed #day-svg:active { cursor: grabbing; }
+
+/* ------------------------------------------------------------------ modal */
+.modal { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+  background: rgba(3,4,10,.72); padding: 20px; overflow-y: auto; }
+.modal[hidden] { display: none; }
+.modal-card {
+  position: relative; width: min(94vw, 620px); margin: auto;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 16px;
+  padding: 30px 32px; box-shadow: var(--shadow); box-sizing: border-box;
+}
+.modal-card h2 { font-family: var(--serif); font-weight: 500; margin: 0 0 14px; font-size: 24px; }
+.modal-card h3 { font-family: var(--serif); font-weight: 500; font-size: 15.5px; margin: 22px 0 6px; color: var(--sun-bright); }
+.modal-card p { margin: 0 0 10px; color: var(--ink-2); font-size: 14px; }
+.close { position: absolute; top: 12px; right: 14px; background: none; border: 0;
+  color: var(--ink-3); font-size: 26px; cursor: pointer; line-height: 1; }
+
+.spiral-card { width: min(96vw, 940px); }
+#spiral-svg { width: 100%; height: auto; margin-top: 12px; display: block; }
+.compare-card { width: min(94vw, 700px); }
+/* Longer lines than the reference sections, and no subheadings to break them,
+ * so the measure is held in and the leading opened out. */
+
+/* The system readout. Wider than the year readout because each line carries
+ * a sign, a constellation and a distance, and folding those would cost more
+ * than the width does. */
+.scene-orbits .readout { width: min(340px, calc(100% - 32px)); text-align: left; }
+.scene-orbits .readout .r-lab,
+.scene-orbits .readout .r-date { text-align: center; }
+/* The info corner needs its own pointer-events: the readout takes none so a
+ * hover passes through to whatever is behind it. */
+.readout .mr-info { pointer-events: auto; }
+.readout.info { max-height: min(74dvh, 620px); overflow-y: auto; }
+.readout .mr-info-panel { margin: 26px 0 12px; }
+.readout .mr-info-panel b { color: var(--sun-bright); }
+.readout .o-list { margin-top: 10px; }
+.readout .o-pl {
+  display: grid; grid-template-columns: 18px 1fr auto; align-items: baseline;
+  column-gap: 8px; font-size: 11.5px; padding: 2px 0;
+}
+.readout .o-pl-g { font-style: normal; font-size: 13px; line-height: 1; text-align: center; }
+.readout .o-pl-n { color: var(--ink-2); }
+.readout .o-pl b { font-family: var(--mono); font-weight: 500; color: var(--ink); white-space: nowrap; }
+.readout .o-pl-c { grid-column: 2 / 4; color: var(--ink-3); font-size: 10.5px; margin-top: -1px; }
+.readout .r-hint b { font-weight: 500; color: var(--ink-2); }
+
+/* The month fan: same shape as the lunation scene, a title bar above, the
+ * drawing filling the middle, the readout at its foot. */
+.scene-month {
+  display: grid; place-items: stretch;
+  grid-template-columns: 1fr; grid-template-rows: auto 1fr auto;
+  padding: 58px 10px 18px;
+}
+.scene-month .month-topbar {
+  grid-row: 1; display: flex; align-items: center; justify-content: center; gap: 12px;
+}
+.scene-month #month-svg {
+  grid-row: 2; min-width: 0; min-height: 0;
+  width: 100%; height: 100%; display: block; overflow: visible;
+}
+.month-head { text-align: center; pointer-events: none; padding-bottom: 8px; }
+.month-head .mh-name { font-family: var(--serif); font-size: 24px; color: var(--ink); }
+.month-head .mh-year { color: var(--ink-3); font-size: .72em; letter-spacing: .04em; }
+.month-head .mh-sub { margin-top: 3px; font-size: 12px; color: var(--ink-3); }
+.scene-month .readout { position: absolute; }
+
+.month-hit:hover { fill: var(--sun); fill-opacity: .14; }
+.mv-day:hover { fill: var(--sun); fill-opacity: .22; }
+#mv-sel { transition: opacity .1s; }
+.scene-month .readout .r-body {
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line-soft);
+}
+.scene-month .readout .r-num { font-size: 28px; }
+
+.zodiac-card { width: min(96vw, 760px); }
+#zodiac-svg, #sky-svg { width: 100%; height: auto; display: block; margin: 14px 0 4px; }
+.zodiac-card h3 { margin-top: 26px; }
+
+.ethos-card { width: min(94vw, 560px); }
+.ethos-card p { font-size: 14.5px; line-height: 1.72; margin: 0 0 14px; }
+.ethos-card p:last-of-type { margin-bottom: 0; }
+.ethos-card b { color: var(--sun-bright); font-weight: 500; }
+/* Reads as a phrase in the sentence, behaves as the button it is. This is the
+ * one place the writing sends the reader somewhere, so it goes there. */
+.inline-link {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; font-style: italic; color: var(--sun);
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.inline-link:hover { color: var(--sun-bright); }
+.inline-link:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
+
+/* The creed. Five tenets, each opening with the thing it commits to, set off
+ * from the passage above by a rule down the side rather than by more colour:
+ * the leads are already gold and that is enough weight in one place. */
+.ethos-card .creed-lead { margin-bottom: 4px; }
+.ethos-card .creed {
+  margin: 0 0 18px; padding-left: 16px;
+  border-left: 2px solid var(--line);
+}
+.ethos-card .creed p:last-child { margin-bottom: 0; }
+.ethos-card .creed b { display: block; margin-bottom: 2px; }
+.ethos-card .creed-close {
+  margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line-soft);
+  font-family: var(--serif); font-size: 16px; color: var(--ink);
+}
+#compare-svg { width: 100%; height: auto; margin-top: 10px; display: block; }
+.compare-legend {
+  list-style: none; margin: 14px 0 0; padding: 0; display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px;
+}
+.compare-legend li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); min-width: 0; }
+.compare-legend .swatch { width: 16px; height: 0; border-top-width: 2.5px; border-top-style: solid; flex: 0 0 auto; }
+.compare-legend .stat { color: var(--ink-3); margin-left: auto; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 480px) {
+  .compare-legend { grid-template-columns: 1fr; }
+}
+
+/* ----------------------------------------------------------------- mobile */
+@media (max-width: 900px) {
+  .panel { position: absolute; inset: 0 auto 0 0; width: min(320px, 88vw); flex-basis: auto;
+    transform: translateX(-100%); transition: transform .3s ease; box-shadow: var(--shadow); }
+  .app.panel-open .panel { transform: none; }
+  .panel-toggle { display: block; }
+  .crumbs { top: 15px; padding: 4px 8px; gap: 4px; }
+  .crumb { font-size: 12px; padding: 3px 5px; }
+
+  .readout, .day-panel { left: 10px; right: 10px; bottom: 10px; transform: none; width: auto; }
+  /* The panel runs full width here and is height-capped, so its bottom-right
+   * corner is fixed and the zoom controls would sit on top of the moon's
+   * rows. Padding cannot lift the content clear once the cap is reached, so
+   * the controls move up under the theme toggle instead, where the wheel is
+   * narrow and nothing else is. */
+  .zoom-controls { top: 76px; bottom: auto; }
+  .readout .r-num { font-size: 30px; }
+  .day-panel .d-num { font-size: 40px; }
+  .day-panel .d-date { margin-top: 6px; font-size: 15px; }
+  .day-panel .d-split { margin-top: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #wheel, .scene { transition: none; }
+}
+
+
+
+.d-shift {
+  margin-top: 10px; padding: 8px 10px; border-radius: 7px;
+  border-left: 3px solid var(--cross);
+  background: var(--bg-2); color: var(--ink-2);
+  font-size: 12px; line-height: 1.5;
+}
+
+.day-panel .d-now {
+  margin-top: 6px; font-family: var(--mono); font-size: 12px;
+  color: var(--today); letter-spacing: .02em;
+}
+
+/* Minimise. The panel can stand taller than the wheel it explains, which on a
+ * tablet leaves the day barely visible behind it. Collapsed it keeps only the
+ * date and the control to bring it back. */
+.panel-min {
+  /* Was a bare chevron with no edge and no fill, which on a phone was almost
+   * invisible and well under a comfortable touch target. It now carries its
+   * own outline at all times and is 34 square. */
+  position: absolute; top: 6px; right: 7px; z-index: 3;
+  width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line); color: var(--ink-2);
+  font-size: 14px; line-height: 1; pointer-events: auto;
+  display: flex; align-items: center; justify-content: center;
+}
+.panel-min:hover { color: var(--sun); border-color: var(--sun); }
+.panel-min:focus-visible { outline: 2px solid var(--sun); outline-offset: 1px; }
+
+/* The year readout collapses too. It stands over the foot of the wheel, and
+ * on a short screen that is the part of the ring nearest the reader. Its
+ * button has to carry its own pointer-events: the box itself takes none, so
+ * that hovering it does not steal the hover from the wheel underneath. */
+.readout .r-mini { display: none; }
+.readout.min .r-mini {
+  display: block; font-family: var(--serif); font-size: 15px;
+  color: var(--ink-2); padding-right: 24px;
+}
+.readout.min > *:not(.r-mini):not(.panel-min) { display: none; }
+.readout.min { max-height: none; overflow: visible; padding: 10px 16px;
+  /* Same as the day panel: the narrow-screen rule pins the expanded box to
+   * both edges, which would leave the collapsed line stretched across the
+   * whole foot of the screen instead of sitting as a bar under the wheel. */
+  width: min(300px, calc(100% - 32px));
+  left: 50%; right: auto; transform: translateX(-50%); }
+.readout .panel-min { pointer-events: auto; }
+
+.day-panel .d-mini { display: none; }
+.day-panel.min .d-mini {
+  display: block; font-family: var(--serif); font-size: 15px;
+  color: var(--ink-2); padding-right: 24px;
+}
+.day-panel.min > *:not(.d-mini):not(.panel-min) { display: none; }
+.day-panel.min { max-height: none; overflow: visible; padding: 10px 16px;
+  width: min(300px, calc(100% - 32px));
+  /* Stay centred when collapsed. The narrow-screen rule pins the expanded
+   * panel to both edges, which would otherwise drop the little bar into the
+   * left corner the moment it shrinks. */
+  left: 50%; right: auto; transform: translateX(-50%); }
+
+/* ------------------------------------------------------ the lunar month
+ * The month's name sits in the grid above the circle rather than floating
+ * over it: the ring carries dates right out to its edge, and a header laid
+ * on top of them buries the first few days of the month. */
+/* One column, three rows: the title bar with its arrows, the circle, the
+ * readout. The lunation arrows sit beside the title they step, and the day
+ * arrows sit inside the readout beside the face they step, so each pair is
+ * next to the thing it moves. */
+.scene-moon {
+  display: grid; place-items: stretch;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr auto;
+  padding: 58px 10px 18px;
+}
+.scene-moon .moon-topbar {
+  grid-row: 1; display: flex; align-items: center; justify-content: center; gap: 12px;
+}
+.scene-moon .moon-topbar .moon-head { flex: 0 1 auto; min-width: 0; }
+.scene-moon #moon-svg {
+  grid-row: 2; min-width: 0; min-height: 0;
+  width: 100%; height: 100%; display: block; overflow: visible;
+}
+
+.moon-head { text-align: center; pointer-events: none; padding-bottom: 8px; }
+.moon-head .mh-name { font-family: var(--serif); font-size: 24px; color: var(--moon); }
+.moon-head .mh-year { color: var(--ink-3); font-size: .72em; letter-spacing: .04em; }
+.moon-head .mh-sub { margin-top: 3px; font-size: 12px; color: var(--ink-3); }
+.moon-head .mh-day { margin-top: 4px; font-size: 12.5px; color: var(--ink-2); }
+
+.moon-arrow {
+  z-index: 5; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); color: var(--ink-2);
+  font-size: 22px; line-height: 1; backdrop-filter: blur(10px);
+}
+.moon-arrow:hover:not(:disabled) { border-color: var(--moon); color: var(--moon); }
+.moon-arrow:disabled { opacity: .28; cursor: default; }
+.moon-arrow:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
+
+.moon-day-hit:hover { fill: var(--moon); fill-opacity: .10; }
+
+/* The day under the cursor, read out below the circle. It follows the pointer
+ * round the ring, takes its own arrows for stepping a day at a time, and
+ * falls back to the day in hand when the pointer leaves.
+ *
+ * It stacks: the face, its name, then the day of the solar cycle set large,
+ * then the standard date, the weekday, and the day's place in the lunation.
+ * The solar day leads because it is the anchor into the other calendar.
+ *
+ * Height is the constraint, not width. On a phone this box and the circle
+ * share one short screen, so every size here has a smaller counterpart below
+ * and the circle is guaranteed the larger share. */
+/* The info control, mirroring the collapse control on the other corner. Two
+ * kinds of day in one box is a fair thing to want explained on the spot. */
+.mr-info {
+  position: absolute; top: 6px; left: 7px; z-index: 3;
+  width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line); color: var(--ink-2);
+  font-family: var(--serif); font-size: 15px; font-style: italic; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.mr-info:hover { color: var(--sun); border-color: var(--sun); }
+.mr-info[aria-expanded="true"] { color: var(--sun); border-color: var(--sun); }
+.mr-info:focus-visible { outline: 2px solid var(--sun); outline-offset: 1px; }
+.moon-readout.min .mr-info { display: none; }
+
+/* Open, the note roughly doubles the box. On a tall screen it simply scrolls
+ * inside itself rather than growing past its share. */
+.moon-readout.info { max-height: 62dvh; overflow-y: auto; overscroll-behavior: contain; }
+.mr-info-panel {
+  text-align: left; margin: 26px 0 10px; padding: 10px 12px;
+  border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line-soft);
+}
+.mr-info-panel p { margin: 0 0 7px; font-size: 11.5px; line-height: 1.5; color: var(--ink-2); }
+.mr-info-panel p:last-of-type { margin-bottom: 9px; }
+.mr-info-panel b { color: var(--moon); font-weight: 500; }
+.mr-info-more {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--sun); font: inherit; font-size: 11.5px; text-decoration: underline;
+}
+
+/* The day panel takes the same info corner. A clock face with peak sun on it
+ * is worth a sentence, and the panel is where the reader already is. */
+.day-panel.info { max-height: min(76dvh, 640px); }
+.day-panel .mr-info-panel b { color: var(--sun-bright); }
+.day-panel .mr-info-panel { margin: 26px 0 12px; }
+
+.moon-readout .mr-mini { display: none; }
+.moon-readout.min .mr-mini {
+  display: block; font-family: var(--serif); font-size: 15px; color: var(--ink-2);
+  padding-right: 26px;
+}
+.moon-readout.min > *:not(.mr-mini):not(.panel-min) { display: none; }
+.moon-readout.min { padding: 9px 14px; width: min(300px, 100%); }
+
+.scene-moon .moon-readout {
+  position: relative; grid-row: 3; justify-self: center; margin-top: 8px;
+  width: min(420px, 100%); box-sizing: border-box; text-align: center;
+  padding: 8px 14px 10px; border-radius: 14px;
+  background: var(--panel); border: 1px solid var(--line);
+  backdrop-filter: blur(10px); box-shadow: var(--shadow);
+}
+.moon-readout .mr-facerow {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+}
+.mr-step {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+  background: transparent; border: 1px solid var(--line); color: var(--ink-3);
+  font-size: 16px; line-height: 1;
+}
+.mr-step:hover { border-color: var(--moon); color: var(--moon); }
+.mr-step:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
+
+.moon-readout .mr-face { line-height: 0; }
+.moon-readout .mr-phase { line-height: 1.25; margin-top: 4px; font-size: 12.5px; color: var(--moon); }
+.moon-readout .mr-event {
+  font-size: 10px; color: var(--sun-bright); border: 1px solid var(--sun-bright);
+  border-radius: 999px; padding: 1px 7px; margin-left: 3px; white-space: nowrap;
+}
+.moon-readout .mr-solar { margin-top: 6px; line-height: 1.05; }
+.moon-readout .mr-solar b {
+  display: block; font-family: var(--serif); font-size: 38px; font-weight: 400;
+  color: var(--ink); letter-spacing: .01em;
+}
+.moon-readout .mr-lab {
+  display: block; font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.moon-readout .mr-date {
+  font-family: var(--serif); font-size: 15px; color: var(--ink-2); margin-top: 7px;
+}
+.moon-readout .mr-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+.moon-readout .mr-lun { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+/* The two anchoring counts, side by side and separately labelled, so neither
+ * is mistaken for the tithi above them. */
+.moon-readout .mr-refs {
+  display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft);
+}
+.moon-readout .mr-ref { min-width: 74px; }
+/* With one reference left the row is a single centred cell. */
+.moon-readout .mr-refs:has(> .mr-ref:only-child) { gap: 0; }
+/* The date is prose, not a figure, so it keeps the serif and room to sit on
+ * one line. */
+.moon-readout .mr-ref-date b { font-family: var(--serif); font-size: 15px; white-space: nowrap; }
+.moon-readout .mr-ref-date em {
+  display: block; font-style: normal; font-size: 11.5px; color: var(--ink-2);
+  margin-top: 1px;
+}
+.moon-readout .mr-ref b {
+  display: block; font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--moon);
+}
+.moon-readout .mr-ref span {
+  display: block; font-size: 9px; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-3); margin-top: 2px; line-height: 1.3;
+}
+/* Short screens: the circle is the thing, so the box gives ground. */
+@media (max-height: 760px), (max-width: 560px) {
+  .scene-moon { padding-top: 50px; }
+  .scene-moon .moon-readout { padding: 6px 6px 8px; margin-top: 6px; }
+  .moon-readout .mr-solar b { font-size: 30px; }
+  .moon-readout .mr-date { font-size: 13.5px; margin-top: 5px; }
+  .moon-readout .mr-phase { font-size: 11.5px; margin-top: 3px; }
+  .moon-readout .mr-sub, .moon-readout .mr-lun { font-size: 10.5px; }
+  /* On a short screen there is no room for the circle and a paragraph at
+   * once: growing the box to fit the note left the ring at 88 pixels. The
+   * note takes the box over instead, so the circle keeps very nearly the
+   * height it had and comes straight back when the note is closed. */
+  .moon-readout.info > *:not(.mr-info-panel):not(.mr-info):not(.panel-min) { display: none; }
+  .moon-readout.info { max-height: 260px; }
+  .moon-readout.info .mr-info-panel { margin-top: 30px; }
+  .moon-readout .mr-refs { gap: 10px; margin-top: 6px; padding-top: 6px; }
+  .moon-readout .mr-ref { min-width: 66px; }
+  .moon-readout .mr-ref b { font-size: 13px; }
+  .moon-readout .mr-ref-date b { font-size: 13.5px; }
+  .moon-head .mh-name { font-size: 19px; }
+  .moon-head .mh-sub, .moon-head .mh-day { font-size: 11px; }
+  .moon-head { padding-bottom: 4px; }
+}
+
+/* On a phone the arrows flanking the circle would eat a quarter of the width
+ * and squeeze it into a letterbox. They drop to the readout's row instead, so
+ * the circle spans the full width and the arrows sit either side of the day
+ * being described rather than on top of it. */
+@media (max-width: 560px) {
+  .scene-moon .moon-topbar { gap: 6px; }
+  .moon-readout .mr-facerow { gap: 12px; }
+}
+
+@media (max-width: 900px) {
+  .scene-moon { padding: 54px 4px 14px; }
+  .moon-head .mh-name { font-size: 20px; }
+  .moon-arrow { width: 38px; height: 38px; font-size: 19px; }
+  .moon-prev { margin-left: 4px; }
+  .moon-next { margin-right: 4px; }
+}
+
+/* Which phases the moon list shows. All four on by default: the list used to
+ * carry new and full only, which left out half of what the moon does. */
+.tool-panel-filter {
+  padding: 8px 12px; border-bottom: 1px solid var(--line-soft);
+}
+/* The chips sit in an inner wrapper, so the layout belongs on that: putting
+ * it on the outer box left them stacking one per line inside an unstyled
+ * child. Two by two, because four will not fit the panel's width in a row. */
+/* Eight faces, four across and two down. Eight names would not fit the panel
+ * and a face reads faster anyway: the chip is the moon at that phase, and
+ * switching it off dims and drains it rather than moving it. Four to a row
+ * splits the cycle at the full moon, so waxing sits above waning. */
+.phase-filter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.phase-filter .pf-opt { min-width: 0; }
+.pf-opt { position: relative; cursor: pointer; }
+.pf-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.pf-opt span {
+  display: flex; align-items: center; justify-content: center;
+  padding: 3px 0; border-radius: 8px; line-height: 0;
+  border: 1px solid transparent; background: transparent;
+  opacity: .3; filter: grayscale(1);
+  transition: opacity .15s, border-color .15s, background .15s, filter .15s;
+}
+.pf-opt input:checked + span {
+  opacity: 1; filter: none;
+  border-color: var(--line); background: var(--bg-2);
+}
+.pf-opt input:focus-visible + span { outline: 2px solid var(--sun); outline-offset: 1px; }
+.pf-opt:hover input:not(:checked) + span { opacity: .6; }
+/* The station key in the corner list, matching the wheel's shapes. */
+.st-sw { width: 16px; height: 16px; flex: 0 0 auto; }
+
+/* The lunation ring's band of light. Radius carries the illumination, so the
+ * colour only has to say "this is the lit part", and it must say it the same
+ * way in both themes: the swell always lighter than the ring behind it.
+ * Reading the fill from --moon failed that in daylight, where --moon is a
+ * dark navy and the fullest part of the month came out as the darkest. */
+/* Three reckonings, three bands, one flat colour each so a band can be told
+ * from its neighbour at a glance. Gold for the sun's counting, neutral for
+ * the ordinary calendar, blue for the moon's. */
+.solar-band { fill: var(--sun); opacity: .10; }
+.solar-tick { stroke: var(--sun); stroke-width: 1; opacity: .45; }
+.cal-solar { font-size: 12px; fill: var(--sun); }
+
+.date-band { fill: var(--ink-3); opacity: .09; }
+.date-tick { stroke: var(--ink-3); stroke-width: 1; opacity: .4; }
+.cal-date { font-size: 10.5px; fill: var(--ink-2); }
+
+.lun-tick { stroke: var(--moon); stroke-width: 1; opacity: .35; }
+
+/* The moon's nearest and furthest points. Warm for near, cool for far, since
+ * the face beside them is already large or small to match. */
+/* The eight phases. The four turning points are instants and read stronger;
+ * the four stretches between them are named more quietly, since a crescent is
+ * a span the moon is in rather than a moment it passes. */
+.ph-tick { stroke: var(--moon); stroke-width: 1.1; opacity: .6; }
+.ph-tick.is-turn { stroke: var(--sun-bright); stroke-width: 1.7; opacity: 1; }
+.ph-label { font-size: 8.5px; fill: var(--moon); opacity: .85; }
+.ph-label.is-turn { font-size: 10.5px; fill: var(--sun-bright); opacity: 1; }
+
+.apsis-tick { stroke: var(--moon); stroke-width: 1.4; stroke-dasharray: 3 3; opacity: .75; }
+.apsis-tick.is-near { stroke: var(--sun-bright); opacity: .9; }
+.apsis-label { font-size: 8.5px; fill: var(--moon); letter-spacing: .04em; }
+.apsis-label.is-near { fill: var(--sun-bright); }
+.lun-hours { font-size: 8.5px; fill: var(--ink-3); opacity: .85; }
+
+body[data-theme="day"] .solar-band { opacity: .14; }
+body[data-theme="day"] .date-band { opacity: .07; }
+
+.mb-bg { fill: var(--night); opacity: .32; }
+.mb-base { stroke: var(--line); stroke-width: 1; opacity: .55; }
+.mb-fill { fill: var(--moon-lit); opacity: .5; }
+.mb-line { stroke: var(--moon-lit); opacity: .9; }
+
+body[data-theme="day"] .mb-bg { opacity: .5; }
+body[data-theme="day"] .mb-fill { opacity: .92; }
+body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
+
+/* A comparison in the About that is genuinely tabular. */
+.about-table {
+  width: 100%; border-collapse: collapse; margin: 12px 0 14px; font-size: 12.5px;
+}
+.about-table th, .about-table td {
+  text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+}
+.about-table thead th { color: var(--ink-3); font-weight: 500; font-size: 11px;
+  letter-spacing: .06em; text-transform: uppercase; }
+.about-table tbody th { color: var(--moon); font-weight: 500; white-space: nowrap; }
+.about-table td { color: var(--ink-2); }
+
+/* The season ring on the year wheel: four quarters cut at the solstices and
+ * equinoxes, each halved again at its cross-quarter midpoint. The cardinal
+ * cuts are drawn stronger than the midpoints, since one opens a season and
+ * the other only divides it. */
+/* Brighter than the months below it, and set apart from them: the months are
+ * a soft neutral, this is the sky's own division and reads warmer. */
+/* The station wording carries no shading and no line of its own: the season
+ * band below already draws the divider, so this sits above it, centred on the
+ * same angle rather than crossed by it. The day is the strongest thing in the
+ * column, being the one exact fact among the names. */
+.station-day { font-size: 15px; font-weight: 600; letter-spacing: .01em; }
+/* The sun's furthest north and south, written on the curve itself. */
+.dec-mark { font-size: 9.5px; font-family: var(--mono); fill: var(--sun-bright); }
+
+.season-band { stroke: var(--night-2); opacity: .85; }
+.season-tick { stroke-width: 2.4; opacity: 1; }
+.season-label {
+  font-size: 13px; letter-spacing: .3em; fill: var(--ink-2); font-weight: 500;
+}
+
+/* ---------------------------------------------------- phone control strip
+ * At 375 the top strip cannot hold the menu, the crumbs and both control
+ * clusters on one line: measured, the crumbs and the tool icons overlapped by
+ * 25 pixels, and the zoom stack sat on the lunation view's next arrow by 33.
+ *
+ * Two rows instead. The menu and the crumbs take the first, the crumbs
+ * stretching into whatever the menu leaves and scrolling if the trail is long.
+ * The two control clusters take the second, one at each edge. Everything the
+ * views draw then begins below both, which is what the scene padding buys.
+ */
+@media (max-width: 560px) {
+  .panel-toggle { top: 12px; left: 10px; width: 36px; height: 36px; }
+
+  .crumbs {
+    top: 14px; left: 54px; right: 10px; transform: none;
+    max-width: none; width: auto; justify-content: flex-start;
+  }
+
+  .top-tools { top: 58px; left: 10px; right: auto; padding: 4px; gap: 4px; }
+  .zoom-controls {
+    top: 58px; right: 10px; bottom: auto;
+    flex-direction: row; padding: 4px; gap: 4px;
+  }
+  .tool-btn, .zoom-controls button { width: 32px; height: 32px; }
+
+  /* Clear of both rows. */
+  .scene { padding-top: 106px; }
+  .scene-moon { padding-top: 106px; }
+}

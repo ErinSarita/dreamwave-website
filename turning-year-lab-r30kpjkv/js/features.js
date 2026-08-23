@@ -21,11 +21,11 @@
      * same domain, which means they share one browser storage box, so their
      * keys have to be kept apart or testing the lab would quietly rewrite
      * what a visitor to the public site had saved. */
-    ns: 'public',
+    ns: 'lab',
 
     /* Per-day notes: the editor on the day clock, the noted-day marks on the
      * wheel, the "on this date before" history, and the backup and restore
      * of the whole file. Off for the website, on for the personal app. */
-    notes: false
+    notes: true
   };
 })(typeof window !== 'undefined' ? window : globalThis);

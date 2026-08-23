@@ -15,7 +15,7 @@
  * would sit on a stale copy forever, which is the classic way these go wrong.
  */
 var VERSION = '20260823-163510';
-var PREFIX = 'ty-public';          /* deploy.sh rewrites this for the lab */
+var PREFIX = 'ty-lab';          /* deploy.sh rewrites this for the lab */
 var CACHE = PREFIX + '-' + VERSION;
 
 var SHELL = [

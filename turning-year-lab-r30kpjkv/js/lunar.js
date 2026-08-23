@@ -1,0 +1,360 @@
+/* lunar.js — the moon's own chain, running free of the solar year.
+ *
+ * A lunation is 29 or 30 days and a solar cycle is 365 or 366. Twelve of the
+ * one falls eleven days short of the other, thirteen overshoots by eighteen,
+ * and no amount of arranging fixes that: the two are incommensurable, which
+ * is the oldest problem in calendar-making and the reason every culture that
+ * tried to run both at once ended up inventing something to paper over the
+ * difference.
+ *
+ * So this does not try. The chain of months is computed on its own terms,
+ * new moon to new moon, unbounded in both directions, and the solar year is
+ * consulted only afterwards to give each month a name. Nothing is clipped to
+ * a solstice and nothing can be lost at a year boundary, because as far as
+ * this file is concerned year boundaries do not exist.
+ *
+ * The spine is an absolute index: lunation 0 is the new moon of 6 January
+ * 2000, the epoch Meeus uses in chapter 49. Going back a month is k-1 and
+ * forward is k+1, for any k, forever.
+ */
+(function (global) {
+  'use strict';
+  var A = global.Astro, TZ = global.TZ;
+
+  var SYNODIC = 29.530588861;          // mean synodic month, days
+  var K0 = 2451550.09766;              // JDE of the new moon of 2000 January 6
+  var ELONG_PER_DAY = 12.190749;       // mean growth of the moon's elongation
+
+  /* The instant the moon's elongation from the sun reaches `target`, found by
+   * Newton steps from the mean estimate. Elongation climbs about 12.19 deg a
+   * day and never reverses, so this converges in a handful of passes. */
+  function elongationAt(jde, target) {
+    var jd = jde;
+    for (var i = 0; i < 40; i++) {
+      var d = A.norm180(A.moonPhase(jd).age - target);
+      if (Math.abs(d) < 1e-7) break;
+      jd -= d / ELONG_PER_DAY;
+    }
+    return jd;
+  }
+
+  var nmCache = {}, fmCache = {};
+  function newMoonJD(k) {
+    if (nmCache[k] === undefined) nmCache[k] = A.jdFromJDE(elongationAt(K0 + SYNODIC * k, 0));
+    return nmCache[k];
+  }
+  function fullMoonJD(k) {
+    if (fmCache[k] === undefined) {
+      fmCache[k] = A.jdFromJDE(elongationAt(K0 + SYNODIC * (k + 0.5), 180));
+    }
+    return fmCache[k];
+  }
+
+  /* Which lunation holds this instant. The mean estimate can be a day out
+   * either way near a boundary, so it is walked into place. */
+  function kAt(jd) {
+    var k = Math.floor((A.jdeFromJD(jd) - K0) / SYNODIC);
+    var guard = 0;
+    while (newMoonJD(k + 1) <= jd && guard++ < 4) k++;
+    guard = 0;
+    while (newMoonJD(k) > jd && guard++ < 4) k--;
+    return k;
+  }
+
+  /* ------------------------------------------------------------- the year
+   * A month belongs to the solar cycle holding its full moon. Every lunation
+   * has exactly one full moon and every full moon falls in exactly one cycle,
+   * so this hands out every month to exactly one year with none left over:
+   * the property that makes "after Moon 12 comes Moon 1 of the next year"
+   * true rather than merely convenient. */
+  function anchorLongitudeFor(lat, mode) {
+    return (lat < 0 && mode !== 'december') ? 90 : 270;
+  }
+  var solCache = {};
+  function solsticeJD(year, alon) {
+    var key = year + ':' + alon;
+    if (solCache[key] === undefined) solCache[key] = A.jdFromJDE(A.seasonalPointJDE(year, alon));
+    return solCache[key];
+  }
+
+  /* The cycle containing `jd`, as its opening year. The label the app shows
+   * is the closing year, since that is the calendar year the cycle mostly
+   * occupies: 21 Dec 2025 to 20 Dec 2026 reads as 2026. */
+  function cycleOf(jd, alon) {
+    var y = new Date((jd - 2440587.5) * 86400000).getUTCFullYear();
+    var guard = 0;
+    while (solsticeJD(y, alon) > jd && guard++ < 4) y--;
+    guard = 0;
+    while (solsticeJD(y + 1, alon) <= jd && guard++ < 4) y++;
+    return y;
+  }
+
+  var SEASONS = ['Winter', 'Spring', 'Summer', 'Autumn'];
+
+  /* Every full moon of one cycle, in order, with its season. Walking k from a
+   * safe distance before the opening solstice to a safe distance after the
+   * closing one catches all twelve or thirteen without assuming how many. */
+  function fullMoonsOfCycle(openYear, alon) {
+    var from = solsticeJD(openYear, alon), to = solsticeJD(openYear + 1, alon);
+    var k = kAt(from) - 2, out = [];
+    for (var i = 0; i < 18; i++, k++) {
+      var fm = fullMoonJD(k);
+      if (fm < from) continue;
+      if (fm >= to) break;
+      // which quarter of the cycle it lands in
+      var si = 0;
+      for (var q = 3; q >= 1; q--) {
+        if (fm >= A.jdFromJDE(A.seasonalPointJDE(
+              openYear + (A.norm360(alon + q * 90) < alon ? 1 : 0),
+              A.norm360(alon + q * 90)))) { si = q; break; }
+      }
+      out.push({ k: k, jd: fm, season: si });
+    }
+    return out;
+  }
+
+  /* Everything the views need to name and draw one month. */
+  function month(k, ctx) {
+    var alon = anchorLongitudeFor(ctx.lat, ctx.anchorMode);
+    var startJD = newMoonJD(k), endJD = newMoonJD(k + 1);
+    var fullJD = fullMoonJD(k);
+
+    var openYear = cycleOf(fullJD, alon);
+    var siblings = fullMoonsOfCycle(openYear, alon);
+    var idx = -1;
+    for (var i = 0; i < siblings.length; i++) if (siblings[i].k === k) { idx = i; break; }
+    var seasonIdx = idx >= 0 ? siblings[idx].season : 0;
+    var inSeason = siblings.filter(function (s) { return s.season === seasonIdx; });
+    var seasonRank = 0;
+    for (var j = 0; j < inSeason.length; j++) if (inSeason[j].k === k) { seasonRank = j + 1; break; }
+
+    return {
+      k: k,
+      startJD: startJD, endJD: endJD, fullJD: fullJD,
+      newMoon: A.dateFromJD(startJD), fullMoon: A.dateFromJD(fullJD),
+      yearLabel: openYear + 1,                 // the calendar year it mostly occupies
+      openYear: openYear,
+      number: idx + 1, count: siblings.length,
+      seasonName: SEASONS[seasonIdx],
+      seasonRank: seasonRank, seasonOf: inSeason.length,
+      /* Counts full moons inside the season, not lunations: a lunation can
+       * straddle a season boundary, so "Summer Full Moon 3" names the third
+       * full moon of summer and not the third turn of the moon. */
+      shortLabel: SEASONS[seasonIdx] + ' Full Moon ' + seasonRank,
+      // the third of four full moons in one season, in the older sense
+      isBlue: inSeason.length === 4 && seasonRank === 3
+    };
+  }
+
+  /* The moon reaches a quarter at a fixed fraction of its month, so the mean
+   * estimate for any of the four is the same arithmetic as for the new moon
+   * with that fraction added. */
+  function quarterJD(k, target) {
+    return A.jdFromJDE(elongationAt(K0 + SYNODIC * (k + target / 360), target));
+  }
+
+  /* The month laid out a day at a time, from the civil day holding the new
+   * moon to the day before the next one. Phase is read at each day's midpoint,
+   * matching how the solar cycle samples its own days, so the two never
+   * disagree about what the moon looked like on a given date.
+   *
+   * These days are not looked up in any solar cycle. A month that straddles a
+   * solstice would have to be fetched from two of them, and clipping it to one
+   * is exactly the thing this file exists to avoid. */
+  function daysOf(k, ctx) {
+    var tz = ctx.tz;
+    var startJD = newMoonJD(k), endJD = newMoonJD(k + 1);
+    var p0 = TZ.civilParts(tz, A.dateFromJD(startJD));
+    var p1 = TZ.civilParts(tz, A.dateFromJD(endJD));
+    var cur = TZ.startOfDay(tz, p0.year, p0.month, p0.day);
+    var stop = TZ.startOfDay(tz, p1.year, p1.month, p1.day);   // next month's day one
+    var out = [], i = 0;
+    while (cur.getTime() < stop.getTime() && i < 33) {
+      var cp = TZ.civilParts(tz, cur);
+      var nxt = TZ.startOfDay(tz, cp.year, cp.month, cp.day + 1);
+      var mid = new Date((cur.getTime() + nxt.getTime()) / 2);
+      var ph = A.moonPhase(A.jdeFromJD(A.jdFromDate(mid)));
+      /* The tithi running at the start of the local day. A tithi is the time
+       * the moon takes to gain 12 degrees of elongation from the sun, so there
+       * are exactly thirty in a lunation, but they are not days: the moon's
+       * speed varies with its elliptical orbit, so one runs anywhere from
+       * about 19 to 26 hours. Thirty of them against 29 or 30 civil days means
+       * a tithi is occasionally skipped or repeated across a month, which is
+       * a real feature of the reckoning and not an error here.
+       *
+       * Read at the day's midpoint, which is where this app samples every
+       * other phase, so the number always agrees with the face drawn beside
+       * it. The traditional rule reads it at sunrise. Reading it at the day's
+       * start instead put tithi 30 on day one of most months, because the day
+       * holding the new moon opens before the conjunction does. */
+      out.push({
+        date: cur, end: nxt, iso: TZ.formatDate(tz, cur, 'iso'),
+        dayInMonth: i + 1,
+        tithi: Math.floor(((ph.age % 360) + 360) % 360 / 12) + 1,
+        moonIllumination: ph.illumination, moonAge: ph.age,
+        moonPhaseName: ph.name, moonEvent: null
+      });
+      cur = nxt; i++;
+    }
+    /* Each turning point lands on the day that contains its instant, rather
+     * than on whichever day is nearest to it. Day one therefore always holds
+     * the new moon, which is what makes the month's first day mean something. */
+    [[0, 'New Moon'], [90, 'First Quarter'], [180, 'Full Moon'], [270, 'Last Quarter']]
+      .forEach(function (q) {
+        var jd = q[0] === 0 ? startJD : (q[0] === 180 ? fullMoonJD(k) : quarterJD(k, q[0]));
+        for (var j = 0; j < out.length; j++) {
+          if (jd >= A.jdFromDate(out[j].date) && jd < A.jdFromDate(out[j].end)) {
+            out[j].moonEvent = q[1]; return;
+          }
+        }
+      });
+    return out;
+  }
+
+  /* ------------------------------------------------------------- tithis
+   * Thirty to a lunation, always, because a tithi is defined as twelve
+   * degrees of the moon's elongation from the sun and thirty twelves make the
+   * full circle. They are not equal in time: the orbit is an ellipse, so one
+   * runs from about 19 to 26 hours. Counting the month in tithis rather than
+   * in days is what makes it a whole cycle every time, with no remainder to
+   * explain away.
+   *
+   * Because the wheel's angle is the elongation, tithi n occupies exactly the
+   * arc from (n-1)*12 to n*12 degrees. The turning points fall where the
+   * definition puts them: the new moon opens tithi 1, the full moon opens
+   * tithi 16, and the two quarters sit exactly at the midpoints of tithi 8
+   * and tithi 23. */
+  function tithiStartJD(k, n) {
+    if (n <= 1) return newMoonJD(k);
+    if (n > 30) return newMoonJD(k + 1);
+    return A.jdFromJDE(elongationAt(K0 + SYNODIC * (k + (n - 1) / 30), (n - 1) * 12));
+  }
+
+  /* Which lunar day a given instant falls in, and how far through it we are.
+   *
+   * This one is the same for everybody. A tithi is defined by the angle
+   * between the moon and the sun, and that angle is a fact about the three
+   * bodies rather than about where you are standing, so the instant lunar day
+   * 8 begins is one instant for the whole earth. Two people on opposite sides
+   * of the planet cross into it together, while their solar clocks read
+   * fourteen hours apart. The elongation used is geocentric, measured from the
+   * earth's centre, which is what makes it exactly shared: measured from your
+   * own feet it would swing by up to a degree with parallax.
+   *
+   * Universal, and uneven: these days run 20 to 27 hours. Shared clock, and
+   * an unequal one. */
+  function tithiAt(date) {
+    var jd = A.jdFromDate(date);
+    var k = kAt(jd);
+    var elong = A.moonPhase(A.jdeFromJD(jd)).age;      // 0 to 360
+    var n = Math.min(30, Math.floor(elong / 12) + 1);
+    var startJD = tithiStartJD(k, n), endJD = tithiStartJD(k, n + 1);
+    return {
+      k: k, n: n, elongation: elong,
+      startJD: startJD, endJD: endJD,
+      hours: (endJD - startJD) * 24,
+      fraction: (jd - startJD) / (endJD - startJD),
+      msRemaining: (endJD - jd) * 86400000,
+      event: TITHI_EVENT[n] || null
+    };
+  }
+
+  var TITHI_EVENT = { 1: 'New Moon', 8: 'First Quarter', 16: 'Full Moon', 23: 'Last Quarter' };
+
+  function tithisOf(k, ctx) {
+    var out = [];
+    for (var n = 1; n <= 30; n++) {
+      var s0 = tithiStartJD(k, n), s1 = tithiStartJD(k, n + 1);
+      var ph = A.moonPhase(A.jdeFromJD((s0 + s1) / 2));
+      var startDate = A.dateFromJD(s0);
+      out.push({
+        n: n, tithi: n,
+        /* `date` and `dayInMonth` alias the start and the number so the ring
+         * renderer can draw a tithi wherever it drew a day. */
+        date: startDate, dayInMonth: n,
+        startJD: s0, endJD: s1,
+        start: startDate, end: A.dateFromJD(s1),
+        hours: (s1 - s0) * 24,
+        iso: TZ.formatDate(ctx.tz, startDate, 'iso'),
+        moonIllumination: ph.illumination, moonAge: ph.age,
+        /* Distance is what makes the lengths uneven in the first place: the
+         * moon runs faster when it is nearer, so a lunar day passes quicker
+         * there. Carried through so the ring can show the cause beside the
+         * effect. */
+        moonDistanceKm: ph.distanceKm,
+        moonPhaseName: ph.name, moonEvent: TITHI_EVENT[n] || null
+      });
+    }
+    return out;
+  }
+
+  /* ------------------------------------------------------- perigee, apogee
+   * The moon's distance runs on its own clock again: the anomalistic month,
+   * perigee to perigee, is 27.55 days against the synodic month's 29.53. The
+   * two do not match, so the nearest and furthest points drift steadily
+   * through the lunation rather than sitting at a fixed phase, and a perigee
+   * that lands on a full moon this year will not next year. That drift is the
+   * whole reason a supermoon is an event rather than a monthly occurrence.
+   *
+   * Found by sampling the distance across the window and refining each turning
+   * point by golden section. A lunation is longer than an anomalistic month,
+   * so it always holds at least one of each. */
+  function distanceKmAt(jd) { return A.moonPhase(A.jdeFromJD(jd)).distanceKm; }
+
+  function refineApsis(lo, hi, wantMin) {
+    var phi = 0.6180339887;
+    var c = hi - phi * (hi - lo), d = lo + phi * (hi - lo);
+    for (var i = 0; i < 60 && hi - lo > 1e-5; i++) {
+      var fc = distanceKmAt(c), fd = distanceKmAt(d);
+      if (wantMin ? fc < fd : fc > fd) hi = d; else lo = c;
+      c = hi - phi * (hi - lo); d = lo + phi * (hi - lo);
+    }
+    return (lo + hi) / 2;
+  }
+
+  function apsidesIn(startJD, endJD) {
+    var STEP = 0.25, xs = [], ys = [];
+    for (var jd = startJD; jd <= endJD + STEP; jd += STEP) {
+      xs.push(jd); ys.push(distanceKmAt(jd));
+    }
+    var out = [];
+    for (var i = 1; i < xs.length - 1; i++) {
+      var isMin = ys[i] < ys[i - 1] && ys[i] <= ys[i + 1];
+      var isMax = ys[i] > ys[i - 1] && ys[i] >= ys[i + 1];
+      if (!isMin && !isMax) continue;
+      var at = refineApsis(xs[i - 1], xs[i + 1], isMin);
+      if (at < startJD || at >= endJD) continue;
+      out.push({ kind: isMin ? 'perigee' : 'apogee', jd: at, km: distanceKmAt(at) });
+    }
+    return out;
+  }
+
+  /* ------------------------------------------------- the eight phase marks
+   * Four are instants the moon passes through: new, the two quarters, full.
+   * The other four are not instants at all but the stretches between them,
+   * and what is marked is the middle of each, where the moon is most plainly
+   * a crescent or most plainly gibbous. Every one is found from the real
+   * elongation, so they land where they belong on a ring drawn to time rather
+   * than at the centre of whichever lunar day happens to hold them. */
+  var RING_PHASES = [
+    [0, 'new'], [45, 'waxing crescent'], [90, 'first quarter'], [135, 'waxing gibbous'],
+    [180, 'full'], [225, 'waning gibbous'], [270, 'last quarter'], [315, 'waning crescent']
+  ];
+  function phaseMarksOf(k) {
+    return RING_PHASES.map(function (p) {
+      var jd = p[0] === 0 ? newMoonJD(k)
+             : p[0] === 180 ? fullMoonJD(k) : quarterJD(k, p[0]);
+      return { deg: p[0], label: p[1], jd: jd, turning: p[0] % 90 === 0,
+               date: A.dateFromJD(jd) };
+    });
+  }
+
+  global.Lunar = {
+    SYNODIC: SYNODIC, newMoonJD: newMoonJD, fullMoonJD: fullMoonJD,
+    kAt: kAt, month: month, cycleOf: cycleOf, daysOf: daysOf, quarterJD: quarterJD,
+    tithisOf: tithisOf, tithiStartJD: tithiStartJD, tithiAt: tithiAt,
+    apsidesIn: apsidesIn,
+    phaseMarksOf: phaseMarksOf,
+    anchorLongitudeFor: anchorLongitudeFor, SEASONS: SEASONS
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
