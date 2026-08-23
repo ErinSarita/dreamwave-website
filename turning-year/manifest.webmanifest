@@ -1,0 +1,18 @@
+{
+  "name": "The Turning Year",
+  "short_name": "Turning Year",
+  "description": "A wheel of one solar year: solstice to solstice, with the sun, the moon, and the eight stations, computed for wherever you are.",
+  "id": "/turning-year/",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05060d",
+  "theme_color": "#05060d",
+  "categories": ["utilities", "education", "lifestyle"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

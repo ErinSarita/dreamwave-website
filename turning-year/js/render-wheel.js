@@ -98,11 +98,16 @@
            fmt(x) + 'px ' + fmt(y) + 'px">' + inner + '</g></g>';
   }
 
-  /* The wheel is rotated so day 1 (the winter solstice) sits at the west
-   * point rather than the top: read clockwise, the half from west up to the
-   * top is the sun gaining light on the way to the summer solstice, and the
-   * half from the top back down to west is it losing that light again. */
-  var WHEEL_ROTATION = 270;
+  /* The wheel is rotated so day 1, the winter solstice, sits at the bottom and
+   * the summer solstice at the top: the year stood upright, darkness at the
+   * foot and the most light overhead. Read clockwise, the right-hand half is
+   * the sun gaining light on the way up, and the left-hand half is it giving
+   * that light back.
+   *
+   * Day 1 needs to land at 180 degrees for that, since 0 is the top here. The
+   * summer solstice then falls within half a degree of the top on its own,
+   * because it sits almost exactly halfway through the count. */
+  var WHEEL_ROTATION = 180;
 
   /* Angle at the centre of day n, and the leading edge of day n. */
   function dayAngle(cycle, n) { return (n - 0.5) / cycle.length * 360 + WHEEL_ROTATION; }

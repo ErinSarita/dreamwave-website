@@ -2,11 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Static hosting cannot set HTTP headers, so the policy rides in a meta tag.
+     frame-ancestors is deliberately absent: it is ignored when delivered this
+     way. Behind a host that can set headers (Cloudflare, Netlify), move this
+     policy to a real header and add frame-ancestors 'none' there. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; worker-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://geocoding-api.open-meteo.com; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Turning Year: a solar cycle from solstice to solstice</title>
 <meta name="description" content="An interactive wheel of the solar year: 365 (or 366) days counted from one winter solstice to the next, with equinoxes, cross-quarter fire festivals, Chinese solar terms, frost dates, and a 24-hour clock of sun and moon for every single day.">
 <meta name="color-scheme" content="dark light">
 <meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#05060d">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Turning Year">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='none' stroke='%23e8b84b' stroke-width='7'/><circle cx='50' cy='6' r='9' fill='%23e8b84b'/></svg>">
 </head>
@@ -86,7 +98,7 @@
       <p class="meta" id="frost-meta"></p>
     </section>
 
-    <section class="field">
+    <section class="field" id="notes-section">
       <label>Your notes</label>
       <p class="meta" id="notes-count" style="margin-top:0"></p>
       <div class="notes-row">
@@ -117,7 +129,7 @@
         <li><i class="sw sw-grow"></i> Growing season, dark where it's safe, fading to light where frost still could</li>
         <li><i class="sw sw-wheel"></i> The eight stations, each its own colour round the year</li>
         <li><i class="sw sw-sol"></i> Solstice a disc, equinox a ring, midseason a diamond</li>
-        <li><i class="sw sw-noted"></i> A day you've written a note on</li>
+        <li id="legend-noted"><i class="sw sw-noted"></i> A day you've written a note on</li>
         <li><i class="sw sw-sky"></i> The Big Dipper facing north at nightfall</li>
         <li><i class="sw sw-polaris"></i> Polaris, held still by the pointer stars' dashed sightline</li>
         <li><i class="sw sw-dec"></i> The sun's declination, turning at &#177;23.4&#176;</li>
@@ -765,6 +777,7 @@
   </div>
 </div>
 
+<script src="js/features.js"></script>
 <script src="js/astro.js"></script>
 <script src="js/astro-sun.js"></script>
 <script src="js/astro-moon.js"></script>
@@ -782,7 +795,6 @@
 <script src="js/body.js"></script>
 <script src="js/zodiac.js"></script>
 <script src="js/orrery.js"></script>
-<script src="js/orrery.js"></script>
 <script src="js/menses.js"></script>
 <script src="js/pregnancy.js"></script>
 <script src="js/render-pregnancy.js"></script>
@@ -793,5 +805,6 @@
 <script src="js/spiral.js"></script>
 <script src="js/zoompan.js"></script>
 <script src="js/app.js"></script>
+<script src="js/register-sw.js"></script>
 </body>
 </html>

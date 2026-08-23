@@ -223,19 +223,31 @@
   function lookup(q, limit) {
     q = String(q || '').trim();
     if (q.length < 2) return Promise.resolve([]);
+    if (q.length > 80) q = q.slice(0, 80);
     if (cache[q]) return Promise.resolve(cache[q]);
     if (typeof fetch !== 'function') return Promise.resolve([]);
     var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' +
       encodeURIComponent(q) + '&count=' + (limit || 8) + '&language=en&format=json';
-    return fetch(url).then(function (r) {
+    /* Sent with no credentials, no referrer and a hard time limit: the
+     * lookup is a convenience, and a hung or hostile response should cost
+     * the page nothing more than falling back to the built-in list. */
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, 8000) : null;
+    return fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer',
+                        mode: 'cors', cache: 'default',
+                        signal: ctl ? ctl.signal : undefined }).then(function (r) {
+      if (timer) clearTimeout(timer);
       return r.ok ? r.json() : { results: [] };
     }).then(function (d) {
       var out = (d && d.results ? d.results : []).filter(function (r) {
         return r && isFinite(r.latitude) && isFinite(r.longitude) && r.timezone;
       }).map(function (r) {
         var region = [r.admin1, r.country].filter(Boolean).join(', ') || r.country_code || '';
-        return { name: r.name, region: region, lat: r.latitude, lon: r.longitude,
-                 tz: r.timezone, label: r.name + (region ? ', ' + region : ''), remote: true };
+        return { name: String(r.name).slice(0, 120), region: String(region).slice(0, 120),
+                 lat: r.latitude, lon: r.longitude,
+                 tz: String(r.timezone).slice(0, 64),
+                 label: String(r.name + (region ? ', ' + region : '')).slice(0, 200),
+                 remote: true };
       });
       cache[q] = out;
       return out;

@@ -7,6 +7,11 @@
 
   var STORE = 'turning-year:v1';
   var NOTES_STORE = 'turning-year:notes';
+
+  /* The website ships with notes off. Everything below that touches a note
+   * checks this first, so with the flag down nothing is read, nothing is
+   * written, and no part of the interface offers it. See features.js. */
+  var NOTES_ON = !!(global.FEATURES && global.FEATURES.notes);
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -114,10 +119,12 @@
   }
 
   function loadNotes() {
+    if (!NOTES_ON) { notes = {}; return; }
     try { notes = JSON.parse(localStorage.getItem(NOTES_STORE) || '{}') || {}; }
     catch (e) { notes = {}; }
   }
   function saveNotes() {
+    if (!NOTES_ON) return;
     try { localStorage.setItem(NOTES_STORE, JSON.stringify(notes)); } catch (e) { /* private mode */ }
   }
   function getNote(iso) { return notes[iso] || ''; }
@@ -276,7 +283,8 @@
   /* ----------------------------------------------------------------- render */
   function drawWheel() {
     var svg = $('wheel-svg');
-    var opts = { layers: state.layers, todayN: todayNumber(), notedDays: notes,
+    var opts = { layers: state.layers, todayN: todayNumber(),
+                 notedDays: NOTES_ON ? notes : null,
                  useDST: state.useDST };
     $('wheel').innerHTML = WheelView.render(cycle, opts);
     $('hud').innerHTML = WheelView.renderSky(cycle, opts);
@@ -454,7 +462,7 @@
     '<li><i class="sw sw-grow"></i> Growing season, dark where it\'s safe, fading to light where frost still could</li>' +
     '<li><i class="sw sw-wheel"></i> The eight stations, each its own colour round the year</li>' +
     '<li><i class="sw sw-sol"></i> Solstice a disc, equinox a ring, midseason a diamond</li>' +
-    '<li><i class="sw sw-noted"></i> A day you\'ve written a note on</li>' +
+    (NOTES_ON ? '<li><i class="sw sw-noted"></i> A day you\'ve written a note on</li>' : '') +
     '<li><i class="sw sw-sky"></i> The Big Dipper facing north at nightfall</li>' +
     '<li><i class="sw sw-polaris"></i> Polaris, held still by the pointer stars\' dashed sightline</li>' +
     '<li><i class="sw sw-dec"></i> The sun\u2019s declination, turning at &#177;23.4&#176;</li>';
@@ -1019,11 +1027,11 @@
       '<h4>Where to hold it loosely</h4><p>' + esc(P.caution) + '</p>' +
       '<h4>What survives either way</h4><p>' + esc(P.useful) + '</p>' +
       '<ul class="tp-refs">' +
-      '<li><a href="https://birthpsychology.com/ppne/" target="_blank" rel="noopener">APPPAH, the PPNE programme</a></li>' +
-      '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4595376/" target="_blank" rel="noopener">The maternal voice and infant development</a></li>' +
-      '<li><a href="https://www.sciencedirect.com/science/article/abs/pii/S0163638308000866" target="_blank" rel="noopener">Fetal sensitivity to maternal speech</a></li>' +
-      '<li><a href="https://www.frontiersin.org/journals/human-neuroscience/articles/10.3389/fnhum.2024.1379660/full" target="_blank" rel="noopener">Maternal speech and neonatal speech encoding</a></li>' +
-      '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10109481/" target="_blank" rel="noopener">Prenatal maternal stress and infant development</a></li>' +
+      '<li><a href="https://birthpsychology.com/ppne/" target="_blank" rel="noopener noreferrer">APPPAH, the PPNE programme</a></li>' +
+      '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4595376/" target="_blank" rel="noopener noreferrer">The maternal voice and infant development</a></li>' +
+      '<li><a href="https://www.sciencedirect.com/science/article/abs/pii/S0163638308000866" target="_blank" rel="noopener noreferrer">Fetal sensitivity to maternal speech</a></li>' +
+      '<li><a href="https://www.frontiersin.org/journals/human-neuroscience/articles/10.3389/fnhum.2024.1379660/full" target="_blank" rel="noopener noreferrer">Maternal speech and neonatal speech encoding</a></li>' +
+      '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10109481/" target="_blank" rel="noopener noreferrer">Prenatal maternal stress and infant development</a></li>' +
       '</ul>';
     $('menses-flyout').hidden = false;
   }
@@ -1490,11 +1498,11 @@
         '<p>Which lands almost exactly on the stomach watch, the two solar hours ' +
         'after dawn that the old cycle names as the time to eat well.</p>' +
         '<ul class="tp-refs">' +
-        '<li><a href="https://www.cell.com/cell-metabolism/fulltext/S1550-4131(18)30253-5" target="_blank" rel="noopener">Sutton et al. 2018, early time-restricted feeding</a></li>' +
-        '<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12252119/" target="_blank" rel="noopener">Chrononutrition and energy balance, 2025 review</a></li>' +
-        '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8308587/" target="_blank" rel="noopener">Early dinner and 24-hour glucose</a></li>' +
-        '<li><a href="https://www.sciencedirect.com/science/article/pii/S2451994422000062" target="_blank" rel="noopener">Constant routine protocols</a></li>' +
-        '<li><a href="https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0017860" target="_blank" rel="noopener">The light-sensing cells that set the clock</a></li>' +
+        '<li><a href="https://www.cell.com/cell-metabolism/fulltext/S1550-4131(18)30253-5" target="_blank" rel="noopener noreferrer">Sutton et al. 2018, early time-restricted feeding</a></li>' +
+        '<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12252119/" target="_blank" rel="noopener noreferrer">Chrononutrition and energy balance, 2025 review</a></li>' +
+        '<li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8308587/" target="_blank" rel="noopener noreferrer">Early dinner and 24-hour glucose</a></li>' +
+        '<li><a href="https://www.sciencedirect.com/science/article/pii/S2451994422000062" target="_blank" rel="noopener noreferrer">Constant routine protocols</a></li>' +
+        '<li><a href="https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0017860" target="_blank" rel="noopener noreferrer">The light-sensing cells that set the clock</a></li>' +
         '</ul>' +
         '<p class="tp-brief">The moon stays out of this one. The evidence there is ' +
         'genuinely unsettled, having failed to replicate more than once, and ' +
@@ -1557,7 +1565,7 @@
         'come easiest, and a great deal of good living happens at the wrong ' +
         'hour anyway.</p>' +
         '<ul class="tp-refs">' +
-        '<li><a href="https://chinesemedicineatlas.com/tcm-body-clock/" target="_blank" rel="noopener">The horary cycle, and its solar reckoning</a></li>' +
+        '<li><a href="https://chinesemedicineatlas.com/tcm-body-clock/" target="_blank" rel="noopener noreferrer">The horary cycle, and its solar reckoning</a></li>' +
         '</ul>';
     }
 
@@ -2395,6 +2403,7 @@
    * here, this year, whether that's the real last frost, first robin, or
    * anything else worth checking against next year. */
   function noteMarkup(iso) {
+    if (!NOTES_ON) return '';
     var text = getNote(iso);
     var btn = '<button class="note-btn' + (text ? ' has-note' : '') + '" id="note-btn" ' +
       'aria-label="' + (text ? 'Edit your note for this day' : 'Add a note for this day') + '" ' +
@@ -2416,6 +2425,7 @@
   }
 
   function wireNote(iso) {
+    if (!NOTES_ON) return;
     $('note-btn').addEventListener('click', function () {
       state.noteOpen = !state.noteOpen;
       drawDay();
@@ -2472,7 +2482,31 @@
     syncCrumbs();
   }
 
+  /* Backup and restore of the whole notes file. Wired only in a build that
+   * has notes, since the panel section it drives is removed otherwise. */
+  function wireNotesBackup() {
+    $('notes-export').addEventListener('click', function () {
+      if (!Object.keys(notes).length) { $('notes-meta').textContent = 'No notes to back up yet.'; return; }
+      exportNotes();
+      $('notes-meta').textContent = 'Backup downloaded.';
+    });
+    $('notes-import').addEventListener('click', function () { $('notes-file').click(); });
+    $('notes-file').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var res = importNotes(String(reader.result));
+        $('notes-meta').textContent = res.msg;
+        if (res.ok) { drawWheel(); syncNotesCount(); if (state.level === 'day') drawDay(); }
+      };
+      reader.readAsText(f);
+      e.target.value = '';
+    });
+  }
+
   function syncNotesCount() {
+    if (!NOTES_ON) return;
     var n = Object.keys(notes).length;
     $('notes-count').textContent = n ? (n + (n === 1 ? ' day noted' : ' days noted')) : 'No notes yet.';
   }
@@ -2664,24 +2698,7 @@
       CycleModel.applyFrost(cycle, state.frost);
       drawWheel(); syncChrome();
     }
-    $('notes-export').addEventListener('click', function () {
-      if (!Object.keys(notes).length) { $('notes-meta').textContent = 'No notes to back up yet.'; return; }
-      exportNotes();
-      $('notes-meta').textContent = 'Backup downloaded.';
-    });
-    $('notes-import').addEventListener('click', function () { $('notes-file').click(); });
-    $('notes-file').addEventListener('change', function (e) {
-      var f = e.target.files && e.target.files[0];
-      if (!f) return;
-      var reader = new FileReader();
-      reader.onload = function () {
-        var res = importNotes(String(reader.result));
-        $('notes-meta').textContent = res.msg;
-        if (res.ok) { drawWheel(); syncNotesCount(); if (state.level === 'day') drawDay(); }
-      };
-      reader.readAsText(f);
-      e.target.value = '';
-    });
+    if (NOTES_ON) wireNotesBackup();
 
     $('frost-last').addEventListener('change', frostChanged);
     $('frost-first').addEventListener('change', frostChanged);
@@ -2919,9 +2936,19 @@
     }
   }
 
+  /* With notes off, the panel section and its legend line come out of the
+   * document rather than being hidden, so there is nothing to reveal. */
+  function stripNotesUI() {
+    ['notes-section', 'legend-noted'].forEach(function (id) {
+      var el = $(id);
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+  }
+
   function init() {
     load();
     loadNotes();
+    if (!NOTES_ON) stripNotesUI();
     readHash();
     if (!state.place) {
       var tz = TZ.localZone();
