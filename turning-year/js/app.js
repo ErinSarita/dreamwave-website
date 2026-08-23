@@ -17,6 +17,7 @@
    * checks this first, so with the flag down nothing is read, nothing is
    * written, and no part of the interface offers it. See features.js. */
   var NOTES_ON = !!(global.FEATURES && global.FEATURES.notes);
+  var BODY_ON  = !!(global.FEATURES && global.FEATURES.bodyCycles);
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -370,13 +371,15 @@
     if (level !== 'moon') stopMoonClock();
     if (level !== 'day') stopDayRing();
     if (level !== 'month') stopMonthNow();
-    if (level !== 'menses' && level !== 'preg') {
-      $('menses-flyout').hidden = true;
-      $('menses-btn').setAttribute('aria-expanded', 'false');
-      $('preg-btn').setAttribute('aria-expanded', 'false');
+    if (BODY_ON) {
+      if (level !== 'menses' && level !== 'preg') {
+        $('menses-flyout').hidden = true;
+        $('menses-btn').setAttribute('aria-expanded', 'false');
+        $('preg-btn').setAttribute('aria-expanded', 'false');
+      }
+      $('menses-btn').classList.toggle('is-on', level === 'menses');
+      $('preg-btn').classList.toggle('is-on', level === 'preg');
     }
-    $('menses-btn').classList.toggle('is-on', level === 'menses');
-    $('preg-btn').classList.toggle('is-on', level === 'preg');
     if (level === 'year') { state.season = null; state.day = null; state.lunationK = null; state.monthRun = null; }
     if (level === 'season') state.lunationK = null;
     if (level === 'season' && state.season === null) {
@@ -396,9 +399,11 @@
      * forward and the other two step back, on the same fade the wheel and the
      * day already used between them. */
     function showScene(want) {
+      /* A build without the body-cycle wheels has no scenes for them, so
+       * they drop out of the rota rather than being looked for. */
       var all = [['orbits', orbitsScene], ['wheel', wheelScene], ['month', monthScene],
                  ['day', dayScene], ['moon', moonScene], ['menses', mensesScene],
-                 ['preg', pregScene]];
+                 ['preg', pregScene]].filter(function (pair) { return !!pair[1]; });
       var current = null;
       all.forEach(function (pair) { if (!pair[1].hidden) current = pair; });
       var target = all.filter(function (pair) { return pair[0] === want; })[0];
@@ -2759,31 +2764,7 @@
 
     /* The wheel is opened from the sidebar rather than the trail: it is not a
      * zoom level of the year, it is a different clock entirely. */
-    $('menses-btn').addEventListener('click', function () {
-      var showing = state.level === 'menses';
-      if (showing) {
-        $('menses-flyout').hidden = true;
-        $('menses-btn').setAttribute('aria-expanded', 'false');
-        setLevel(state.day ? 'day' : 'year');
-      } else {
-        state.mensesOpen = true; save();
-        $('menses-btn').setAttribute('aria-expanded', 'true');
-        setLevel('menses');
-      }
-    });
-    $('preg-btn').addEventListener('click', function () {
-      if (state.level === 'preg') {
-        $('menses-flyout').hidden = true;
-        $('preg-btn').setAttribute('aria-expanded', 'false');
-        setLevel(state.day ? 'day' : 'year');
-      } else {
-        $('preg-btn').setAttribute('aria-expanded', 'true');
-        setLevel('preg');
-      }
-    });
-    $('menses-close').addEventListener('click', function () {
-      $('menses-flyout').hidden = true;
-    });
+    if (BODY_ON) wireBodyCycles();
 
     $('month-prev').addEventListener('click', function () {
       state.monthRun = Math.max(0, (state.monthRun || 0) - 1); drawMonth(); writeHash();
@@ -2943,6 +2924,46 @@
 
   /* With notes off, the panel section and its legend line come out of the
    * document rather than being hidden, so there is nothing to reveal. */
+  /* The menstrual and pregnancy wheels are opened from the sidebar rather
+   * than the trail: they are not zoom levels of the year, they are different
+   * clocks entirely. Wired only in a build that carries them. */
+  function wireBodyCycles() {
+    $('menses-btn').addEventListener('click', function () {
+      var showing = state.level === 'menses';
+      if (showing) {
+        $('menses-flyout').hidden = true;
+        $('menses-btn').setAttribute('aria-expanded', 'false');
+        setLevel(state.day ? 'day' : 'year');
+      } else {
+        state.mensesOpen = true; save();
+        $('menses-btn').setAttribute('aria-expanded', 'true');
+        setLevel('menses');
+      }
+    });
+    $('preg-btn').addEventListener('click', function () {
+      if (state.level === 'preg') {
+        $('menses-flyout').hidden = true;
+        $('preg-btn').setAttribute('aria-expanded', 'false');
+        setLevel(state.day ? 'day' : 'year');
+      } else {
+        $('preg-btn').setAttribute('aria-expanded', 'true');
+        setLevel('preg');
+      }
+    });
+    $('menses-close').addEventListener('click', function () {
+      $('menses-flyout').hidden = true;
+    });
+  }
+
+  function stripBodyCyclesUI() {
+    ['cycle-section', 'menses-flyout', 'scene-menses', 'scene-preg'].forEach(function (id) {
+      var el = $(id);
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    if (state.level === 'menses' || state.level === 'preg') state.level = 'year';
+    state.mensesOpen = false;
+  }
+
   function stripNotesUI() {
     ['notes-section', 'legend-noted'].forEach(function (id) {
       var el = $(id);
@@ -2954,6 +2975,7 @@
     load();
     loadNotes();
     if (!NOTES_ON) stripNotesUI();
+    if (!BODY_ON) stripBodyCyclesUI();
     readHash();
     if (!state.place) {
       var tz = TZ.localZone();
@@ -2974,8 +2996,10 @@
     moonZoom = ZoomPan.attach($('moon-svg'), $('scene-moon'));
     monthZoom = ZoomPan.attach($('month-svg'), $('scene-month'));
     orbitsZoom = ZoomPan.attach($('orrery-svg'), $('scene-orbits'));
-    mensesZoom = ZoomPan.attach($('menses-svg'), $('scene-menses'));
-    pregZoom = ZoomPan.attach($('preg-svg'), $('scene-preg'));
+    if (BODY_ON) {
+      mensesZoom = ZoomPan.attach($('menses-svg'), $('scene-menses'));
+      pregZoom = ZoomPan.attach($('preg-svg'), $('scene-preg'));
+    }
     /* Every scene that can be zoomed needs a line here. The month and system
      * views were falling through to the year wheel, so their buttons appeared
      * to do nothing while quietly zooming a face that was not on screen. */

@@ -26,6 +26,11 @@
     /* Per-day notes: the editor on the day clock, the noted-day marks on the
      * wheel, the "on this date before" history, and the backup and restore
      * of the whole file. Off for the website, on for the personal app. */
-    notes: false
+    notes: false,
+
+    /* The menstrual and pregnancy wheels. They read a person's own body
+     * against the year, which is the most private thing here, so they belong
+     * with the account rather than on the open page. */
+    bodyCycles: false
   };
 })(typeof window !== 'undefined' ? window : globalThis);
