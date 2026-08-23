@@ -109,6 +109,7 @@
       <p class="meta" id="notes-meta">Saved in this browser only. Download a backup to keep them or move them to another device.</p>
     </section>
 
+<!-- private:start -->
     <section class="field" id="cycle-section">
       <label>Cycle</label>
       <button id="menses-btn" class="ghost-btn" aria-expanded="false"
@@ -118,6 +119,7 @@
       <p class="meta">A blueprint to read your own days against. Nothing typed
       here leaves this device.</p>
     </section>
+<!-- private:end -->
 
     <section class="field legend">
       <label>Legend</label>
@@ -169,6 +171,7 @@
       <div class="readout" id="orrery-readout"></div>
     </div>
 
+<!-- private:start -->
     <div class="menses-flyout" id="menses-flyout" hidden>
       <div class="tool-panel-head">
         <strong>The menstrual wheel</strong>
@@ -176,7 +179,9 @@
       </div>
       <div class="tool-panel-prose" id="menses-prose"></div>
     </div>
+<!-- private:end -->
 
+<!-- private:start -->
     <div class="scene scene-preg" id="scene-preg" hidden>
       <svg id="preg-svg" viewBox="-40 -40 1080 1080" role="img"
            aria-label="Forty weeks of pregnancy drawn as a wheel">
@@ -192,6 +197,7 @@
       </svg>
       <div class="readout" id="menses-readout"></div>
     </div>
+<!-- private:end -->
 
     <div class="scene scene-month" id="scene-month" hidden>
       <div class="month-topbar">
@@ -795,10 +801,12 @@
 <script src="js/body.js"></script>
 <script src="js/zodiac.js"></script>
 <script src="js/orrery.js"></script>
+<!-- private:start -->
 <script src="js/menses.js"></script>
 <script src="js/pregnancy.js"></script>
 <script src="js/render-pregnancy.js"></script>
 <script src="js/render-menses.js"></script>
+<!-- private:end -->
 <script src="js/render-month.js"></script>
 <script src="js/render-day.js"></script>
 <script src="js/render-moon.js"></script>
