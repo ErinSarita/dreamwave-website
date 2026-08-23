@@ -17,7 +17,15 @@
 <meta name="theme-color" content="#05060d">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- "default" rather than "black-translucent" on purpose. Translucent tells
+     iOS to run the page *underneath* the status bar, which leaves the clock,
+     the signal bars and the battery sitting on top of whatever the page put
+     at its top edge, and makes correct placement depend entirely on the
+     safe-area insets reporting themselves properly. With "default" the system
+     keeps the strip for itself and the page begins below it, which cannot
+     overlap by construction. The insets below then add nothing, which is
+     right, and still do their work on a device that reports them. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TY Lab">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='none' stroke='%23e8b84b' stroke-width='7'/><circle cx='50' cy='50' r='16' fill='%23e8b84b'/></svg>">
