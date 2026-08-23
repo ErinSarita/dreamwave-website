@@ -48,6 +48,10 @@
       date: iso,
       title: String(fields.title || '').slice(0, 120),
       allDay: !!fields.allDay,
+      /* Distinct from all-day: this is a thing to be done today that has no
+       * hour and never had one. A ring has nowhere to put such a thing, which
+       * is why the strip carries a list underneath it. */
+      untimed: !!fields.untimed,
       startMin: clamp(fields.startMin),
       endMin: clamp(fields.endMin),
       colour: COLOURS.indexOf(fields.colour) >= 0 ? fields.colour : 'amber',
@@ -67,6 +71,7 @@
     if (!e || e.deleted) return null;
     if ('title'    in fields) e.title = String(fields.title || '').slice(0, 120);
     if ('allDay'   in fields) e.allDay = !!fields.allDay;
+    if ('untimed'  in fields) e.untimed = !!fields.untimed;
     if ('startMin' in fields) e.startMin = clamp(fields.startMin);
     if ('endMin'   in fields) e.endMin = clamp(fields.endMin);
     if ('colour'   in fields && COLOURS.indexOf(fields.colour) >= 0) e.colour = fields.colour;
@@ -98,8 +103,11 @@
       var e = events[k];
       if (!e.deleted && e.date === iso) out.push(e);
     });
+    /* All day first, then the hours in order, then the things with no hour,
+     * which is the order both the ring and the strip want to read them in. */
+    function rank(e) { return e.untimed ? 2 : (e.allDay ? 0 : 1); }
     out.sort(function (a, b) {
-      if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
+      if (rank(a) !== rank(b)) return rank(a) - rank(b);
       return a.startMin - b.startMin || a.updatedAt - b.updatedAt;
     });
     return out;

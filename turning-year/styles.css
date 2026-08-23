@@ -1316,3 +1316,114 @@ body[data-theme="day"] .sc-tx { fill: #fffaf0; }
 .sc-list .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
 .sc-list .when { margin-inline-start: auto; color: var(--ink-3);
   font-variant-numeric: tabular-nums; font-size: 12px; }
+
+/* ------------------------------------------------------------ day strip ----
+ * The day unrolled. Height carries time, so every band's position is a
+ * percentage of the day's real span and a 23 or 25 hour day needs no special
+ * case. The grid scrolls inside itself rather than growing the page.
+ */
+/* The strip is the one scene that scrolls, so it overrides the centred,
+ * fixed-height framing every other face of the day uses. */
+.scene.scene-strip { display: block; place-items: stretch; padding: 44px 0 0;
+  touch-action: pan-y; overflow: hidden; }
+.st-wrap { height: 100%; overflow-y: auto; overflow-x: hidden;
+  padding: 8px 12px 24px; -webkit-overflow-scrolling: touch; }
+.st-body { max-width: 720px; margin: 0 auto; }
+
+.st-grid {
+  position: relative;
+  display: grid;
+  gap: 0 8px;
+  height: 1440px;                 /* 60px an hour: a comfortable touch row */
+  margin-top: 6px;
+}
+
+.st-col { position: relative; height: 100%; }
+
+.st-gutter { overflow: visible; }
+.st-hour {
+  position: absolute; right: 6px; transform: translateY(-50%);
+  font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-3);
+  white-space: nowrap;
+}
+.st-rule {
+  position: absolute; left: 46px; right: -100vw; height: 1px;
+  background: var(--line); opacity: .35; pointer-events: none;
+}
+.st-band { position: absolute; left: 0; right: 0; }
+.st-sun, .st-moon, .st-organs { border-radius: 7px; overflow: hidden;
+  background: var(--line-soft); }
+.st-organ-tx { position: absolute; left: 0; right: 0; display: flex;
+  align-items: center; justify-content: center; font-size: 9px;
+  color: var(--ink); opacity: .8; pointer-events: none; overflow: hidden; }
+
+/* ---- the day's own business ---- */
+.st-events { }
+.st-slot {
+  position: absolute; box-sizing: border-box; left: 0; right: 0; padding: 0; margin: 0;
+  background: transparent; border: 0; border-radius: 6px; cursor: cell;
+}
+.st-slot:hover { background: var(--line-soft); opacity: .5; }
+.st-ev {
+  position: absolute; box-sizing: border-box; padding: 4px 7px; border: 0;
+  border-radius: 6px;
+  text-align: start; overflow: hidden; cursor: pointer; font: inherit;
+  color: #0d0f18; display: flex; flex-direction: column; gap: 1px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.35);
+}
+body[data-theme="day"] .st-ev { color: #fffaf0; }
+.st-ev-t { font-size: 12.5px; font-weight: 600; line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-ev-w { font-size: 10.5px; opacity: .75; font-variant-numeric: tabular-nums; }
+
+.st-allday-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px;
+  padding-inline-start: 52px; }
+.st-allday { border: 0; border-radius: 5px; padding: 4px 9px; font: inherit;
+  font-size: 12px; font-weight: 600; color: #0d0f18; cursor: pointer; }
+body[data-theme="day"] .st-allday { color: #fffaf0; }
+
+.st-now { position: absolute; left: 44px; right: 0; height: 2px;
+  background: var(--today); pointer-events: none; z-index: 5; }
+.st-now::before { content: ''; position: absolute; left: -4px; top: -3px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--today); }
+
+/* ---- the untimed list ---- */
+.st-untimed { max-width: 720px; margin: 20px auto 0; padding-top: 14px;
+  border-top: 1px solid var(--line); }
+.st-untimed-head { display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
+.st-add-untimed { background: transparent; border: 1px solid var(--line);
+  border-radius: 7px; color: var(--ink-2); font: inherit; font-size: 12px;
+  padding: 4px 10px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.st-untimed ul { list-style: none; margin: 10px 0 0; padding: 0; }
+.st-task { display: flex; align-items: center; gap: 9px; width: 100%;
+  background: transparent; border: 0; padding: 9px 2px; font: inherit;
+  font-size: 14px; color: var(--ink-2); cursor: pointer; text-align: start; }
+.st-task .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.st-empty { font-size: 13px; color: var(--ink-3); margin: 10px 0 0; }
+
+/* ---- the circle/strip switch ---- */
+.view-switch { position: absolute; z-index: 30; display: flex;
+  top: 8px; inset-inline-start: 8px;
+  border: 1px solid var(--line); border-radius: 9px; overflow: hidden;
+  background: var(--panel, rgba(10,12,20,.8)); backdrop-filter: blur(6px); }
+.view-switch button { background: transparent; border: 0; color: var(--ink-3);
+  font: inherit; font-size: 13px; padding: 7px 12px; cursor: pointer; }
+.view-switch button[aria-pressed="true"] { background: var(--line-soft); color: var(--ink); }
+.sc-when { display: flex; gap: 4px; margin-top: 6px; }
+.sc-when button { flex: 1; background: transparent; border: 1px solid var(--line);
+  border-radius: 7px; color: var(--ink-3); font: inherit; font-size: 12px;
+  padding: 7px 4px; cursor: pointer; }
+.sc-when button[aria-pressed="true"] { background: var(--line-soft); color: var(--ink);
+  border-color: var(--ink-3); }
+.st-head { max-width: 720px; margin: 0 auto 4px; display: flex; flex-direction: column; }
+.st-head strong { font-size: 16px; font-weight: 600; }
+
+/* On a narrow screen the trail already owns the top, so the switch drops to
+ * the bottom corner, which is where a thumb is anyway. */
+@media (max-width: 760px) {
+  .view-switch { top: auto; bottom: calc(12px + env(safe-area-inset-bottom));
+    inset-inline-start: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+  .scene.scene-strip { padding-top: 8px; }
+  .st-wrap { padding-bottom: 84px; }
+}

@@ -19,6 +19,7 @@
   var NOTES_ON = !!(global.FEATURES && global.FEATURES.notes);
   var BODY_ON  = !!(global.FEATURES && global.FEATURES.bodyCycles);
   var PLAN_ON  = !!(global.FEATURES && global.FEATURES.planner) && !!global.Planner;
+  var STRIP_ON = !!global.StripView;
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -42,6 +43,10 @@
      * it, so half the day cannot be reached at all. Someone who has once
      * opened it keeps their choice, since `load` overwrites this. */
     panelMin: typeof window !== 'undefined' && window.innerWidth < 760,
+    /* 'dial' or 'strip'. A circle wastes a tall screen and gives each hour a
+     * nine-pixel arc, so a phone opens on the strip and a desktop on the
+     * dial. Either way the choice is remembered once it is made. */
+    dayView: (typeof window !== 'undefined' && window.innerWidth < 760) ? 'strip' : 'dial',
     moonMin: false,     // lunation readout collapsed to a single line
     readoutMin: false,  // year readout collapsed to a single line
     /* The lunar clock counts up from the start of the lunar day, the way a
@@ -83,7 +88,7 @@
       localStorage.setItem(STORE, JSON.stringify({
         place: state.place, layers: state.layers, frost: state.frost,
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
-        panelMin: state.panelMin, moonMin: state.moonMin,
+        panelMin: state.panelMin, moonMin: state.moonMin, dayView: state.dayView,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
         monthRun: state.monthRun, monthMin: state.monthMin,
         mensesOpen: state.mensesOpen, mensesMin: state.mensesMin,
@@ -109,6 +114,7 @@
       if (typeof o.hour12 === 'boolean') state.hour12 = o.hour12;
       if (typeof o.useDST === 'boolean') state.useDST = o.useDST;
       if (typeof o.panelMin === 'boolean') state.panelMin = o.panelMin;
+      if (o.dayView === 'strip' || o.dayView === 'dial') state.dayView = o.dayView;
       if (typeof o.moonMin === 'boolean') state.moonMin = o.moonMin;
       if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
       if (typeof o.lunarCountdown === 'boolean') state.lunarCountdown = o.lunarCountdown;
@@ -377,6 +383,8 @@
     if (level !== 'moon') stopMoonClock();
     if (level !== 'day') stopDayRing();
     if (level !== 'month') stopMonthNow();
+    if (STRIP_ON) setTimeout(syncViewSwitch, 0);
+    if (level !== 'day') stopStripNow();
     if (BODY_ON) {
       if (level !== 'menses' && level !== 'preg') {
         $('menses-flyout').hidden = true;
@@ -400,6 +408,7 @@
     var wheelScene = $('scene-wheel'), dayScene = $('scene-day'), moonScene = $('scene-moon');
     var orbitsScene = $('scene-orbits'), monthScene = $('scene-month');
     var mensesScene = $('scene-menses'), pregScene = $('scene-preg');
+    var stripScene = $('scene-strip');
 
     /* Three scenes share the stage. Whichever the new level wants comes
      * forward and the other two step back, on the same fade the wheel and the
@@ -409,7 +418,8 @@
        * they drop out of the rota rather than being looked for. */
       var all = [['orbits', orbitsScene], ['wheel', wheelScene], ['month', monthScene],
                  ['day', dayScene], ['moon', moonScene], ['menses', mensesScene],
-                 ['preg', pregScene]].filter(function (pair) { return !!pair[1]; });
+                 ['preg', pregScene], ['strip', stripScene]]
+                 .filter(function (pair) { return !!pair[1]; });
       var current = null;
       all.forEach(function (pair) { if (!pair[1].hidden) current = pair; });
       var target = all.filter(function (pair) { return pair[0] === want; })[0];
@@ -459,8 +469,13 @@
       return;
     }
     if (level === 'day') {
-      drawDay();
-      showScene('day');
+      if (STRIP_ON && state.dayView === 'strip') {
+        drawStrip();
+        showScene('strip');
+      } else {
+        drawDay();
+        showScene('day');
+      }
     } else {
       if (!dayScene.hidden) drawWheel();  // refresh note markers set while on the day view
       showScene('wheel');
@@ -2465,6 +2480,113 @@
     });
   }
 
+  /* ---------------------------------------------------------------- strip --
+   * The day as a column. Same numbers as the dial, laid down a line instead
+   * of round a circle, which is what a phone's shape actually wants.
+   */
+  function drawStrip() {
+    var d = cycle.days[state.day - 1];
+    if (!d || !STRIP_ON) return;
+
+    var b = DayView.bands(cycle, d, { useDST: state.useDST });
+    var now = Date.now();
+    var nowF = (now >= b.start.getTime() && now < b.end.getTime())
+      ? (now - b.start.getTime()) / b.span : null;
+
+    var evs = PLAN_ON ? Planner.onDate(d.iso) : [];
+    $('stripwrap').innerHTML =
+      '<div class="st-head">' +
+        '<strong>' + esc(TZ.formatDate(cycle.tz, d.date, 'long')) + '</strong>' +
+        '<span class="meta">Day ' + d.n + ' of ' + cycle.length +
+        ' &middot; light ' + DayView.hm(d.daylightHours) + '</span>' +
+      '</div>' +
+      StripView.render(b, {
+        events: evs, hour12: state.hour12, nowFraction: nowF,
+        organs: state.showOrgans ? organBandsForStrip(b) : null
+      }) +
+      (PLAN_ON ? StripView.untimed(evs) : '');
+
+    if (PLAN_ON) bindStrip(d.iso);
+    startStripNow(b);
+  }
+
+  /* The organ clock's two-hour watches, placed on the strip by the same
+   * fractions everything else uses. */
+  function organBandsForStrip(b) {
+    if (!global.BodyClock || !global.BodyClock.watches) return null;
+    var out = [];
+    (global.BodyClock.watches || []).forEach(function (w) {
+      if (w.startMin == null) return;
+      out.push({ f1: b.fractionOfMinute(w.startMin),
+                 f2: b.fractionOfMinute(w.endMin),
+                 label: w.organ || w.label || '', short: (w.organ || '').slice(0, 2),
+                 colour: w.colour });
+    });
+    return out.length ? out : null;
+  }
+
+  /* The now line creeps rather than jumping, but a minute is close enough for
+   * a day that is fourteen hundred pixels tall. */
+  var stripNowTimer = null;
+  function startStripNow(b) {
+    stopStripNow();
+    stripNowTimer = setInterval(function () {
+      var el = $('stripwrap') && $('stripwrap').querySelector('.st-now');
+      if (!el) { stopStripNow(); return; }
+      var now = Date.now();
+      if (now < b.start.getTime() || now >= b.end.getTime()) { stopStripNow(); return; }
+      el.style.top = (100 * (now - b.start.getTime()) / b.span).toFixed(3) + '%';
+    }, 60000);
+  }
+  function stopStripNow() {
+    if (stripNowTimer) { clearInterval(stripNowTimer); stripNowTimer = null; }
+  }
+
+  function bindStrip(iso) {
+    var wrap = $('stripwrap');
+    Array.prototype.forEach.call(
+      wrap.querySelectorAll('.st-slot, .st-ev, .st-allday, .st-task'),
+      function (el) {
+        el.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var id = el.getAttribute('data-event');
+          if (id) openScheduleEditor(iso, id, null);
+          else openScheduleEditor(iso, null, +el.getAttribute('data-hour-min'));
+        });
+      });
+    var add = $('st-add-untimed');
+    if (add) add.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      openScheduleEditor(iso, null, null, true);   // straight to a no-time thing
+    });
+  }
+
+  /* Redraws whichever face of the day is showing, so a save from the editor
+   * lands in the right place without either view knowing about the other. */
+  function redrawDay() {
+    if (STRIP_ON && state.dayView === 'strip') drawStrip(); else drawDay();
+  }
+
+  function wireViewSwitch() {
+    if (!STRIP_ON) return;
+    function pick(which) {
+      if (state.dayView === which) return;
+      state.dayView = which;
+      save();
+      syncViewSwitch();
+      if (state.level === 'day') setLevel('day');
+    }
+    $('view-circle').addEventListener('click', function () { pick('dial'); });
+    $('view-strip').addEventListener('click', function () { pick('strip'); });
+    syncViewSwitch();
+  }
+  function syncViewSwitch() {
+    if (!STRIP_ON || !$('view-switch')) return;
+    $('view-switch').hidden = state.level !== 'day';
+    $('view-circle').setAttribute('aria-pressed', String(state.dayView === 'dial'));
+    $('view-strip').setAttribute('aria-pressed', String(state.dayView === 'strip'));
+  }
+
   /* ------------------------------------------------------------- schedule --
    * Clicking an empty hour on the schedule ring opens an editor already set
    * to that hour, because the commonest thing to want is the hour you just
@@ -2493,17 +2615,20 @@
     scEditorOpen = null;
   }
 
-  function openScheduleEditor(iso, id, atMin) {
+  function openScheduleEditor(iso, id, atMin, wantUntimed) {
     closeScheduleEditor();
     var e = id ? Planner.get(id) : null;
     var draft = e ? {
-      title: e.title, allDay: e.allDay, colour: e.colour,
+      title: e.title, allDay: e.allDay, untimed: e.untimed, colour: e.colour,
       startMin: e.startMin, endMin: e.endMin
     } : {
-      title: '', allDay: false, colour: 'amber',
+      title: '', allDay: false, untimed: !!wantUntimed, colour: 'amber',
       startMin: atMin == null ? 540 : atMin,
       endMin: (atMin == null ? 540 : atMin) + 60
     };
+    /* Timed, all day, or no hour at all: one choice of three rather than two
+     * checkboxes that could contradict each other. */
+    var when = draft.untimed ? 'untimed' : (draft.allDay ? 'allday' : 'timed');
     scEditorOpen = id || 'new';
 
     var box = document.createElement('div');
@@ -2516,9 +2641,15 @@
       '<label for="sc-title">What</label>' +
       '<input type="text" id="sc-title" placeholder="Dentist, seed the beds, call Mum" ' +
         'value="' + esc(draft.title) + '" maxlength="120">' +
-      '<label class="sc-allday"><input type="checkbox" id="sc-allday"' +
-        (draft.allDay ? ' checked' : '') + '><span>All day</span></label>' +
-      '<div class="sc-times' + (draft.allDay ? ' is-off' : '') + '" id="sc-times">' +
+      '<label>When</label>' +
+      '<div class="sc-when" id="sc-when" role="group">' +
+        [['timed', 'At a time'], ['allday', 'All day'], ['untimed', 'No set time']]
+          .map(function (o) {
+            return '<button data-when="' + o[0] + '" aria-pressed="' +
+                   (when === o[0]) + '">' + o[1] + '</button>';
+          }).join('') +
+      '</div>' +
+      '<div class="sc-times' + (when === 'timed' ? '' : ' is-off') + '" id="sc-times">' +
         '<div><label for="sc-start">From</label>' +
         '<input type="time" id="sc-start" value="' + Planner.hhmm(draft.startMin) + '"></div>' +
         '<div><label for="sc-end">Until</label>' +
@@ -2538,7 +2669,8 @@
         '<button class="sc-save" id="sc-save">Save</button>' +
       '</div>' +
       scheduleListMarkup(iso, id);
-    $('scene-day').appendChild(box);
+    ((STRIP_ON && state.dayView === 'strip' && $('scene-strip')) || $('scene-day'))
+      .appendChild(box);
 
     var chosen = draft.colour;
     Array.prototype.forEach.call(box.querySelectorAll('.sc-sw'), function (b) {
@@ -2549,8 +2681,14 @@
         });
       });
     });
-    $('sc-allday').addEventListener('change', function () {
-      $('sc-times').classList.toggle('is-off', this.checked);
+    Array.prototype.forEach.call(box.querySelectorAll('.sc-when button'), function (b) {
+      b.addEventListener('click', function () {
+        when = b.getAttribute('data-when');
+        Array.prototype.forEach.call(box.querySelectorAll('.sc-when button'), function (o) {
+          o.setAttribute('aria-pressed', String(o === b));
+        });
+        $('sc-times').classList.toggle('is-off', when !== 'timed');
+      });
     });
     /* Jumping to another event from the list keeps the editor open rather
      * than making someone close this one and hunt for that one on the ring. */
@@ -2563,7 +2701,8 @@
     function commit() {
       var fields = {
         title: $('sc-title').value,
-        allDay: $('sc-allday').checked,
+        allDay: when === 'allday',
+        untimed: when === 'untimed',
         colour: chosen,
         startMin: Planner.parseHHMM($('sc-start').value),
         endMin: Planner.parseHHMM($('sc-end').value)
@@ -2572,7 +2711,7 @@
       if (fields.endMin === null) fields.endMin = draft.endMin;
       if (e) Planner.update(e.id, fields); else Planner.create(iso, fields);
       closeScheduleEditor();
-      drawDay();
+      redrawDay();
       drawWheel();
     }
     $('sc-save').addEventListener('click', commit);
@@ -2583,7 +2722,7 @@
     if ($('sc-del')) $('sc-del').addEventListener('click', function () {
       Planner.remove(e.id);
       closeScheduleEditor();
-      drawDay();
+      redrawDay();
       drawWheel();
     });
     setTimeout(function () { $('sc-title').focus(); }, 0);
@@ -2598,7 +2737,7 @@
       return '<li data-event="' + esc(e.id) + '">' +
         '<i class="dot" style="background:var(--sc-' + e.colour + ')"></i>' +
         '<span>' + esc(e.title || 'Untitled') + '</span>' +
-        '<span class="when">' + (e.allDay ? 'all day'
+        '<span class="when">' + (e.untimed ? 'no time' : e.allDay ? 'all day'
           : Planner.hhmm(e.startMin) + '–' + Planner.hhmm(e.endMin)) + '</span></li>';
     }).join('') + '</ul>';
   }
@@ -3134,6 +3273,7 @@
     }
     applyTheme();
     wirePlaceSearch(); wireGeo(); wireControls(); wireZoom();
+    if (STRIP_ON) wireViewSwitch();
     boot();
   }
 

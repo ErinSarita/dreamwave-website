@@ -199,6 +199,12 @@
     </div>
 <!-- private:end -->
 
+<!-- private:start -->
+    <div class="scene scene-strip" id="scene-strip" hidden>
+      <div class="st-wrap" id="stripwrap"></div>
+    </div>
+<!-- private:end -->
+
     <div class="scene scene-month" id="scene-month" hidden>
       <div class="month-topbar">
         <button class="moon-arrow" id="month-prev" aria-label="Previous month" title="Previous month">‹</button>
@@ -254,6 +260,13 @@
       </svg>
       <div class="moon-readout" id="moon-readout" aria-live="polite"></div>
     </div>
+
+<!-- private:start -->
+    <div class="view-switch" id="view-switch" hidden role="group" aria-label="Day layout">
+      <button id="view-circle" aria-pressed="true">Dial</button>
+      <button id="view-strip" aria-pressed="false">Strip</button>
+    </div>
+<!-- private:end -->
 
     <div class="top-tools" id="top-tools">
       <button id="tool-moon" class="tool-btn" aria-haspopup="true" aria-expanded="false"
@@ -810,6 +823,9 @@
 <!-- private:end -->
 <script src="js/render-month.js"></script>
 <script src="js/render-day.js"></script>
+<!-- private:start -->
+<script src="js/render-strip.js"></script>
+<!-- private:end -->
 <script src="js/render-moon.js"></script>
 <script src="js/spiral.js"></script>
 <script src="js/zoompan.js"></script>

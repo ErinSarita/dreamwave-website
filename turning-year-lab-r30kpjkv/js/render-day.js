@@ -247,7 +247,8 @@
     }
 
     if (opts.schedule && opts.schedule.events && opts.schedule.events.length) {
-      var evs = opts.schedule.events;
+      var evs = opts.schedule.events.filter(function (e) { return !e.untimed; });
+      if (!evs.length) { opts.schedule.__evHits = []; }
 
       /* Wall-clock minutes to a real instant. On a day the clocks moved, the
        * shift is taken off once so afternoon events do not drift an hour. */
@@ -814,6 +815,65 @@
     return p.join('');
   }
 
+  /* The same day, as numbers rather than as a picture.
+   *
+   * The dial spends angle on time; the strip spends height on it. Both want
+   * exactly the same underlying runs, so the sampling and the run-finding
+   * stay here, in one place, and each view decides only how to draw them.
+   * Positions come back as fractions of the day's real span, from 0 at its
+   * start to 1 at its end, which keeps a 23 or 25 hour day honest without
+   * either view having to know that such days exist.
+   */
+  function bands(cycle, day, opts) {
+    opts = opts || {};
+    var useDST = opts.useDST !== false;
+    var win = dayWindow(cycle, day, useDST);
+    var s = sample(cycle, day, win);
+    var span = win.end.getTime() - win.start.getTime();
+
+    var sun = runsOf(s, function (p) { return bandFor(p.sunAlt); }).map(function (r) {
+      var b = TWILIGHT[r.key];
+      return { key: b.key, label: b.label, fill: b.fill,
+               f1: r.a1 / 360, f2: r.a2 / 360 };
+    });
+
+    var moon = runsOf(s, function (p) { return p.moonAlt >= p.moonH0 ? 'up' : 'down'; })
+      .filter(function (r) { return r.key === 'up'; })
+      .map(function (r) { return { f1: r.a1 / 360, f2: r.a2 / 360 }; });
+
+    /* The hours as the clock actually struck them, so a spring-forward day is
+     * short one row and an autumn day carries its repeated hour twice. */
+    var hours = [], HOUR_MS = 3600000;
+    for (var t = win.start.getTime(); t < win.end.getTime(); t += HOUR_MS) {
+      var inst = new Date(t);
+      var hv = Clock.hoursOf(cycle, inst, useDST);
+      if (Math.abs(hv - Math.round(hv)) > 1 / 120) continue;
+      hours.push({
+        h: Math.round(hv) % 24,
+        minOfDay: Math.round((t - win.start.getTime()) / 60000),
+        f1: (t - win.start.getTime()) / span,
+        f2: Math.min(1, (t + HOUR_MS - win.start.getTime()) / span),
+        instant: inst
+      });
+    }
+
+    return {
+      start: win.start, end: win.end, span: span, hours: hours,
+      sun: sun, moon: moon, moonIllumination: day.moonIllumination,
+      /* A wall-clock minute placed on the strip, the clock shift taken off
+       * once so an afternoon does not slide an hour on a changeover day. */
+      fractionOfMinute: function (min) {
+        var t = win.start.getTime() + min * 60000;
+        if (useDST && day.clockShiftMinutes && day.clockShiftAt &&
+            day.clockShiftAt.getTime() <= t) {
+          t -= day.clockShiftMinutes * 60000;
+        }
+        return Math.max(0, Math.min(1, (t - win.start.getTime()) / span));
+      }
+    };
+  }
+
   global.DayView = {
-    clock: clock, frame: null, render: render, renderCompare: renderCompare, hm: hm, R: R };
+    clock: clock, frame: null, render: render, renderCompare: renderCompare,
+    bands: bands, hm: hm, R: R };
 })(typeof window !== 'undefined' ? window : globalThis);
