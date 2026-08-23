@@ -1272,8 +1272,13 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
    * the trail and the tool row. */
   body .scene.scene-strip { padding-top: calc(132px + env(safe-area-inset-top)); }
 
+  /* Sat too high: a 10px gap plus a whole home-indicator's worth of margin
+   * left about forty-four pixels of nothing under the card, and took that
+   * room off the wheel above it. The inset alone is what the hardware needs;
+   * four pixels on top of it is the whole of the breathing room required. */
   .day-panel, .moon-readout, .readout {
-    margin-bottom: env(safe-area-inset-bottom);
+    bottom: calc(4px + env(safe-area-inset-bottom));
+    margin-bottom: 0;
   }
 }
 
