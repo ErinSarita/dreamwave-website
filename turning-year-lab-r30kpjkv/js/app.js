@@ -1689,6 +1689,37 @@
     $('watch').hidden = false;
   }
 
+  /* One day forward or back, in the same shape as stepping a lunation.
+   *
+   * The cycle runs solstice to solstice, so its ends are real edges rather
+   * than places to wrap round: walking off either one moves to the
+   * neighbouring cycle and lands on the day next to where you were, which is
+   * what "the next day" means to anyone who is not thinking about solstices.
+   */
+  function stepDayBy(delta) {
+    var n = (state.day || todayNumber() || 1) + delta;
+
+    if (n < 1 || n > cycle.length) {
+      var goingOn = n > cycle.length;
+      state.anchorYear += goingOn ? 1 : -1;
+      rebuild(function () {
+        state.day = goingOn ? 1 : cycle.length;
+        state.season = WheelView.seasonOfDay(cycle, state.day);
+        state.noteOpen = false;
+        redrawDay(); drawWheel(); syncChrome(); syncCrumbs(); writeHash();
+      });
+      return;
+    }
+
+    state.day = n;
+    state.season = WheelView.seasonOfDay(cycle, state.day);
+    state.noteOpen = false;
+    save();
+    redrawDay();
+    syncCrumbs();
+    writeHash();
+  }
+
   function drawDay() {
     var d = cycle.days[state.day - 1];
     if (!d) return;
@@ -1730,7 +1761,13 @@
       '<div class="d-of">Day</div>' +
       '<div class="d-num">' + d.n + '</div>' +
       '<div class="d-of">of ' + cycle.length + '</div>' +
-      '<div class="d-date">' + TZ.formatDate(cycle.tz, d.date) + '</div>' +
+      '<div class="d-step">' +
+        '<button class="moon-arrow day-prev" id="day-prev" aria-label="Previous day" ' +
+          'title="Previous day">\u2039</button>' +
+        '<div class="d-date">' + TZ.formatDate(cycle.tz, d.date) + '</div>' +
+        '<button class="moon-arrow day-next" id="day-next" aria-label="Next day" ' +
+          'title="Next day">\u203a</button>' +
+      '</div>' +
       '<div class="d-week">' + TZ.weekdayName(cycle.tz, d.date) + '</div>' +
       (d.n === todayNumber()
         ? '<div class="d-now">Now ' + Clock.time(cycle, new Date(), state.useDST, state.hour12) +
@@ -1775,6 +1812,9 @@
         h.scrollIntoView({ block: 'start' });
       });
     }
+    /* After the panel's markup, not before it: the arrows live inside it and
+     * do not exist until it has been written. */
+    bindDayStep();
     wireNote(d.iso);
   }
 
@@ -2517,6 +2557,14 @@
    * The day as a column. Same numbers as the dial, laid down a line instead
    * of round a circle, which is what a phone's shape actually wants.
    */
+  /* The two arrows exist on both faces of the day, so they are wired in one
+   * place and simply skipped wherever they are not on screen. */
+  function bindDayStep() {
+    var p = $('day-prev'), n = $('day-next');
+    if (p) p.addEventListener('click', function (e) { e.stopPropagation(); stepDayBy(-1); });
+    if (n) n.addEventListener('click', function (e) { e.stopPropagation(); stepDayBy(1); });
+  }
+
   function drawStrip() {
     var d = cycle.days[state.day - 1];
     if (!d || !STRIP_ON) return;
@@ -2529,9 +2577,17 @@
     var evs = PLAN_ON ? Planner.onDate(d.iso) : [];
     $('stripwrap').innerHTML =
       '<div class="st-head">' +
-        '<strong>' + esc(TZ.formatDate(cycle.tz, d.date, 'long')) + '</strong>' +
-        '<span class="meta">Day ' + d.n + ' of ' + cycle.length +
-        ' &middot; light ' + DayView.hm(d.daylightHours) + '</span>' +
+        '<div class="st-head-row">' +
+          '<button class="moon-arrow day-prev" id="day-prev" aria-label="Previous day" ' +
+            'title="Previous day">\u2039</button>' +
+          '<div class="st-head-text">' +
+            '<strong>' + esc(TZ.formatDate(cycle.tz, d.date, 'long')) + '</strong>' +
+            '<span class="meta">Day ' + d.n + ' of ' + cycle.length +
+            ' &middot; light ' + DayView.hm(d.daylightHours) + '</span>' +
+          '</div>' +
+          '<button class="moon-arrow day-next" id="day-next" aria-label="Next day" ' +
+            'title="Next day">\u203a</button>' +
+        '</div>' +
       '</div>' +
       StripView.render(b, {
         events: evs, hour12: state.hour12, nowFraction: nowF,
@@ -2539,6 +2595,7 @@
       }) +
       (PLAN_ON ? StripView.untimed(evs) : '');
 
+    bindDayStep();
     if (PLAN_ON) bindStrip(d.iso);
     startStripNow(b);
   }

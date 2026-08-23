@@ -1520,3 +1520,16 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
   font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
   box-shadow: 0 8px 26px rgba(0,0,0,.45);
 }
+
+/* ---- stepping a day, in the same shape as stepping a lunation ---- */
+.d-step { display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 10px; }
+.d-step .d-date { margin-top: 0; flex: 0 1 auto; min-width: 0; }
+.day-panel.min .d-step { margin-top: 0; }
+
+/* Centred with the arrows hugging the date, which is how the lunation's own
+ * header reads, rather than flung to either edge of a wide screen. */
+.st-head-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.st-head-text { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column;
+  align-items: center; text-align: center; }
+.st-head-row .moon-arrow { flex: 0 0 auto; }
