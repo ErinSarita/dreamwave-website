@@ -267,8 +267,11 @@
         var a1, a2b;
         if (e.allDay) { a1 = 0; a2b = 360; }
         else {
-          a1 = angleOf(wallInstant(e.startMin));
-          a2b = angleOf(wallInstant(e.endMin));
+          /* The window this event occupies *on this date*, already clipped at
+           * midnight by the planner, so something that began yesterday
+           * evening starts the ring at the top rather than partway round. */
+          a1 = angleOf(wallInstant(e.dayStartMin != null ? e.dayStartMin : e.startMin));
+          a2b = angleOf(wallInstant(e.dayEndMin != null ? e.dayEndMin : e.endMin));
           if (a2b - a1 < 1.2) a2b = a1 + 1.2;      // stays visible and tappable
         }
         var li = 0;
@@ -297,7 +300,10 @@
         parts.push('<path class="sc-ev" data-event="' + esc(p.e.id) + '" d="' +
                    sector(r1, r2, p.a1, p.a2) + '" fill="var(--sc-' + p.e.colour + ')" ' +
                    'fill-opacity=".82" stroke="var(--sc-' + p.e.colour + ')" stroke-width="1">' +
-                   '<title>' + esc(p.e.title || 'Untitled') + '</title></path>');
+                   '<title>' + esc(p.e.title || 'Untitled') +
+                   (p.e.fromPrevious ? ' (from the day before)' : '') +
+                   (p.e.intoNext ? ' (carries into the next day)' : '') +
+                   '</title></path>');
 
         /* A title only where the arc is wide enough to carry one. */
         var mid = (p.a1 + p.a2) / 2, sweep = p.a2 - p.a1;

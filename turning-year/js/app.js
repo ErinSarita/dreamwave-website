@@ -2674,6 +2674,9 @@
   function openScheduleEditor(iso, id, atMin, wantUntimed) {
     closeScheduleEditor();
     var e = id ? Planner.get(id) : null;
+    /* An event opened from a day it merely runs through is still that one
+     * event: edits go to the record on the date it actually began. */
+    if (e && e.date !== iso) iso = e.date;
     var draft = e ? {
       title: e.title, allDay: e.allDay, untimed: e.untimed, colour: e.colour,
       startMin: e.startMin, endMin: e.endMin
@@ -2711,6 +2714,7 @@
         '<div><label for="sc-end">Until</label>' +
         '<input type="time" id="sc-end" value="' + Planner.hhmm(draft.endMin) + '"></div>' +
       '</div>' +
+      '<p class="sc-span" id="sc-span"></p>' +
       '<label>Colour</label>' +
       '<div class="sc-swatches">' +
         Planner.COLOURS.map(function (c) {
@@ -2748,6 +2752,7 @@
           o.setAttribute('aria-pressed', String(o === b));
         });
         $('sc-times').classList.toggle('is-off', when !== 'timed');
+        syncSpan();
       });
     });
     /* Jumping to another event from the list keeps the editor open rather
@@ -2757,6 +2762,22 @@
         openScheduleEditor(iso, li.getAttribute('data-event'), null);
       });
     });
+
+    /* Says out loud what an until-time earlier than its from-time means, so
+     * "23:00 until 06:00" is visibly a night rather than a mistake. */
+    function syncSpan() {
+      var el = $('sc-span');
+      if (!el) return;
+      var a = Planner.parseHHMM($('sc-start').value);
+      var b = Planner.parseHHMM($('sc-end').value);
+      if (when !== 'timed' || a === null || b === null) { el.textContent = ''; return; }
+      var mins = b <= a ? (b + 1440) - a : b - a;
+      el.textContent = (b <= a ? 'Runs past midnight into the next day \u00b7 ' : '') +
+        Math.floor(mins / 60) + 'h' + (mins % 60 ? ' ' + (mins % 60) + 'm' : '');
+    }
+    $('sc-start').addEventListener('input', syncSpan);
+    $('sc-end').addEventListener('input', syncSpan);
+    syncSpan();
 
     function commit() {
       var fields = {
@@ -2804,7 +2825,7 @@
         '<i class="dot" style="background:var(--sc-' + e.colour + ')"></i>' +
         '<span>' + esc(e.title || 'Untitled') + '</span>' +
         '<span class="when">' + (e.untimed ? 'no time' : e.allDay ? 'all day'
-          : Planner.hhmm(e.startMin) + '–' + Planner.hhmm(e.endMin)) + '</span></li>';
+          : Planner.hhmm(e.startMin) + '–' + Planner.hhmmDay(e.endMin)) + '</span></li>';
     }).join('') + '</ul>';
   }
 

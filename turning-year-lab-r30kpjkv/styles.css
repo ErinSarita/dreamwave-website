@@ -1267,7 +1267,10 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
   /* Clear of both rows, and of the notch above them. */
   .scene { padding-top: calc(128px + env(safe-area-inset-top)); }
   .scene-moon { padding-top: calc(128px + env(safe-area-inset-top)); }
-  .scene.scene-strip { padding-top: calc(126px + env(safe-area-inset-top)); }
+  /* Extra specificity on purpose: the plain `.scene.scene-strip` rule further
+   * down the file would otherwise win the tie and put the strip back under
+   * the trail and the tool row. */
+  body .scene.scene-strip { padding-top: calc(126px + env(safe-area-inset-top)); }
 
   .day-panel, .moon-readout, .readout {
     margin-bottom: env(safe-area-inset-bottom);
@@ -1488,3 +1491,12 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
   .scene.scene-strip { padding-top: 8px; }
   .st-wrap { padding-bottom: 84px; }
 }
+
+/* A block cut by midnight is squared off at the cut, so it reads as running
+ * off the end of the day rather than as beginning or ending there. */
+.st-ev.is-from-prev { border-top-left-radius: 0; border-top-right-radius: 0;
+  border-top: 2px dashed rgba(0,0,0,.35); }
+.st-ev.is-into-next { border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  border-bottom: 2px dashed rgba(0,0,0,.35); }
+.sc-span { margin: 7px 0 0; font-size: 11.5px; color: var(--ink-3);
+  min-height: 15px; }

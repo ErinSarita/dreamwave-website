@@ -89,7 +89,11 @@
     var evs = (opts.events || []).filter(function (e) { return !e.allDay && !e.untimed; });
     var lanes = [];
     var placed = evs.map(function (e) {
-      var f1 = b.fractionOfMinute(e.startMin), f2 = b.fractionOfMinute(e.endMin);
+      /* Clipped to this date by the planner, so a shift begun last night
+       * starts at the top of the column instead of off the end of it. */
+      var s1 = e.dayStartMin != null ? e.dayStartMin : e.startMin;
+      var s2 = e.dayEndMin != null ? e.dayEndMin : e.endMin;
+      var f1 = b.fractionOfMinute(s1), f2 = b.fractionOfMinute(s2);
       if (f2 - f1 < 0.012) f2 = f1 + 0.012;      // a short thing still gets a body
       var li = 0;
       while ((lanes[li] || []).some(function (o) { return f1 < o.f2 && o.f1 < f2; })) li++;
@@ -100,11 +104,18 @@
 
     var blocks = placed.map(function (p) {
       var w = 100 / laneCount;
-      return '<button class="st-ev" data-event="' + esc(p.e.id) + '" style="top:' + pc(p.f1) +
+      /* A block that carries over loses the rounding on the cut end, so the
+       * eye reads it as running off the day rather than stopping there. */
+      var cls = 'st-ev' + (p.e.fromPrevious ? ' is-from-prev' : '') +
+                          (p.e.intoNext ? ' is-into-next' : '');
+      var when = p.e.fromPrevious
+        ? '\u2191 from ' + hhmm(p.e.startMin)
+        : hhmm(p.e.startMin) + (p.e.intoNext ? ' \u2193' : '');
+      return '<button class="' + cls + '" data-event="' + esc(p.e.id) + '" style="top:' + pc(p.f1) +
              ';height:' + pc(p.f2 - p.f1) + ';left:' + (p.lane * w) + '%;width:' +
              (w - (laneCount > 1 ? 1.5 : 0)) + '%;background:var(--sc-' + p.e.colour + ')">' +
              '<span class="st-ev-t">' + esc(p.e.title || 'Untitled') + '</span>' +
-             '<span class="st-ev-w">' + esc(hhmm(p.e.startMin)) + '</span></button>';
+             '<span class="st-ev-w">' + esc(when) + '</span></button>';
     }).join('');
 
     /* All-day things ride as a thin stripe down the whole column, so they are
