@@ -18,6 +18,7 @@
    * written, and no part of the interface offers it. See features.js. */
   var NOTES_ON = !!(global.FEATURES && global.FEATURES.notes);
   var BODY_ON  = !!(global.FEATURES && global.FEATURES.bodyCycles);
+  var PLAN_ON  = !!(global.FEATURES && global.FEATURES.planner) && !!global.Planner;
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -1645,9 +1646,11 @@
     if (!d) return;
     var out = DayView.render(cycle, d, { hour12: state.hour12, useDST: state.useDST,
       now: new Date(), placeName: state.place ? (state.place.name || state.place.label) : '',
-      planets: state.showPlanets, bio: state.showBio, organs: state.showOrgans });
+      planets: state.showPlanets, bio: state.showBio, organs: state.showOrgans,
+      schedule: PLAN_ON ? { iso: d.iso, events: Planner.onDate(d.iso) } : null });
     $('dayclock').innerHTML = out.svg + '<g id="day-clock-ring"></g>';
     startDayRing();
+    if (PLAN_ON) bindSchedule(d.iso);
 
     var stationHTML = '';
     if (d.station) stationHTML += '<div class="d-station">' + d.station.name +
@@ -2457,6 +2460,146 @@
     });
   }
 
+  /* ------------------------------------------------------------- schedule --
+   * Clicking an empty hour on the schedule ring opens an editor already set
+   * to that hour, because the commonest thing to want is the hour you just
+   * pointed at. Clicking an event opens the same editor on that event.
+   */
+  var scEditorOpen = null;   // the id being edited, or 'new'
+
+  function bindSchedule(iso) {
+    Array.prototype.forEach.call($('dayclock').querySelectorAll('.sc-hit'),
+      function (el) {
+        el.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          openScheduleEditor(iso, null, +el.getAttribute('data-hour-min'));
+        });
+      });
+    Array.prototype.forEach.call($('dayclock').querySelectorAll('.sc-ev'),
+      function (el) {
+        el.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          openScheduleEditor(iso, el.getAttribute('data-event'), null);
+        });
+      });
+  }
+
+  function closeScheduleEditor() {
+    var el = $('sc-editor');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    scEditorOpen = null;
+  }
+
+  function openScheduleEditor(iso, id, atMin) {
+    closeScheduleEditor();
+    var e = id ? Planner.get(id) : null;
+    var draft = e ? {
+      title: e.title, allDay: e.allDay, colour: e.colour,
+      startMin: e.startMin, endMin: e.endMin
+    } : {
+      title: '', allDay: false, colour: 'amber',
+      startMin: atMin == null ? 540 : atMin,
+      endMin: (atMin == null ? 540 : atMin) + 60
+    };
+    scEditorOpen = id || 'new';
+
+    var box = document.createElement('div');
+    box.className = 'sc-editor';
+    box.id = 'sc-editor';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', e ? 'Edit event' : 'Add an event');
+    box.innerHTML =
+      '<h3>' + (e ? 'Edit' : 'On this day') + '</h3>' +
+      '<label for="sc-title">What</label>' +
+      '<input type="text" id="sc-title" placeholder="Dentist, seed the beds, call Mum" ' +
+        'value="' + esc(draft.title) + '" maxlength="120">' +
+      '<label class="sc-allday"><input type="checkbox" id="sc-allday"' +
+        (draft.allDay ? ' checked' : '') + '><span>All day</span></label>' +
+      '<div class="sc-times' + (draft.allDay ? ' is-off' : '') + '" id="sc-times">' +
+        '<div><label for="sc-start">From</label>' +
+        '<input type="time" id="sc-start" value="' + Planner.hhmm(draft.startMin) + '"></div>' +
+        '<div><label for="sc-end">Until</label>' +
+        '<input type="time" id="sc-end" value="' + Planner.hhmm(draft.endMin) + '"></div>' +
+      '</div>' +
+      '<label>Colour</label>' +
+      '<div class="sc-swatches">' +
+        Planner.COLOURS.map(function (c) {
+          return '<button class="sc-sw" data-colour="' + c + '" aria-label="' + c +
+                 '" aria-pressed="' + (c === draft.colour) +
+                 '" style="background:var(--sc-' + c + ')"></button>';
+        }).join('') +
+      '</div>' +
+      '<div class="sc-actions">' +
+        (e ? '<button class="sc-del" id="sc-del" aria-label="Delete">Delete</button>' : '') +
+        '<button id="sc-cancel">Cancel</button>' +
+        '<button class="sc-save" id="sc-save">Save</button>' +
+      '</div>' +
+      scheduleListMarkup(iso, id);
+    $('scene-day').appendChild(box);
+
+    var chosen = draft.colour;
+    Array.prototype.forEach.call(box.querySelectorAll('.sc-sw'), function (b) {
+      b.addEventListener('click', function () {
+        chosen = b.getAttribute('data-colour');
+        Array.prototype.forEach.call(box.querySelectorAll('.sc-sw'), function (o) {
+          o.setAttribute('aria-pressed', String(o === b));
+        });
+      });
+    });
+    $('sc-allday').addEventListener('change', function () {
+      $('sc-times').classList.toggle('is-off', this.checked);
+    });
+    /* Jumping to another event from the list keeps the editor open rather
+     * than making someone close this one and hunt for that one on the ring. */
+    Array.prototype.forEach.call(box.querySelectorAll('.sc-list li'), function (li) {
+      li.addEventListener('click', function () {
+        openScheduleEditor(iso, li.getAttribute('data-event'), null);
+      });
+    });
+
+    function commit() {
+      var fields = {
+        title: $('sc-title').value,
+        allDay: $('sc-allday').checked,
+        colour: chosen,
+        startMin: Planner.parseHHMM($('sc-start').value),
+        endMin: Planner.parseHHMM($('sc-end').value)
+      };
+      if (fields.startMin === null) fields.startMin = draft.startMin;
+      if (fields.endMin === null) fields.endMin = draft.endMin;
+      if (e) Planner.update(e.id, fields); else Planner.create(iso, fields);
+      closeScheduleEditor();
+      drawDay();
+      drawWheel();
+    }
+    $('sc-save').addEventListener('click', commit);
+    $('sc-title').addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') commit();
+    });
+    $('sc-cancel').addEventListener('click', closeScheduleEditor);
+    if ($('sc-del')) $('sc-del').addEventListener('click', function () {
+      Planner.remove(e.id);
+      closeScheduleEditor();
+      drawDay();
+      drawWheel();
+    });
+    setTimeout(function () { $('sc-title').focus(); }, 0);
+  }
+
+  /* Everything else already on this day, so the ring is not the only way to
+   * find something small or short. */
+  function scheduleListMarkup(iso, exceptId) {
+    var all = Planner.onDate(iso).filter(function (e) { return e.id !== exceptId; });
+    if (!all.length) return '';
+    return '<ul class="sc-list">' + all.map(function (e) {
+      return '<li data-event="' + esc(e.id) + '">' +
+        '<i class="dot" style="background:var(--sc-' + e.colour + ')"></i>' +
+        '<span>' + esc(e.title || 'Untitled') + '</span>' +
+        '<span class="when">' + (e.allDay ? 'all day'
+          : Planner.hhmm(e.startMin) + '–' + Planner.hhmm(e.endMin)) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+
   /* ---------------------------------------------------------------- chrome */
   function syncChrome() {
     /* Whether the zone shifts its clocks is a property of the place, so the
@@ -2974,6 +3117,7 @@
   function init() {
     load();
     loadNotes();
+    if (PLAN_ON) Planner.load();
     if (!NOTES_ON) stripNotesUI();
     if (!BODY_ON) stripBodyCyclesUI();
     readHash();

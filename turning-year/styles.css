@@ -1248,3 +1248,71 @@ body[data-theme="day"] .mb-line { stroke: var(--moon); opacity: .5; }
   .scene { padding-top: 106px; }
   .scene-moon { padding-top: 106px; }
 }
+
+/* ---------------------------------------------------------------- schedule --
+ * A person's own day, laid over the sun's. Six colours that hold their
+ * meaning in both themes: warm enough to read against the night palette,
+ * deep enough not to glare on the daylight one.
+ */
+:root {
+  --sc-rose:  #e0688a;
+  --sc-amber: #e8a33c;
+  --sc-leaf:  #6aab63;
+  --sc-sea:   #43a0b8;
+  --sc-iris:  #8b7bd8;
+  --sc-stone: #8b93ad;
+}
+body[data-theme="day"] {
+  --sc-rose:  #c23f65;
+  --sc-amber: #b9781a;
+  --sc-leaf:  #487f43;
+  --sc-sea:   #217a92;
+  --sc-iris:  #6353b4;
+  --sc-stone: #5f6880;
+}
+
+.sc-ev { cursor: pointer; transition: fill-opacity .12s ease; }
+.sc-ev:hover { fill-opacity: 1; }
+.sc-tx { fill: #0d0f18; font-weight: 600; }
+body[data-theme="day"] .sc-tx { fill: #fffaf0; }
+.sc-hit { cursor: cell; }
+.sc-hit:hover { fill: var(--line-soft); fill-opacity: .35; }
+
+/* ---- the editor ---------------------------------------------------------- */
+.sc-editor {
+  position: absolute; z-index: 40; inset-inline-start: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(340px, calc(100vw - 32px));
+  background: var(--panel, #12141f);
+  border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px; box-shadow: 0 18px 50px rgba(0,0,0,.55);
+}
+.sc-editor h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+.sc-editor label { display: block; font-size: 11px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-3); margin: 10px 0 4px; }
+.sc-editor input[type="text"], .sc-editor input[type="time"] {
+  width: 100%; box-sizing: border-box; padding: 8px 10px;
+  background: var(--void); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 14px;
+}
+.sc-times { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sc-times.is-off { opacity: .4; pointer-events: none; }
+.sc-allday { display: flex; align-items: center; gap: 8px; margin: 12px 0 0;
+  font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.sc-swatches { display: flex; gap: 8px; margin-top: 6px; }
+.sc-sw { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; padding: 0; }
+.sc-sw[aria-pressed="true"] { border-color: var(--ink); }
+.sc-actions { display: flex; gap: 8px; margin-top: 16px; }
+.sc-actions button { flex: 1; padding: 9px; border-radius: 8px; font: inherit;
+  font-size: 13px; cursor: pointer; border: 1px solid var(--line);
+  background: transparent; color: var(--ink-2); }
+.sc-actions .sc-save { background: var(--sun-deep); border-color: var(--sun-deep);
+  color: #12100a; font-weight: 600; }
+.sc-actions .sc-del { color: var(--sc-rose); border-color: transparent; flex: 0 0 auto; }
+.sc-list { margin: 10px 0 0; padding: 0; list-style: none; }
+.sc-list li { display: flex; align-items: center; gap: 8px; padding: 5px 0;
+  font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.sc-list .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.sc-list .when { margin-inline-start: auto; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; font-size: 12px; }

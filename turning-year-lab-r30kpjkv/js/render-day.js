@@ -25,6 +25,11 @@
     /* The planets' own band, in the clear space between the moon ring and the
      * reach of the altitude curves, which stop at 322. */
     planetOut: 356, planetLabel: 342, planetIn: 328,
+    /* The schedule sits directly outside the hour numbers, so an event and
+     * the hour it falls on can be read in one glance. It is only drawn in a
+     * build that has the planner; when it is, the sun and moon labels move
+     * out past the day ring to keep clear of it. */
+    schedIn: 466, schedOut: 500, schedLabelPush: 530,
     eventLabel: 486, hourNum: 462, tickOut: 454, tickIn: 444,
     sunOut: 440, sunIn: 402,
     moonOut: 394, moonIn: 362, moonLabel: 378,
@@ -123,6 +128,7 @@
     var win = dayWindow(cycle, day, useDST);
     var s = sample(cycle, day, win);
     var parts = [];
+    var HOUR_MS = 3600000;
     var angleOf = function (date) {
       if (!date) return null;
       var span = win.end.getTime() - win.start.getTime();
@@ -197,7 +203,6 @@
      * daylight saving on, a spring-forward date has no mark where the lost
      * hour would be and an autumn date carries the repeated hour twice. With
      * it off the ring is even the whole year round. */
-    var HOUR_MS = 3600000;
     for (var tms = win.start.getTime(); tms < win.end.getTime(); tms += HOUR_MS) {
       var inst = new Date(tms);
       var hv = Clock.hoursOf(cycle, inst, useDST);
@@ -213,6 +218,106 @@
                  'dominant-baseline="middle" font-size="' + (major ? 14 : 10) + '" fill="var(--ink-' +
                  (major ? '2' : '3') + ')" transform="rotate(' + f(tangent(a)) + ' ' + f(np[0]) + ' ' +
                  f(np[1]) + ')">' + (opts.hour12 ? hour12(h) : (h === 0 ? 24 : h)) + '</text>');
+    }
+
+    /* ---- the schedule ring -------------------------------------------------
+     * A person's own day laid over the sun's. Angle is time, exactly as it is
+     * everywhere else on this dial, so a meeting at four sits under the four.
+     *
+     * Two events at once would otherwise draw on top of one another and the
+     * later would simply erase the earlier, so overlapping events are packed
+     * into lanes across the depth of the band. All-day events take the
+     * outermost lane and the whole turn, which is what all day means here. */
+    /* The band's own quiet backing, drawn whether or not anything is on it,
+     * so an empty day still reads as a place things can be put rather than as
+     * nothing at all. Without it there is no sign the ring is there to use. */
+    if (opts.schedule) {
+      parts.push('<path class="sc-bed" d="' + sector(R.schedIn, R.schedOut, 0, 360) +
+                 '" fill="var(--line-soft)" fill-opacity=".22" fill-rule="evenodd"/>');
+      parts.push('<circle cx="500" cy="500" r="' + R.schedOut + '" fill="none" ' +
+                 'stroke="var(--line-soft)" stroke-width="1"/>');
+    }
+
+    if (opts.schedule && opts.schedule.events && opts.schedule.events.length) {
+      var evs = opts.schedule.events;
+
+      /* Wall-clock minutes to a real instant. On a day the clocks moved, the
+       * shift is taken off once so afternoon events do not drift an hour. */
+      var wallInstant = function (min) {
+        var t = win.start.getTime() + min * 60000;
+        if (useDST && day.clockShiftMinutes && day.clockShiftAt &&
+            day.clockShiftAt.getTime() <= t) {
+          t -= day.clockShiftMinutes * 60000;
+        }
+        return new Date(Math.max(win.start.getTime(), Math.min(win.end.getTime(), t)));
+      };
+
+      /* First lane this event fits in without touching one already there. */
+      var lanes = [];
+      var placed = evs.map(function (e) {
+        var a1, a2b;
+        if (e.allDay) { a1 = 0; a2b = 360; }
+        else {
+          a1 = angleOf(wallInstant(e.startMin));
+          a2b = angleOf(wallInstant(e.endMin));
+          if (a2b - a1 < 1.2) a2b = a1 + 1.2;      // stays visible and tappable
+        }
+        var li = 0;
+        while (true) {
+          var busy = (lanes[li] || []).some(function (o) { return a1 < o.a2 && o.a1 < a2b; });
+          if (!busy) break;
+          li++;
+        }
+        (lanes[li] = lanes[li] || []).push({ a1: a1, a2: a2b });
+        return { e: e, a1: a1, a2: a2b, lane: li };
+      });
+
+      var laneCount = Math.max(1, lanes.length);
+      var depth = (R.schedOut - R.schedIn) / laneCount;
+
+      placed.forEach(function (p) {
+        var r1 = R.schedIn + p.lane * depth, r2 = r1 + depth - (laneCount > 1 ? 1.5 : 0);
+        parts.push('<path class="sc-ev" data-event="' + esc(p.e.id) + '" d="' +
+                   sector(r1, r2, p.a1, p.a2) + '" fill="var(--sc-' + p.e.colour + ')" ' +
+                   'fill-opacity=".82" stroke="var(--sc-' + p.e.colour + ')" stroke-width="1">' +
+                   '<title>' + esc(p.e.title || 'Untitled') + '</title></path>');
+
+        /* A title only where the arc is wide enough to carry one. */
+        var mid = (p.a1 + p.a2) / 2, sweep = p.a2 - p.a1;
+        if (sweep >= 22 && p.e.title) {
+          var lp = polar((r1 + r2) / 2, mid);
+          var room = Math.floor(sweep / 3.4);
+          var txt = p.e.title.length > room ? p.e.title.slice(0, Math.max(1, room - 1)) + '\u2026'
+                                            : p.e.title;
+          parts.push('<text class="sc-tx" x="' + f(lp[0]) + '" y="' + f(lp[1]) + '" ' +
+                     'text-anchor="middle" dominant-baseline="middle" font-size="11" ' +
+                     'transform="rotate(' + f(tangent(mid)) + ' ' + f(lp[0]) + ' ' + f(lp[1]) +
+                     ')" pointer-events="none">' + esc(txt) + '</text>');
+        }
+      });
+    }
+
+    /* ---- somewhere to aim at ------------------------------------------------
+     * One wedge per hour across the schedule band, invisible but clickable, so
+     * an empty hour can be tapped to put something on it. Built from the same
+     * real-time steps as the hour marks, so a 23 or 25 hour day still divides
+     * into the hours it actually had. */
+    if (opts.schedule) {
+      var edges = [];
+      for (var ems = win.start.getTime(); ems <= win.end.getTime(); ems += HOUR_MS) {
+        edges.push(Math.min(ems, win.end.getTime()));
+      }
+      if (edges[edges.length - 1] < win.end.getTime()) edges.push(win.end.getTime());
+      for (var ei = 0; ei < edges.length - 1; ei++) {
+        var ea1 = angleOf(new Date(edges[ei])), ea2 = angleOf(new Date(edges[ei + 1]));
+        if (ea2 - ea1 < 0.2) continue;
+        var hmin = Math.round((edges[ei] - win.start.getTime()) / 60000);
+        parts.push('<path class="sc-hit" data-hour-min="' + hmin + '" d="' +
+                   sector(R.schedIn - 6, R.schedOut + 6, ea1, ea2) +
+                   '" fill="transparent"><title>Add something at ' +
+                   esc(Clock.time(cycle, new Date(edges[ei]), useDST, opts.hour12)) +
+                   '</title></path>');
+      }
     }
 
     /* ---- the clock changeover, when there is one ---------------------------
@@ -408,7 +513,7 @@
         placed.push({ a: e.a, tier: tier });
       });
     }
-    assignTiers('sun', R.eventLabel, 17);      // outward
+    assignTiers('sun', opts.schedule ? R.schedLabelPush : R.eventLabel, 17);   // outward
     assignTiers('moon', R.moonLabel, -19);     // inward, into the clear gap
     assignTiers('planet', R.planetLabel, -17, 17);  // inward again, on their own ring
 

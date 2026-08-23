@@ -31,6 +31,10 @@
     /* The menstrual and pregnancy wheels. They read a person's own body
      * against the year, which is the most private thing here, so they belong
      * with the account rather than on the open page. */
-    bodyCycles: false
+    bodyCycles: false,
+
+    /* The planner: events on the day dial. Everything it saves is a person's
+     * own life, so it belongs with the account. */
+    planner: false
   };
 })(typeof window !== 'undefined' ? window : globalThis);
