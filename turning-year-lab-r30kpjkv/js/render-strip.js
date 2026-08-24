@@ -153,19 +153,44 @@
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   }
 
-  /* Things with no hour attached: the list a ring has nowhere to put. */
+  /* Things with no hour attached: the list a ring has nowhere to put.
+   *
+   * Each carries a box to tick. An unticked one follows you to the next day
+   * and the day after, because a thing that needed doing yesterday still
+   * needs doing, and a list that quietly forgets it is worse than no list.
+   * How long it has been following is said plainly rather than hidden, since
+   * that is usually the useful part.
+   */
   function untimed(events) {
     var list = (events || []).filter(function (e) { return e.untimed; });
+    var open = list.filter(function (e) { return !e.done; });
+
+    function row(e) {
+      var carried = e.carriedDays > 0
+        ? '<span class="st-carried">' +
+          (e.carriedDays === 1 ? 'from yesterday' : e.carriedDays + ' days ago') +
+          '</span>'
+        : '';
+      return '<li class="st-task-row' + (e.done ? ' is-done' : '') + '">' +
+        '<button class="st-check" data-check="' + esc(e.id) + '" role="checkbox" ' +
+          'aria-checked="' + (e.done ? 'true' : 'false') + '" aria-label="' +
+          (e.done ? 'Mark as not done' : 'Mark as done') + '">' +
+          (e.done ? '\u2713' : '') + '</button>' +
+        '<button class="st-task" data-event="' + esc(e.id) + '">' +
+          '<i class="dot" style="background:var(--sc-' + e.colour + ')"></i>' +
+          '<span class="st-task-t">' + esc(e.title || 'Untitled') + '</span>' +
+          carried +
+        '</button></li>';
+    }
+
     return '<div class="st-untimed">' +
-      '<div class="st-untimed-head">No set time' +
+      '<div class="st-untimed-head">' +
+        '<span>No set time' + (open.length ? ' \u00b7 ' + open.length + ' left' : '') + '</span>' +
         '<button class="st-add-untimed" id="st-add-untimed">+ Add</button></div>' +
       (list.length
-        ? '<ul>' + list.map(function (e) {
-            return '<li><button class="st-task" data-event="' + esc(e.id) + '">' +
-                   '<i class="dot" style="background:var(--sc-' + e.colour + ')"></i>' +
-                   '<span>' + esc(e.title || 'Untitled') + '</span></button></li>';
-          }).join('') + '</ul>'
-        : '<p class="st-empty">Anything that needs doing today but not at a particular hour.</p>') +
+        ? '<ul>' + list.map(row).join('') + '</ul>'
+        : '<p class="st-empty">Anything that needs doing today but not at a particular hour. ' +
+          'Left unticked, it will follow you to tomorrow.</p>') +
       '</div>';
   }
 

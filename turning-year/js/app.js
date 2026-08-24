@@ -1726,7 +1726,7 @@
     var out = DayView.render(cycle, d, { hour12: state.hour12, useDST: state.useDST,
       now: new Date(), placeName: state.place ? (state.place.name || state.place.label) : '',
       planets: state.showPlanets, bio: state.showBio, organs: state.showOrgans,
-      schedule: PLAN_ON ? { iso: d.iso, events: Planner.onDate(d.iso) } : null });
+      schedule: PLAN_ON ? { iso: d.iso, events: Planner.onDate(d.iso, todayISO()) } : null });
     $('dayclock').innerHTML = out.svg + '<g id="day-clock-ring"></g>';
     startDayRing();
     if (PLAN_ON) bindSchedule(d.iso);
@@ -2587,7 +2587,7 @@
     var nowF = (now >= b.start.getTime() && now < b.end.getTime())
       ? (now - b.start.getTime()) / b.span : null;
 
-    var evs = PLAN_ON ? Planner.onDate(d.iso) : [];
+    var evs = PLAN_ON ? Planner.onDate(d.iso, todayISO()) : [];
     $('stripwrap').innerHTML =
       '<div class="st-head">' +
         '<div class="st-head-row">' +
@@ -2657,6 +2657,16 @@
           else openScheduleEditor(iso, null, +el.getAttribute('data-hour-min'));
         });
       });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.st-check'), function (el) {
+      el.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var id = el.getAttribute('data-check');
+        Planner.setDone(id, el.getAttribute('aria-checked') !== 'true', iso);
+        drawStrip();
+        drawWheel();
+      });
+    });
+
     var add = $('st-add-untimed');
     if (add) add.addEventListener('click', function (ev) {
       ev.stopPropagation();

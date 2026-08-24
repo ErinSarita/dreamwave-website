@@ -1550,3 +1550,31 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
 .st-head-text { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column;
   align-items: center; text-align: center; }
 .st-head-row .moon-arrow { flex: 0 0 auto; }
+
+/* ---- ticking things off ---- */
+.st-task-row { display: flex; align-items: center; gap: 4px; }
+.st-check {
+  flex: 0 0 auto; width: 26px; height: 26px; margin: 9px 2px 9px 0;
+  border: 1.6px solid var(--ink-3); border-radius: 7px;
+  background: transparent; color: var(--void);
+  font-size: 15px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+/* The box is small but the tap is not: an invisible pad carries it out to the
+ * forty-four pixels a fingertip needs without making the mark itself clumsy. */
+.st-check::before { content: ''; position: absolute; width: 44px; height: 44px;
+  margin: -9px; }
+.st-task-row { position: relative; }
+.st-check[aria-checked="true"] {
+  background: var(--sc-leaf); border-color: var(--sc-leaf); color: #0d0f18;
+}
+.st-task-row.is-done .st-task-t { text-decoration: line-through; opacity: .45; }
+.st-task-row.is-done .dot { opacity: .4; }
+.st-task { flex: 1 1 auto; min-width: 0; }
+.st-task-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-carried {
+  margin-inline-start: auto; flex: 0 0 auto;
+  font-size: 11px; color: var(--sun-deep);
+  border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px;
+}
+.st-untimed-head { gap: 10px; }

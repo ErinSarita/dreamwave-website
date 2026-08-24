@@ -83,6 +83,16 @@
        * hour and never had one. A ring has nowhere to put such a thing, which
        * is why the strip carries a list underneath it. */
       untimed: !!fields.untimed,
+      /* Only meaningful for an untimed thing: a task is done or it is not.
+       * An appointment is not something you tick off, it simply happens. */
+      done: !!fields.done,
+      doneAt: null,
+      /* The day it was ticked off on, which is not always the day it was
+       * written for: a task carried forward is usually finished on some later
+       * morning, and that morning is where it should be seen to have been
+       * done. Kept as a date rather than worked out from `doneAt`, because
+       * only the app knows which day the place's own clock was showing. */
+      doneOn: null,
       startMin: clamp(fields.startMin),
       endMin: clampEnd(fields.endMin),
       colour: COLOURS.indexOf(fields.colour) >= 0 ? fields.colour : 'amber',
@@ -101,10 +111,29 @@
     if ('title'    in fields) e.title = String(fields.title || '').slice(0, 120);
     if ('allDay'   in fields) e.allDay = !!fields.allDay;
     if ('untimed'  in fields) e.untimed = !!fields.untimed;
+    if ('done'     in fields) setDoneOn(e, !!fields.done, fields.doneOn);
     if ('startMin' in fields) e.startMin = clamp(fields.startMin);
     if ('endMin'   in fields) e.endMin = clampEnd(fields.endMin);
     if ('colour'   in fields && COLOURS.indexOf(fields.colour) >= 0) e.colour = fields.colour;
     settleEnd(e);
+    e.updatedAt = now();
+    save();
+    return e;
+  }
+
+  function setDoneOn(e, done, iso) {
+    if (e.done === done) return;
+    e.done = done;
+    e.doneAt = done ? now() : null;
+    e.doneOn = done ? (iso || e.date) : null;
+  }
+
+  /* Ticking a task off. Separate from `update` because it is the one change
+   * that happens in a single tap and should not need the editor at all. */
+  function setDone(id, done, iso) {
+    var e = events[id];
+    if (!e || e.deleted) return null;
+    setDoneOn(e, done, iso);
     e.updatedAt = now();
     save();
     return e;
@@ -148,14 +177,47 @@
    *
    * The record itself is untouched: these are extra fields on a copy. */
   var LOOK_BACK_DAYS = 14;
-  function onDate(iso) {
+
+  /* `todayIso` is the day the clock is actually on, which the planner cannot
+   * work out for itself: the app knows the place's own timezone and this file
+   * deliberately does not. Kept so a view can tell an overdue thing from one
+   * merely written for a later day. */
+  function onDate(iso, todayIso) {
     var out = [];
     Object.keys(events).forEach(function (k) {
       var e = events[k];
       if (e.deleted) return;
 
-      if (e.untimed || e.allDay) {
+      if (e.allDay) {
         if (e.date === iso) out.push(shown(e, e.startMin, e.endMin, false, false));
+        return;
+      }
+
+      if (e.untimed) {
+        if (e.date === iso) { out.push(shown(e, 0, 0, false, false)); return; }
+        /* Finished here, on a day it had been carried into. It stays on this
+         * day rather than vanishing the instant it is ticked, which would be
+         * a strange reward for doing the thing. */
+        if (e.done && e.doneOn === iso) {
+          var f = shown(e, 0, 0, false, false);
+          f.carriedFrom = e.date;
+          f.carriedDays = daysBetween(e.date, iso);
+          out.push(f);
+          return;
+        }
+        /* Not finished, and this day is after the one it was written on: it
+         * comes along. Deliberately not stopped at today. Looking at tomorrow
+         * and seeing nothing, when the whole promise is that an unfinished
+         * thing follows you to tomorrow, reads as the feature being broken.
+         * A task that is still outstanding is still outstanding whichever day
+         * you are looking at. */
+        if (!e.done && e.date < iso) {
+          var c = shown(e, 0, 0, false, false);
+          c.carriedFrom = e.date;
+          c.carriedDays = daysBetween(e.date, iso);
+          c.overdue = !todayIso || iso <= todayIso;
+          out.push(c);
+        }
         return;
       }
 
@@ -222,6 +284,7 @@
     COLOURS: COLOURS,
     load: load, create: create, update: update, remove: remove, get: get,
     onDate: onDate, countOnDate: countOnDate, datesWithEvents: datesWithEvents,
+    setDone: setDone,
     hhmm: hhmm, hhmmDay: hhmmDay, daysPast: daysPast,
     addDays: addDays, daysBetween: daysBetween, parseHHMM: parseHHMM
   };
