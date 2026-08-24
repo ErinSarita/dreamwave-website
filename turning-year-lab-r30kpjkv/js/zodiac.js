@@ -20,9 +20,16 @@
   'use strict';
   var A = global.Astro, P = global.Planets;
   var CX = 350, CY = 350;
-  var R = { signOut: 330, signIn: 292, signLabel: 311,
-            conOut: 288, conIn: 252, conLabel: 270,
-            tick: 248, bodyMax: 236, bodyMin: 150, hub: 132 };
+  /* Three rings now, drawn to one scale so they can be read against each
+   * other directly: the tropical zodiac outside, the sidereal zodiac of
+   * jyotisha in the middle, and the real sky innermost. Each band gets the
+   * same depth, since none of them is truer than the others. They are three
+   * answers to three different questions. */
+  var R = { horizonOut: 350, horizonIn: 240,
+            signOut: 344, signIn: 312, signLabel: 328,
+            sidOut: 308, sidIn: 276, sidLabel: 292,
+            conOut: 272, conIn: 240, conLabel: 256,
+            tick: 236, bodyMax: 224, bodyMin: 144, hub: 128 };
 
   function polar(r, a) {
     var t = (a - 90) * Math.PI / 180;
@@ -114,6 +121,47 @@
      * how a painted clock face reads: nothing asks the head to tilt. */
     var flat = opts.centre === 'earth';
 
+    /* -- which half of the ring is under your feet -------------------------
+     * At any moment exactly half the ecliptic is above the horizon and half
+     * below, and the whole thing swings round once a day as the earth turns.
+     * Without this the wheel says where a planet stands but not whether it
+     * could be seen, which is the difference between a chart and a sky.
+     *
+     * Sampled every two degrees rather than solved: the horizon crossings can
+     * be worked out exactly, but sampling handles the far north, where the
+     * ecliptic can behave oddly, without any special cases.
+     */
+    if (opts.lat !== undefined && opts.lon !== undefined) {
+      var below = [], run = null;
+      for (var h = 0; h <= 360; h += 2) {
+        var he = P.toEquatorial(norm360(h), 0, eps);
+        var down = A.altitudeOf(he.ra, he.dec, jd, opts.lat, opts.lon) < 0;
+        if (down && !run) run = { a1: h, a2: h };
+        else if (down) run.a2 = h;
+        else if (run) { below.push(run); run = null; }
+      }
+      if (run) below.push(run);
+      below.forEach(function (b2) {
+        if (b2.a2 - b2.a1 < 1) return;
+        parts.push('<path d="' + sector(R.horizonIn, R.horizonOut, b2.a1, b2.a2) +
+          '" fill="var(--void)" fill-opacity=".55" pointer-events="none"><title>' +
+          'Below the horizon from here right now</title></path>');
+      });
+
+      /* The two points where the ecliptic cuts the horizon: rising in the
+       * east, setting in the west. Everything between them, the long way over
+       * your head, is the half you could actually look at. */
+      var ang = P.angles(jd, jde, opts.lat, opts.lon);
+      [[ang.ascendant, 'rising'], [norm360(ang.ascendant + 180), 'setting']]
+        .forEach(function (m) {
+          var q1 = polar(R.horizonIn, m[0]), q2 = polar(R.horizonOut, m[0]);
+          parts.push('<path d="M' + f(q1[0]) + ' ' + f(q1[1]) + 'L' + f(q2[0]) + ' ' +
+            f(q2[1]) + '" stroke="var(--sun-bright)" stroke-width="1.4" ' +
+            'stroke-dasharray="5 4" opacity=".8"><title>The horizon: ' + m[1] +
+            '</title></path>');
+        });
+    }
+
     /* -- the twelve signs, equal by construction ------------------------- */
     for (var i = 0; i < 12; i++) {
       var a1 = i * 30, a2 = a1 + 30;
@@ -121,6 +169,23 @@
         '" fill="var(--bg-2)" fill-opacity="' + (i % 2 ? '.85' : '.45') +
         '" stroke="var(--line-soft)" stroke-width=".8"/>');
       parts.push(tangential(R.signLabel, a1 + 15, SIGNS[i], 12.5, 'var(--ink-2)', '500', 30));
+    }
+
+    /* -- the sidereal zodiac: jyotisha ------------------------------------
+     * The same twelve equal signs as above, counted from the fixed stars
+     * rather than from the equinox, so each stays with the stars it was named
+     * for. The whole ring is the tropical one turned back by the ayanamsa,
+     * about twenty-four degrees today: very nearly a whole sign, and exactly
+     * why a Vedic chart so often reads one sign back. */
+    var ayan = P.ayanamsa(T);
+    for (var v = 0; v < 12; v++) {
+      var v1 = norm360(v * 30 + ayan);
+      parts.push('<path d="' + sector(R.sidIn, R.sidOut, v1, v1 + 30) +
+        '" fill="var(--panel)" fill-opacity="' + (v % 2 ? '.8' : '.4') +
+        '" stroke="var(--line-soft)" stroke-width=".8"><title>' +
+        esc(SIGNS[v]) + ' (sidereal \u00b7 jyotisha)</title></path>');
+      parts.push(tangential(R.sidLabel, v1 + 15, SIGNS[v], 11.5,
+                            'var(--sc-iris, #8b7bd8)', '500', 30));
     }
 
     /* -- the thirteen constellations, at the widths they really have ------
@@ -259,7 +324,7 @@
       'font-size="10.5" font-family="var(--mono)" fill="var(--ink-3)">' +
       esc(opts.stamp || '') + '</text>');
     parts.push('<text x="' + CX + '" y="' + (CY + 54) + '" text-anchor="middle" ' +
-      'font-size="10" fill="var(--ink-3)">signs outside · real sky inside</text>');
+      'font-size="9.5" fill="var(--ink-3)">tropical · sidereal · real sky</text>');
 
     return { svg: parts.join(''), precession: pre };
   }

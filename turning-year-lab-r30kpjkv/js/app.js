@@ -793,10 +793,9 @@
       'both zodiacs because twelve divides a year neatly and thirteen does ' +
       'not, but it is there in the sky whether or not it is counted.</p>' +
 
-      '<h4>And the sidereal zodiac, which is not drawn</h4>' +
-      '<p>There is a third division, and it is probably the one you recognise ' +
-      'if you have a Vedic chart. <b>Sidereal</b> \u2014 the zodiac of ' +
-      'jyotisha \u2014 also cuts twelve equal signs, but counts them from the ' +
+      '<h4>The middle ring: the sidereal zodiac, jyotisha</h4>' +
+      '<p>Probably the one you recognise if you have a Vedic chart. It cuts ' +
+      'twelve equal signs like the tropical zodiac, but counts them from the ' +
       '<b>fixed stars</b> instead of from the equinox, so a sign stays with ' +
       'the stars it was named for. Every body in the list below carries both ' +
       'readings.</p>' +
@@ -806,10 +805,20 @@
       'puts it. It grows by roughly fifty arcseconds a year, because the ' +
       'equinox creeps backwards round the ecliptic once every twenty-six ' +
       'thousand years. The two last agreed around the fifth century.</p>' +
-      '<p>So the inner ring resembles a Vedic chart because both are anchored ' +
-      'to the stars, but they are not the same thing: the sidereal zodiac is ' +
-      'twelve equal signs, and the constellations are thirteen unequal ' +
-      'patches of real sky.</p>' +
+      '<p>The middle ring and the inner one both keep to the stars, but they ' +
+      'are not the same thing: the sidereal zodiac is twelve equal signs, and ' +
+      'the constellations are thirteen unequal patches of real sky.</p>' +
+
+      '<h4>The shaded part</h4>' +
+      '<p>Exactly half the ring is above the horizon at any moment and half ' +
+      'below, and the whole thing swings round once a day as the earth turns. ' +
+      'The <b>darkened stretch is the half under your feet</b>: anything ' +
+      'standing in it is there, but you could not see it from here now. The ' +
+      'two dashed marks are where the ecliptic cuts the horizon, rising on ' +
+      'one side and setting on the other.</p>' +
+      '<p>This is why the sun so often sits in the shaded half. At night the ' +
+      'sun is below the horizon by definition, and the earth at the middle is ' +
+      'lit from whichever side the sun is on.</p>' +
       '<button class="mr-info-more" id="zodiac-open">Open the ecliptic wheel</button>' +
       '</div>';
   }
