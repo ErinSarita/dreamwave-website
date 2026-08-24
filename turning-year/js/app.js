@@ -525,7 +525,14 @@
         showScene('day');
       }
     } else {
-      if (!dayScene.hidden) drawWheel();  // refresh note markers set while on the day view
+      /* Always, not only when arriving from the day view.
+       *
+       * The wheel carries marks for things that can be changed elsewhere:
+       * notes, and now everything scheduled. Redrawing it only on the way
+       * back from one particular view meant an event added on Tuesday was
+       * invisible on the year until something else happened to force a
+       * repaint, which reads as the mark never having been added at all. */
+      drawWheel();
       showScene('wheel');
       updateReadout(state.hover || state.day || todayNumber() || 1);
     }
