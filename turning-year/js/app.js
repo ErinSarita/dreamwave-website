@@ -783,16 +783,6 @@
       'seasons and to the earth\u2019s tilt rather than to any star. This is ' +
       'the one Western astrology uses.</p>' +
 
-      '<h4>The inner ring: the constellations</h4>' +
-      '<p>Not a zodiac at all, but the sky itself: the thirteen constellations ' +
-      'the ecliptic really crosses, at their real and very unequal widths. ' +
-      'The sun spends six weeks in front of Virgo and about one in front of ' +
-      'Scorpius. <b>Ophiuchus</b>, the serpent-bearer, is the thirteenth. It ' +
-      'sits between Scorpius and Sagittarius and the sun passes through it ' +
-      'every year, from roughly the last days of November. It is left out of ' +
-      'both zodiacs because twelve divides a year neatly and thirteen does ' +
-      'not, but it is there in the sky whether or not it is counted.</p>' +
-
       '<h4>The middle ring: the sidereal zodiac, jyotisha</h4>' +
       '<p>Probably the one you recognise if you have a Vedic chart. It cuts ' +
       'twelve equal signs like the tropical zodiac, but counts them from the ' +
@@ -805,6 +795,16 @@
       'puts it. It grows by roughly fifty arcseconds a year, because the ' +
       'equinox creeps backwards round the ecliptic once every twenty-six ' +
       'thousand years. The two last agreed around the fifth century.</p>' +
+      '<h4>The inner ring: the constellations</h4>' +
+      '<p>Not a zodiac at all, but the sky itself: the thirteen constellations ' +
+      'the ecliptic really crosses, at their real and very unequal widths. ' +
+      'The sun spends six weeks in front of Virgo and about one in front of ' +
+      'Scorpius. <b>Ophiuchus</b>, the serpent-bearer, is the thirteenth. It ' +
+      'sits between Scorpius and Sagittarius and the sun passes through it ' +
+      'every year, from roughly the last days of November. It is left out of ' +
+      'both zodiacs because twelve divides a year neatly and thirteen does ' +
+      'not, but it is there in the sky whether or not it is counted.</p>' +
+
       '<p>The middle ring and the inner one both keep to the stars, but they ' +
       'are not the same thing: the sidereal zodiac is twelve equal signs, and ' +
       'the constellations are thirteen unequal patches of real sky.</p>' +
@@ -828,6 +828,21 @@
       'round once a day as the earth turns.</p>' +
       '<p>For anything more exact, touch a constellation band or read the ' +
       'list below: both give the bearing and the height above the horizon.</p>' +
+
+      '<h4>Two things that look wrong and are not</h4>' +
+      '<p><b>The rising mark is rarely due east.</b> Only something sitting ' +
+      'exactly on the celestial equator rises due east and sets due west. The ' +
+      'ecliptic is tilted about 23\u00bd\u00b0 to the equator, and your ' +
+      'latitude tips it further, so the point where it meets the horizon ' +
+      'swings back and forth through the day: north of east for part of it, ' +
+      'south of east for the rest. The two marks stay exactly opposite each ' +
+      'other, which is why east-north-east pairs with west-south-west.</p>' +
+      '<p><b>The globe in the middle does not line up with those bearings.</b> ' +
+      'Its <i>north pole</i> is a fact about the earth\u2019s axis, seen from ' +
+      'out in space. The bearings on the rim are directions to face while ' +
+      'standing on the surface at one particular spot. They are two different ' +
+      'frames sharing one picture, and there is no angle at which they ought ' +
+      'to agree.</p>' +
       '<p>This is also why the sun so often sits in the shaded half. At night ' +
       'it is below the horizon by definition, and the earth at the middle is ' +
       'lit from whichever side the sun is on.</p>' +

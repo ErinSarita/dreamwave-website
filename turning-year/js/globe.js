@@ -144,8 +144,15 @@
 
     parts.push('<circle cx="0" cy="0" r="' + R + '" fill="none" stroke="var(--line)" stroke-width="1.2"/>');
 
-    /* North, so the picture can be read. Drawn as a tick at the top of the
-     * axis rather than a letter, which at this size would be a smudge. */
+    /* The earth's north pole, so the globe can be seen to be standing up.
+     *
+     * Labelled at length rather than as a bare "N". On the sky wheel this
+     * globe sits inside, the rim carries compass bearings, and a lone N at
+     * the top of the world invites the reading that it is one of them and
+     * that everything ought to line up with it. It is not and they do not:
+     * the pole is a fact about the earth's axis, the bearings are directions
+     * to face from one spot on its surface, and the two live in different
+     * frames that happen to share a picture. */
     if (mark) {
       var np = projectRaw(90, lon0, lat0, lon0, R);
       if (np.front) {
@@ -153,7 +160,8 @@
           'L' + np.x.toFixed(1) + ' ' + (np.y - 7).toFixed(1) +
           '" stroke="var(--ink-3)" stroke-width="1.2"/>');
         parts.push('<text x="' + np.x.toFixed(1) + '" y="' + (np.y - 11).toFixed(1) +
-          '" text-anchor="middle" font-size="9" fill="var(--ink-3)">N</text>');
+          '" text-anchor="middle" font-size="8" letter-spacing=".5" ' +
+          'fill="var(--ink-3)">north pole</text>');
       }
     }
 
