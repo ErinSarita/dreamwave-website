@@ -165,6 +165,12 @@
            aria-label="The solar system from above, with sight-lines from the earth to the zodiac">
         <g id="orrery"></g>
       </svg>
+      <!-- The same moment from inside it. Its own element because the sky
+           dome is drawn in a different coordinate space from the map, and
+           swapping a viewBox underneath a drawing is a good way to get one
+           that is subtly wrong. -->
+      <svg id="sky-dome-svg" viewBox="-46 -46 792 792" role="img" hidden
+           aria-label="The sky over this place now, with the planets among the constellations"></svg>
       <div class="readout" id="orrery-readout"></div>
     </div>
 
@@ -231,6 +237,7 @@
       </svg>
       <div class="moon-readout" id="moon-readout" aria-live="polite"></div>
     </div>
+
 
 
     <div class="top-tools" id="top-tools">

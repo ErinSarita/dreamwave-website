@@ -163,9 +163,31 @@
         });
     }
 
-    /* -- the middle ------------------------------------------------------ */
+    /* -- the middle ------------------------------------------------------
+     * Two ways of filling it. The window wants words, because it is there to
+     * explain the two rings. The main stage wants the earth, because the
+     * point of standing this wheel up on its own is to say plainly where the
+     * looking is being done from: the old clock faces put the world at the
+     * middle and let the sun and moon go round it, which is what it looks
+     * like from here, and is an honest picture of the view even though it is
+     * not one of the system.
+     */
     parts.push('<circle cx="' + CX + '" cy="' + CY + '" r="' + R.hub +
       '" fill="var(--bg)" opacity=".8"/>');
+
+    if (opts.centre === 'earth' && global.Globe &&
+        opts.lat !== undefined && opts.lon !== undefined) {
+      parts.push('<g transform="translate(' + CX + ' ' + CY + ')">' +
+        global.Globe.render(jde, jd, opts.lat, opts.lon, 74) + '</g>');
+      parts.push('<text x="' + CX + '" y="' + (CY + 100) + '" text-anchor="middle" ' +
+        'font-size="12" font-family="var(--serif)" fill="var(--ink-2)">' +
+        esc(opts.placeName || '') + '</text>');
+      parts.push('<text x="' + CX + '" y="' + (CY + 118) + '" text-anchor="middle" ' +
+        'font-size="10" font-family="var(--mono)" fill="var(--ink-3)">' +
+        esc(opts.stamp || '') + '</text>');
+      return { svg: parts.join(''), precession: pre };
+    }
+
     parts.push('<text x="' + CX + '" y="' + (CY - 16) + '" text-anchor="middle" ' +
       'font-size="11" letter-spacing="1.4" fill="var(--ink-3)">ALONG THE ECLIPTIC</text>');
     parts.push('<text x="' + CX + '" y="' + (CY + 10) + '" text-anchor="middle" ' +

@@ -20,6 +20,7 @@
   var BODY_ON  = !!(global.FEATURES && global.FEATURES.bodyCycles);
   var PLAN_ON  = !!(global.FEATURES && global.FEATURES.planner) && !!global.Planner;
   var STRIP_ON = !!global.StripView;
+  var SKY_ON   = !!(global.Zodiac && global.Zodiac.sky);
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -47,6 +48,10 @@
      * nine-pixel arc, so a phone opens on the strip and a desktop on the
      * dial. Either way the choice is remembered once it is made. */
     dayView: (typeof window !== 'undefined' && window.innerWidth < 760) ? 'strip' : 'dial',
+    /* 'above' or 'here'. The map from outside the system, or the sky as it
+     * actually stands over this place: the same planets, the same instant,
+     * seen from the two positions a person can imagine occupying. */
+    systemView: 'above',
     moonMin: false,     // lunation readout collapsed to a single line
     readoutMin: false,  // year readout collapsed to a single line
     /* The lunar clock counts up from the start of the lunar day, the way a
@@ -80,7 +85,7 @@
   var cycle = null;
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
   var wheelZoom = null, dayZoom = null, moonZoom = null, orbitsZoom = null,
-      monthZoom = null, mensesZoom = null, pregZoom = null;
+      monthZoom = null, mensesZoom = null, pregZoom = null, skyZoom = null;
 
   /* ------------------------------------------------------------ persistence */
   function save() {
@@ -89,6 +94,7 @@
         place: state.place, layers: state.layers, frost: state.frost,
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
         panelMin: state.panelMin, moonMin: state.moonMin, dayView: state.dayView,
+        systemView: state.systemView,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
         monthRun: state.monthRun, monthMin: state.monthMin,
         mensesOpen: state.mensesOpen, mensesMin: state.mensesMin,
@@ -115,6 +121,7 @@
       if (typeof o.useDST === 'boolean') state.useDST = o.useDST;
       if (typeof o.panelMin === 'boolean') state.panelMin = o.panelMin;
       if (o.dayView === 'strip' || o.dayView === 'dial') state.dayView = o.dayView;
+      if (o.systemView === 'above' || o.systemView === 'here') state.systemView = o.systemView;
       if (typeof o.moonMin === 'boolean') state.moonMin = o.moonMin;
       if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
       if (typeof o.lunarCountdown === 'boolean') state.lunarCountdown = o.lunarCountdown;
@@ -387,6 +394,7 @@
     if (level !== 'day') stopDayRing();
     if (level !== 'month') stopMonthNow();
     if (STRIP_ON) setTimeout(syncViewSwitch, 0);
+    if (SKY_ON) setTimeout(syncSystemSwitch, 0);
     if (level !== 'day') stopStripNow();
     if (BODY_ON) {
       if (level !== 'menses' && level !== 'preg') {
@@ -1367,12 +1375,58 @@
     $('zodiac').hidden = false;
   }
 
+  /* `el.hidden = false` is an HTMLElement property, and an <svg> is not one:
+   * on an SVG element the assignment sets a plain JS property and leaves the
+   * hidden *attribute* sitting exactly where it was, so the CSS goes on
+   * hiding a drawing the code believes it has just revealed. The attribute
+   * has to be moved directly.
+   */
+  function showSvg(el, show) {
+    if (!el) return;
+    if (show) el.removeAttribute('hidden');
+    else el.setAttribute('hidden', '');
+  }
+
   /* The widest view there is: the system from above, and the lines of sight
    * that turn it into what we see from inside it. */
   function drawOrbits() {
     if (!global.Orrery || !cycle) return;
     var d = state.day ? cycle.days[state.day - 1] : null;
     var when = momentFor(d);
+
+    /* Looking up rather than down. The sky renderer already exists, drawn for
+     * the ecliptic window; this puts the same picture on the main stage where
+     * it can be lived with rather than glanced at. */
+    if (SKY_ON && state.systemView === 'here') {
+      /* The ecliptic wheel rather than the horizon dome: the earth held at
+       * the middle with the sun, the moon and the planets going round it
+       * against the signs and the constellations behind them. */
+      var skyOut = Zodiac.render({
+        lat: cycle.lat, lon: cycle.lon, when: when, centre: 'earth',
+        placeName: state.place ? (state.place.name || state.place.label) : '',
+        stamp: momentLabel(when)
+      });
+      $('sky-dome-svg').innerHTML = skyOut.svg;
+      showSvg($('sky-dome-svg'), true);
+      showSvg($('orrery-svg'), false);
+      $('orrery-readout').innerHTML =
+        '<div class="o-head">The sky over ' +
+          esc(state.place ? (state.place.name || state.place.label) : 'here') + '</div>' +
+        '<div class="o-when">' + esc(momentLabel(when)) + '</div>' +
+        '<p class="o-note">The earth at the middle, and the sun, the moon and the ' +
+        'planets set round it where they stand from here. <strong>Outside</strong> are ' +
+        'the twelve signs, equal cuts from the equinox. <strong>Inside</strong> is the ' +
+        'sky itself: the constellations the ecliptic really crosses, at their real and ' +
+        'very unequal widths.</p>' +
+        '<p class="o-note">The two rings run about ' +
+        (28.7 - skyOut.precession).toFixed(0) + '\u00b0 out of step, which is why a ' +
+        'planet is so often listed in one sign and standing in front of another.</p>';
+      syncSystemSwitch();
+      return;
+    }
+
+    showSvg($('sky-dome-svg'), false);
+    showSvg($('orrery-svg'), true);
     var out = Orrery.render({ when: when });
     $('orrery').innerHTML = out.svg;
 
@@ -2680,6 +2734,29 @@
     if (STRIP_ON && state.dayView === 'strip') drawStrip(); else drawDay();
   }
 
+  /* The system has two faces: the map from outside, and the sky from inside.
+   * Same planets, same instant, opposite vantage. */
+  function wireSystemSwitch() {
+    if (!SKY_ON || !$('system-switch')) return;
+    function pick(which) {
+      if (state.systemView === which) return;
+      state.systemView = which;
+      save();
+      drawOrbits();
+      syncSystemSwitch();
+      writeHash();
+    }
+    $('system-above').addEventListener('click', function () { pick('above'); });
+    $('system-here').addEventListener('click', function () { pick('here'); });
+    syncSystemSwitch();
+  }
+  function syncSystemSwitch() {
+    if (!SKY_ON || !$('system-switch')) return;
+    $('system-switch').hidden = state.level !== 'orbits';
+    $('system-above').setAttribute('aria-pressed', String(state.systemView === 'above'));
+    $('system-here').setAttribute('aria-pressed', String(state.systemView === 'here'));
+  }
+
   function wireViewSwitch() {
     if (!STRIP_ON) return;
     function pick(which) {
@@ -3443,6 +3520,7 @@
     if (typeof ResizeObserver === 'function' && $('moon-readout')) {
       new ResizeObserver(function () { sizeMoonReserve(); }).observe($('moon-readout'));
     }
+    if (SKY_ON) wireSystemSwitch();
     if (STRIP_ON) {
       wireViewSwitch();
       window.addEventListener('resize', function () { setTimeout(placeViewSwitch, 0); });
@@ -3463,6 +3541,9 @@
     moonZoom = ZoomPan.attach($('moon-svg'), $('scene-moon'));
     monthZoom = ZoomPan.attach($('month-svg'), $('scene-month'));
     orbitsZoom = ZoomPan.attach($('orrery-svg'), $('scene-orbits'));
+    /* The dome is a second drawing on the same stage and needs its own
+     * handle, or the zoom buttons quietly work the map hidden behind it. */
+    if (SKY_ON && $('sky-dome-svg')) skyZoom = ZoomPan.attach($('sky-dome-svg'), $('scene-orbits'));
     if (BODY_ON) {
       mensesZoom = ZoomPan.attach($('menses-svg'), $('scene-menses'));
       pregZoom = ZoomPan.attach($('preg-svg'), $('scene-preg'));
@@ -3474,7 +3555,7 @@
       day: function () { return dayZoom; },
       moon: function () { return moonZoom; },
       month: function () { return monthZoom; },
-      orbits: function () { return orbitsZoom; },
+      orbits: function () { return state.systemView === 'here' ? skyZoom : orbitsZoom; },
       menses: function () { return mensesZoom; },
       preg: function () { return pregZoom; }
     };
