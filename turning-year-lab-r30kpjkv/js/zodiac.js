@@ -25,11 +25,22 @@
    * jyotisha in the middle, and the real sky innermost. Each band gets the
    * same depth, since none of them is truer than the others. They are three
    * answers to three different questions. */
-  var R = { horizonOut: 350, horizonIn: 240,
-            signOut: 344, signIn: 312, signLabel: 328,
-            sidOut: 308, sidIn: 276, sidLabel: 292,
-            conOut: 272, conIn: 240, conLabel: 256,
-            tick: 236, bodyMax: 224, bodyMin: 144, hub: 128 };
+  /* Three rings, drawn to one scale so they can be read against each other:
+   * the tropical zodiac outside, the sidereal zodiac of jyotisha in the
+   * middle, and the real sky innermost.
+   *
+   * The sky ring is given far more depth than the other two because it has
+   * something to show. The zodiacs are bands with names on them; this one
+   * carries the actual stars, and a star needs room away from the ecliptic to
+   * stand where it really stands. */
+  var R = { horizonOut: 384, horizonIn: 226,
+            signOut: 378, signIn: 352, signLabel: 365,
+            sidOut: 348, sidIn: 322, sidLabel: 335,
+            conOut: 318, conIn: 226, conLabel: 234,
+            /* Ecliptic latitude is mapped across this span, so a star sits
+             * off the ecliptic by the amount it is really off it. */
+            starMid: 278, starSpread: 38, starLatMax: 16,
+            tick: 222, bodyMax: 212, bodyMin: 136, hub: 120 };
 
   function polar(r, a) {
     var t = (a - 90) * Math.PI / 180;
@@ -207,7 +218,48 @@
       var label = span < 20 ? (SHORT[BANDS[j][1]] || BANDS[j][1]) : BANDS[j][1];
       if (span > 5) {
         parts.push(tangential(R.conLabel, s1 + span / 2, label,
-          11, 'var(--ink-2)', null, span));
+          10.5, 'var(--ink-3)', null, span));
+      }
+
+      /* -- and the stars themselves ------------------------------------
+       * The pattern anybody would actually recognise, set where it really
+       * is: longitude round the ring, latitude out from the ecliptic. The
+       * catalogue is J2000, so the same precession that moved the band
+       * moves the stars with it and the two stay together. */
+      if (global.ZodiacStars) {
+        var fig = global.ZodiacStars.figure(BANDS[j][1], eps);
+        if (fig) {
+          var pts = fig.stars.map(function (st) {
+            var la = Math.max(-R.starLatMax, Math.min(R.starLatMax, st.lat));
+            var rr = R.starMid + (la / R.starLatMax) * R.starSpread;
+            return { p: polar(rr, norm360(st.lon + pre)), mag: st.mag, name: st.name };
+          });
+
+          fig.lines.forEach(function (run) {
+            if (run.length < 2) return;
+            var d = '';
+            run.forEach(function (ix, k) {
+              var q2 = pts[ix].p;
+              d += (k ? 'L' : 'M') + f(q2[0]) + ' ' + f(q2[1]);
+            });
+            parts.push('<path d="' + d + '" fill="none" stroke="var(--zstar-line)" ' +
+              'stroke-width=".8" opacity=".5" pointer-events="none"/>');
+          });
+
+          pts.forEach(function (q2) {
+            /* Brighter stars bigger, as the eye sorts them. Two discs: a
+             * soft wide one for the glow and a hard small one for the
+             * star, which reads better at this size than a blur filter
+             * and costs nothing. */
+            var rad = Math.max(0.9, Math.min(2.9, 2.9 - 0.38 * (q2.mag - 1)));
+            parts.push('<circle cx="' + f(q2.p[0]) + '" cy="' + f(q2.p[1]) +
+              '" r="' + f(rad * 2.7) + '" fill="var(--zstar-glow)" ' +
+              'opacity=".28" pointer-events="none"/>');
+            parts.push('<circle cx="' + f(q2.p[0]) + '" cy="' + f(q2.p[1]) +
+              '" r="' + f(rad) + '" fill="var(--zstar)"><title>' +
+              esc(q2.name) + '</title></circle>');
+          });
+        }
       }
     }
 

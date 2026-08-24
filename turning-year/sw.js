@@ -14,7 +14,7 @@
  * cache is thrown away and the new files are taken. Without that, visitors
  * would sit on a stale copy forever, which is the classic way these go wrong.
  */
-var VERSION = '20260824-041418';
+var VERSION = '20260824-042434';
 var PREFIX = 'ty-public';          /* deploy.sh rewrites this for the lab */
 var CACHE = PREFIX + '-' + VERSION;
 
@@ -50,6 +50,7 @@ var SHELL = [
   "js/spiral.js",
   "js/stars.js",
   "js/timezone.js",
+  "js/zodiac-stars.js",
   "js/zodiac.js",
   "js/zoompan.js"
 ];
