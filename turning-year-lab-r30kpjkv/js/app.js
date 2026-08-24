@@ -2935,6 +2935,7 @@
     }
     var gap = window.innerHeight - panel.getBoundingClientRect().top + 8;
     sw.style.bottom = Math.round(gap) + 'px';
+    sw.style.insetInlineEnd = '12px';
   }
 
   /* ------------------------------------------------------------- schedule --

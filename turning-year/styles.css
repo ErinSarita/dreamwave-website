@@ -1496,8 +1496,16 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
 .st-empty { font-size: 13px; color: var(--ink-3); margin: 10px 0 0; }
 
 /* ---- the circle/strip switch ---- */
+/* Anchored to the right, never the left.
+ *
+ * The left is where the controls drawer lives, and on a wide screen it is
+ * docked open, so a switch eight pixels inside the stage's left edge sits
+ * with almost nothing between it and the panel. Narrow the window and the
+ * drawer slides over that spot entirely. The right side has only the tool
+ * row above it and the zoom buttons far below, and nothing ever moves into
+ * it, so the switch stays put and stays findable at every width. */
 .view-switch { position: absolute; z-index: 30; display: flex;
-  top: 56px; inset-inline-start: 8px;
+  top: 72px; inset-inline-end: 14px;
   border: 1px solid var(--line); border-radius: 9px; overflow: hidden;
   background: var(--panel, rgba(10,12,20,.8)); backdrop-filter: blur(6px); }
 /* A class that sets `display` beats the browser's own rule for [hidden], so
@@ -1519,8 +1527,10 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
 /* On a narrow screen the trail already owns the top, so the switch drops to
  * the bottom corner, which is where a thumb is anyway. */
 @media (max-width: 760px) {
+  /* Still on the right, and down at the bottom where a thumb reaches. */
   .view-switch { top: auto; bottom: calc(12px + env(safe-area-inset-bottom));
-    inset-inline-start: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+    inset-inline-start: auto; inset-inline-end: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.45); }
   .scene.scene-strip { padding-top: 8px; }
   .st-wrap { padding-bottom: 84px; }
 }
@@ -1602,10 +1612,11 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
  * starts only a little left of where the breadcrumbs begin, so a switch on
  * the same line runs into them, and being the higher of the two it wins and
  * hides part of the trail. Dropping it a row keeps both readable. */
-#system-switch { top: 56px; inset-inline-start: 8px; }
+#system-switch { top: 72px; inset-inline-end: 14px; }
 @media (max-width: 760px) {
   #system-switch { top: auto; bottom: calc(12px + env(safe-area-inset-bottom));
-    inset-inline-start: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+    inset-inline-start: auto; inset-inline-end: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.45); }
 }
 .o-head { font-family: var(--serif); font-size: 17px; }
 .o-when { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
