@@ -1647,3 +1647,54 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
 body[data-theme="day"] { --zstar: #2b2f3d; --zstar-glow: #6b7386; --zstar-line: #7b8296; }
 .sw-analemma { background: var(--sun-bright); width: 7px; height: 13px;
   border-radius: 50% / 40%; }
+
+/* ---- the strip and its list, side by side when there is width for it ----
+ * Below a certain width the list goes under the column, which is the only
+ * thing that works on a phone. Given room, it belongs beside it: the two are
+ * one day's business, and reading them as one glance rather than a scroll is
+ * the whole advantage a wide screen has.
+ */
+.st-columns { display: block; }
+
+/* 1120, not 1000. The panel takes about three hundred pixels of any wide
+ * window, so the strip's real room is the viewport less that, and splitting a
+ * thousand-pixel window leaves the hours about three hundred and sixty to
+ * live in, which is worse than stacking. */
+@media (min-width: 1120px) {
+  .st-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 290px;
+    gap: 0 30px;
+    align-items: start;
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+  .st-columns .st-body { max-width: none; margin: 0; }
+  /* No rule across the top: beside the column it is a neighbour, not a
+   * footnote, and it stays in view while the hours scroll past. */
+  .st-columns .st-untimed {
+    margin: 0; padding-top: 0; border-top: 0;
+    position: sticky; top: 4px; max-width: none;
+  }
+}
+/* The body-clock silhouette. Fill follows the button's colour so it lights up
+   with the rest of the control rather than staying a fixed grey. */
+.ic-body { width: 19px; height: 19px; display: block; fill: currentColor; }
+
+/* ---- what is scheduled, in the year and season readout ---- */
+.r-plans { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft);
+  text-align: start; }
+.r-plan { display: flex; align-items: center; gap: 7px; font-size: 12px;
+  color: var(--ink-2); padding: 2px 0; }
+.r-plan .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.r-plan span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-plan b { margin-inline-start: auto; font-weight: 500; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; font-size: 11px; }
+.r-plan-more { font-size: 11px; color: var(--ink-3); padding: 2px 0 0 15px; }
+/* The readout takes no pointer events so the wheel behind stays hoverable;
+   this one control asks for them back. */
+.r-open-day { pointer-events: auto; display: block; width: 100%; margin-top: 9px;
+  min-height: 36px; padding: 7px 10px; font: inherit; font-size: 12px;
+  background: transparent; color: var(--ink-2); cursor: pointer;
+  border: 1px solid var(--line); border-radius: 8px; }
+.r-open-day:hover { border-color: var(--sun); color: var(--sun); }

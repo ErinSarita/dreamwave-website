@@ -29,7 +29,7 @@
      * the hour it falls on can be read in one glance. It is only drawn in a
      * build that has the planner; when it is, the sun and moon labels move
      * out past the day ring to keep clear of it. */
-    schedIn: 466, schedOut: 500, schedLabelPush: 530,
+    schedIn: 478, schedOut: 506, schedLabelPush: 536,
     /* The band a finger aims at, as against the band the eye sees. Drawn to
      * scale the visible ring is about nine pixels deep on a phone, against the
      * forty-four a touch target is meant to be, so a mouse could hit it and a
@@ -37,7 +37,7 @@
      * ticks to well past the ring, into space that is empty anyway. When the
      * organ band is showing it stops short of it rather than stealing its
      * taps. */
-    schedHitIn: 452, schedHitOut: 566,
+    schedHitIn: 462, schedHitOut: 570,
     eventLabel: 486, hourNum: 462, tickOut: 454, tickIn: 444,
     sunOut: 440, sunIn: 402,
     moonOut: 394, moonIn: 362, moonLabel: 378,
@@ -224,14 +224,30 @@
       if (Math.abs(hv - Math.round(hv)) > 1 / 120) continue;   // half-hour zones
       var h = Math.round(hv) % 24;
       var a = angleOf(inst);
+      /* Three weights, not two: the quarters of the day, the hours between
+       * them, and a short stub at each half hour. The dividing lines were
+       * drawn in --line, which is a hairline meant for grids and all but
+       * disappeared against the night ground, so the hours now use the same
+       * ink as their own numerals and only the half-hour stubs stay faint. */
       var major = h % 6 === 0;
-      var p1 = polar(major ? R.tickIn - 6 : R.tickIn, a), p2 = polar(R.tickOut, a);
+      var p1 = polar(major ? R.tickIn - 8 : R.tickIn, a), p2 = polar(R.tickOut, a);
       parts.push('<path d="M' + f(p1[0]) + ' ' + f(p1[1]) + 'L' + f(p2[0]) + ' ' + f(p2[1]) +
-                 '" stroke="var(--line)" stroke-width="' + (major ? 1.6 : .8) + '"/>');
+                 '" stroke="var(--ink-' + (major ? '2' : '3') + ')" stroke-width="' +
+                 (major ? 2.2 : 1.3) + '" stroke-linecap="round" opacity="' +
+                 (major ? '.95' : '.75') + '"/>');
+
+      /* The half hour after this one: a stub only, no number. It divides the
+       * hour without competing with it. */
+      var hp = polar(R.tickIn + 3, a + 7.5), hp2 = polar(R.tickOut, a + 7.5);
+      parts.push('<path d="M' + f(hp[0]) + ' ' + f(hp[1]) + 'L' + f(hp2[0]) + ' ' + f(hp2[1]) +
+                 '" stroke="var(--ink-3)" stroke-width=".9" stroke-linecap="round" ' +
+                 'opacity=".45"/>');
+
       var np = polar(R.hourNum, a);
       parts.push('<text x="' + f(np[0]) + '" y="' + f(np[1]) + '" text-anchor="middle" ' +
-                 'dominant-baseline="middle" font-size="' + (major ? 14 : 10) + '" fill="var(--ink-' +
-                 (major ? '2' : '3') + ')" transform="rotate(' + f(tangent(a)) + ' ' + f(np[0]) + ' ' +
+                 'dominant-baseline="middle" font-size="' + (major ? 18 : 14) + '" ' +
+                 'font-weight="' + (major ? '700' : '600') + '" fill="' +
+                 (major ? 'var(--ink)' : 'var(--ink-2)') + '" transform="rotate(' + f(tangent(a)) + ' ' + f(np[0]) + ' ' +
                  f(np[1]) + ')">' + (opts.hour12 ? hour12(h) : (h === 0 ? 24 : h)) + '</text>');
     }
 

@@ -45,7 +45,7 @@
     moonHitIn: 199,
     decOut: 138, decZero: 100, decIn: 62,
     frostOut: 175, frostIn: 165,
-    noteMark: 157,
+    noteMark: 157, planMark: 146,
     hitIn: 150, hitOut: 462
   };
 
@@ -676,6 +676,29 @@
         var p = polar(R.noteMark, dayAngle(cycle, d.n));
         parts.push('<circle cx="' + fmt(p[0]) + '" cy="' + fmt(p[1]) + '" r="2.8" ' +
                    'fill="var(--sun-bright)" opacity=".85"/>');
+      });
+    }
+
+    /* -- days with something scheduled ------------------------------------
+     * A dot on the day's own strip, in the colour of the first thing on it,
+     * so a year of plans can be seen filling up at a glance. It sits just
+     * inside the noted-day ring and takes the same hover the day strip does,
+     * which is why it is drawn without pointer events of its own: the sector
+     * underneath is already the target, and a dot small enough to be quiet is
+     * far too small to aim at. */
+    if (opts.plannedDays) {
+      cycle.days.forEach(function (d) {
+        var list = opts.plannedDays[d.iso];
+        if (!list || !list.length) return;
+        var p = polar(R.planMark, dayAngle(cycle, d.n));
+        parts.push('<circle cx="' + fmt(p[0]) + '" cy="' + fmt(p[1]) + '" r="3" ' +
+                   'fill="var(--sc-' + (list[0].colour || 'amber') + ')" ' +
+                   'stroke="var(--bg)" stroke-width=".8" pointer-events="none"/>');
+        if (list.length > 1) {
+          parts.push('<circle cx="' + fmt(p[0]) + '" cy="' + fmt(p[1]) + '" r="5.4" ' +
+                     'fill="none" stroke="var(--sc-' + (list[0].colour || 'amber') +
+                     ')" stroke-width=".8" opacity=".5" pointer-events="none"/>');
+        }
       });
     }
 

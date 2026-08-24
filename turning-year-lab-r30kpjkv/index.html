@@ -27,7 +27,7 @@
      right, and still do their work on a device that reports them. -->
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TY Lab">
-<link rel="stylesheet" href="styles.css?v=20260824-150522">
+<link rel="stylesheet" href="styles.css?v=20260824-155151">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='none' stroke='%23e8b84b' stroke-width='7'/><circle cx='50' cy='50' r='16' fill='%23e8b84b'/></svg>">
 </head>
 <body data-theme="night">
@@ -298,8 +298,17 @@
               aria-label="Full and new moons" title="Full and new moons">&#9789;</button>
       <button id="tool-stations" class="tool-btn" aria-haspopup="true" aria-expanded="false"
               aria-label="Solstices, equinoxes and midseasons" title="Solstices, equinoxes and midseasons">&#10037;</button>
+      <!-- Drawn rather than typed. The standing-person characters are
+           emoji-presentation in most fonts and arrive as coloured tiles, the
+           same trouble the zodiac glyphs gave, and a silhouette is a shape
+           anyway. Deliberately unisex: a head, shoulders and a trunk, with
+           nothing that reads as one body rather than another. -->
       <button id="tool-body" class="tool-btn day-only" aria-pressed="false"
-              aria-label="Body clock" title="Body clock">&#9776;</button>
+              aria-label="Body clock" title="Body clock"><svg class="ic-body"
+              viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="6" r="3.1"/>
+        <path d="M12 10.4c-3.1 0-5.2 1.9-5.2 4.7v3.1c0 .6.5 1.1 1.1 1.1h1.3l.4 3.4c.05.5.5.9 1 .9h2.8c.5 0 .95-.4 1-.9l.4-3.4h1.3c.6 0 1.1-.5 1.1-1.1v-3.1c0-2.8-2.1-4.7-5.2-4.7z"/>
+      </svg></button>
     </div>
     <div class="tool-panel" id="tool-panel" hidden>
       <div class="tool-panel-head">
@@ -819,41 +828,41 @@
   </div>
 </div>
 
-<script src="js/features.js?v=20260824-150522"></script>
-<script src="js/astro.js?v=20260824-150522"></script>
-<script src="js/astro-sun.js?v=20260824-150522"></script>
-<script src="js/astro-moon.js?v=20260824-150522"></script>
-<script src="js/astro-riseset.js?v=20260824-150522"></script>
-<script src="js/timezone.js?v=20260824-150522"></script>
-<script src="js/clock.js?v=20260824-150522"></script>
-<script src="js/places.js?v=20260824-150522"></script>
-<script src="js/lunar.js?v=20260824-150522"></script>
-<script src="js/cycle.js?v=20260824-150522"></script>
-<script src="js/moon-glyph.js?v=20260824-150522"></script>
-<script src="js/stars.js?v=20260824-150522"></script>
-<script src="js/globe.js?v=20260824-150522"></script>
-<script src="js/render-wheel.js?v=20260824-150522"></script>
-<script src="js/planets.js?v=20260824-150522"></script>
-<script src="js/body.js?v=20260824-150522"></script>
-<script src="js/zodiac-stars.js?v=20260824-150522"></script>
-<script src="js/zodiac.js?v=20260824-150522"></script>
-<script src="js/orrery.js?v=20260824-150522"></script>
+<script src="js/features.js?v=20260824-155151"></script>
+<script src="js/astro.js?v=20260824-155151"></script>
+<script src="js/astro-sun.js?v=20260824-155151"></script>
+<script src="js/astro-moon.js?v=20260824-155151"></script>
+<script src="js/astro-riseset.js?v=20260824-155151"></script>
+<script src="js/timezone.js?v=20260824-155151"></script>
+<script src="js/clock.js?v=20260824-155151"></script>
+<script src="js/places.js?v=20260824-155151"></script>
+<script src="js/lunar.js?v=20260824-155151"></script>
+<script src="js/cycle.js?v=20260824-155151"></script>
+<script src="js/moon-glyph.js?v=20260824-155151"></script>
+<script src="js/stars.js?v=20260824-155151"></script>
+<script src="js/globe.js?v=20260824-155151"></script>
+<script src="js/render-wheel.js?v=20260824-155151"></script>
+<script src="js/planets.js?v=20260824-155151"></script>
+<script src="js/body.js?v=20260824-155151"></script>
+<script src="js/zodiac-stars.js?v=20260824-155151"></script>
+<script src="js/zodiac.js?v=20260824-155151"></script>
+<script src="js/orrery.js?v=20260824-155151"></script>
 <!-- private:start -->
-<script src="js/planner.js?v=20260824-150522"></script>
-<script src="js/menses.js?v=20260824-150522"></script>
-<script src="js/pregnancy.js?v=20260824-150522"></script>
-<script src="js/render-pregnancy.js?v=20260824-150522"></script>
-<script src="js/render-menses.js?v=20260824-150522"></script>
+<script src="js/planner.js?v=20260824-155151"></script>
+<script src="js/menses.js?v=20260824-155151"></script>
+<script src="js/pregnancy.js?v=20260824-155151"></script>
+<script src="js/render-pregnancy.js?v=20260824-155151"></script>
+<script src="js/render-menses.js?v=20260824-155151"></script>
 <!-- private:end -->
-<script src="js/render-month.js?v=20260824-150522"></script>
-<script src="js/render-day.js?v=20260824-150522"></script>
+<script src="js/render-month.js?v=20260824-155151"></script>
+<script src="js/render-day.js?v=20260824-155151"></script>
 <!-- private:start -->
-<script src="js/render-strip.js?v=20260824-150522"></script>
+<script src="js/render-strip.js?v=20260824-155151"></script>
 <!-- private:end -->
-<script src="js/render-moon.js?v=20260824-150522"></script>
-<script src="js/spiral.js?v=20260824-150522"></script>
-<script src="js/zoompan.js?v=20260824-150522"></script>
-<script src="js/app.js?v=20260824-150522"></script>
-<script src="js/register-sw.js?v=20260824-150522"></script>
+<script src="js/render-moon.js?v=20260824-155151"></script>
+<script src="js/spiral.js?v=20260824-155151"></script>
+<script src="js/zoompan.js?v=20260824-155151"></script>
+<script src="js/app.js?v=20260824-155151"></script>
+<script src="js/register-sw.js?v=20260824-155151"></script>
 </body>
 </html>

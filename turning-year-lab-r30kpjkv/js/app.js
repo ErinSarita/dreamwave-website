@@ -305,11 +305,26 @@
   /* Which scene swap is the current one, so an older timer cannot undo it. */
   var sceneSwapId = 0, sceneSwap = 0;
 
+  /* Everything scheduled across this whole cycle, keyed by date. Built once
+   * per draw rather than per day: a year is three hundred and sixty-five
+   * lookups either way, and one pass over the events is cheaper than that. */
+  function plannedByDate() {
+    var out = {};
+    if (!PLAN_ON || !cycle) return out;
+    var today = todayISO();
+    cycle.days.forEach(function (d) {
+      var list = Planner.onDate(d.iso, today);
+      if (list.length) out[d.iso] = list;
+    });
+    return out;
+  }
+
   /* ----------------------------------------------------------------- render */
   function drawWheel() {
     var svg = $('wheel-svg');
     var opts = { layers: state.layers, todayN: todayNumber(),
                  notedDays: NOTES_ON ? notes : null,
+                 plannedDays: PLAN_ON ? plannedByDate() : null,
                  useDST: state.useDST };
     $('wheel').innerHTML = WheelView.render(cycle, opts);
     $('hud').innerHTML = WheelView.renderSky(cycle, opts);
@@ -605,11 +620,34 @@
       station = '<div class="r-station" style="color:var(--frost)">' +
         (d.frost.kind === 'last-frost' ? 'Last spring frost' : 'First autumn frost') + '</div>';
     }
+    /* What is on this day, listed under the sky figures. Hovering the wheel
+     * already brings a day here, so the plans belong in the same place rather
+     * than in a tooltip that a finger cannot summon. */
+    var planned = '';
+    if (PLAN_ON) {
+      var pl = Planner.onDate(d.iso, todayISO());
+      if (pl.length) {
+        planned = '<div class="r-plans">' + pl.slice(0, 4).map(function (e) {
+          return '<div class="r-plan">' +
+            '<i class="dot" style="background:var(--sc-' + e.colour + ')"></i>' +
+            '<span>' + esc(e.title || 'Untitled') + '</span>' +
+            '<b>' + (e.untimed ? '' : e.allDay ? 'all day'
+              : Planner.hhmm(e.dayStartMin != null ? e.dayStartMin : e.startMin)) +
+            '</b></div>';
+        }).join('') +
+        (pl.length > 4 ? '<div class="r-plan-more">and ' + (pl.length - 4) + ' more</div>' : '') +
+        '<button class="r-open-day" id="readout-open-day">Open this day</button></div>';
+      }
+    }
+
     var hint = state.level === 'year'
       ? 'Click to open this season'
       : state.level === 'season' ? 'Click a day for its 24 hours' : '';
 
     $('readout').className = 'readout' + (state.readoutMin ? ' min' : '');
+    /* The readout refuses the pointer so the wheel behind stays hoverable, so
+     * anything inside it that is meant to be pressed has to ask for events
+     * back. Wired after the markup lands, below. */
     $('readout').innerHTML =
       '<button class="panel-min" id="readout-min" aria-label="' +
         (state.readoutMin ? 'Expand day details' : 'Minimise day details') +
@@ -623,6 +661,7 @@
       '<div class="r-date">' + TZ.formatDate(cycle.tz, d.date) + '</div>' +
       station +
       '<div class="r-rows">' + rows.join('') + '</div>' +
+      planned +
       '<div class="r-moon">' + MoonGlyph.svg(d.moonAge, 20) +
         '<span>' + Math.round(d.moonIllumination * 100) + '% lit · ' + d.moonPhaseName + '</span></div>' +
       (d.lunation ? '<div class="r-lunation">' + lunationLabel(d) + '</div>' : '') +
@@ -635,6 +674,17 @@
       e.stopPropagation();
       state.readoutMin = !state.readoutMin;
       save(); updateReadout(d.n);
+    });
+    /* Straight to the day, from wherever the wheel is being read. Without it
+     * the plans could be seen from the year and only reached by zooming in
+     * through the season, which is a long way round to a thing already in
+     * front of you. */
+    var openDay = $('readout-open-day');
+    if (openDay) openDay.addEventListener('click', function (e) {
+      e.stopPropagation();
+      state.day = d.n;
+      state.season = WheelView.seasonOfDay(cycle, d.n);
+      setLevel('day');
     });
   }
   function row(k, v) { return '<div><span>' + k + '</span> · ' + v + '</div>'; }
@@ -1266,7 +1316,18 @@
     state.monthRun = idx;
     var pack = monthDaysFor(idx);
     var run = pack.run;
-    var out = MonthView.render(cycle, run, { days: pack.days, layers: state.layers });
+    /* Everything scheduled across the month, keyed by date, so the fan can
+     * lay each event on its own day's hour axis. */
+    var mev = null;
+    if (PLAN_ON) {
+      mev = {};
+      pack.days.forEach(function (d) {
+        var list = Planner.onDate(d.iso, todayISO());
+        if (list.length) mev[d.iso] = list;
+      });
+    }
+    var out = MonthView.render(cycle, run, { days: pack.days, layers: state.layers,
+                                             events: mev });
     $('monthfan').innerHTML = out.svg;
 
     $('month-head').innerHTML =
@@ -2732,11 +2793,13 @@
             'title="Next day">\u203a</button>' +
         '</div>' +
       '</div>' +
-      StripView.render(b, {
-        events: evs, hour12: state.hour12, nowFraction: nowF,
-        organs: state.showOrgans ? organBandsForStrip(b) : null
-      }) +
-      (PLAN_ON ? StripView.untimed(evs) : '');
+      '<div class="st-columns">' +
+        StripView.render(b, {
+          events: evs, hour12: state.hour12, nowFraction: nowF,
+          organs: state.showOrgans ? organBandsForStrip(b) : null
+        }) +
+        (PLAN_ON ? StripView.untimed(evs) : '') +
+      '</div>';
 
     bindDayStep();
     if (PLAN_ON) bindStrip(d.iso);

@@ -132,6 +132,40 @@
         '" fill="url(#mv-gold)" opacity=".92"/>');
     });
 
+    /* -- what is scheduled, laid on the same hour axis --------------------
+     * The band is already a twenty-four hour axis: midnight at the inner
+     * edge, midnight again at the outer. So an event needs no new geometry,
+     * only its own two hours turned into two radii and its day's wedge for
+     * the width. It lands exactly over the stretch of light or dark it
+     * actually falls in, which is the point of putting it here at all.
+     *
+     * Clipped to the day being drawn, so something that runs past midnight
+     * marks the end of one column and the start of the next rather than
+     * spilling out of the ring.
+     */
+    if (opts.events) {
+      days.forEach(function (d, i) {
+        var list = opts.events[d.iso];
+        if (!list || !list.length) return;
+        var a1 = edge(i), a2 = edge(i + 1);
+        list.forEach(function (e) {
+          if (e.untimed) return;
+          var h1 = e.allDay ? 0 : (e.dayStartMin != null ? e.dayStartMin : e.startMin) / 60;
+          var h2 = e.allDay ? HOUR_SPAN
+                            : (e.dayEndMin != null ? e.dayEndMin : e.endMin) / 60;
+          h1 = Math.max(0, Math.min(HOUR_SPAN, h1));
+          h2 = Math.max(0, Math.min(HOUR_SPAN, h2));
+          if (h2 - h1 < 0.12) h2 = h1 + 0.12;      // a moment still gets a mark
+          parts.push('<path class="mv-ev" d="' +
+            sector(hourR(h1), hourR(h2), a1, a2) +
+            '" fill="var(--sc-' + (e.colour || 'amber') + ')" fill-opacity=".78" ' +
+            'stroke="var(--sc-' + (e.colour || 'amber') + ')" stroke-width=".6"><title>' +
+            esc(e.title || 'Untitled') + (e.allDay ? ' · all day' : '') +
+            '</title></path>');
+        });
+      });
+    }
+
     /* the hours themselves, so the block can be read against a clock */
     for (var hh = 0; hh <= HOUR_SPAN; hh += 1) {
       var major = hh % 6 === 0;
