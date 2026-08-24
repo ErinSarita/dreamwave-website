@@ -136,6 +136,44 @@
         (b.n === 'Earth' ? 'Earth (you)' : b.n) + '</text>');
     });
 
+    /* -- the moon, set beside the earth ----------------------------------
+     * Emphatically not to scale. At this scale the moon's orbit is a quarter
+     * of a pixel across and the moon itself is invisible, so drawing it
+     * honestly would be drawing nothing at all.
+     *
+     * What it is placed by is real: the direction from the earth to the moon,
+     * which is the moon's ecliptic longitude, and the shape it is drawn with,
+     * which is its actual phase tonight. Those are the two things this view
+     * can say about the moon that are worth saying, and both are true. The
+     * distance is the only lie, and it is a plain one.
+     *
+     * The phase follows from the geometry the rest of the map shows: the moon
+     * is lit from the sun, so the further round its longitude sits from the
+     * sun's, the fuller it looks. Full moon stands opposite the sun, which on
+     * this map means on the far side of the earth from the middle. */
+    if (global.MoonGlyph) {
+      var msun = A.sunPosition(jde), mmoon = A.moonPosition(jde);
+      var mAge = norm360(mmoon.longitude - msun.longitude);
+      var mDir = (mmoon.longitude - 90) * Math.PI / 180;
+      var mR = 26;                                   // a readable stand-off
+      var mx = e.xy[0] + mR * Math.cos(mDir);
+      var my = e.xy[1] + mR * Math.sin(mDir);
+      var lit = (1 - Math.cos(mAge * Math.PI / 180)) / 2;
+      var NAMES = ['New', 'Waxing crescent', 'First quarter', 'Waxing gibbous',
+                   'Full', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
+      parts.push('<g><title>Moon \u00b7 ' +
+        esc(NAMES[Math.floor(((mAge + 22.5) % 360) / 45)]) + ' \u00b7 ' +
+        Math.round(lit * 100) + '% lit \u00b7 sun at ' + Math.round(mAge) +
+        '\u00b0 \u00b7 drawn well away from the earth so the phase can be seen' +
+        '</title>' +
+        '<path d="M' + f(e.xy[0]) + ' ' + f(e.xy[1]) + 'L' + f(mx) + ' ' + f(my) +
+        '" stroke="var(--moon)" stroke-width=".8" opacity=".35"/>' +
+        '<circle cx="' + f(mx) + '" cy="' + f(my) + '" r="7" ' +
+        'fill="var(--moon-shadow, #2a2d3d)" stroke="var(--moon)" stroke-width=".8"/>' +
+        '<path d="' + global.MoonGlyph.litPath(mx, my, 7, mAge) +
+        '" fill="var(--moon)"/></g>');
+    }
+
     return { svg: parts.join(''), earthLon: e.lon,
              au: AU, distances: pos };
   }

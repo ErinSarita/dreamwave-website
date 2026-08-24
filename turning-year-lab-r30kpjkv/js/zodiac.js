@@ -234,13 +234,10 @@
        * across the middle, so the horizon can be drawn as what it is: one
        * line, with the sky above it and the ground below. */
       if (spin) {
-        var e1 = polar(R.horizonOut + 6, asc);
-        var e2 = polar(R.horizonOut + 6, norm360(asc + 180));
+        var e1 = polar(R.horizonOut + 14, asc);
+        var e2 = polar(R.horizonOut + 14, norm360(asc + 180));
         parts.push('<path d="M' + f(e1[0]) + ' ' + f(e1[1]) + 'L' + f(e2[0]) + ' ' +
-          f(e2[1]) + '" stroke="var(--sun-bright)" stroke-width="1.5" opacity=".75"/>');
-        parts.push('<text x="' + f(CX) + '" y="' + f(CY - 6) + '" text-anchor="middle" ' +
-          'font-size="9.5" letter-spacing="1.6" fill="var(--sun-bright)" ' +
-          'opacity=".65">THE HORIZON</text>');
+          f(e2[1]) + '" stroke="var(--sun-bright)" stroke-width="1.6" opacity=".8"/>');
       }
 
       [{ a: asc, k: 'Rising' },
@@ -450,17 +447,42 @@
     parts.push('<circle cx="' + CX + '" cy="' + CY + '" r="' + R.hub +
       '" fill="var(--bg)" opacity=".8"/>');
 
-    if (opts.centre === 'earth' && global.Globe &&
-        opts.lat !== undefined && opts.lon !== undefined) {
-      parts.push('<g transform="translate(' + CX + ' ' + CY + ')">' +
-        global.Globe.render(jde, jd, 18, opts.lon, 74,
-                            { lat: opts.lat, lon: opts.lon }) + '</g>');
-      parts.push('<text x="' + CX + '" y="' + (CY + 100) + '" text-anchor="middle" ' +
+    if (opts.centre === 'earth') {
+      /* No globe here.
+       *
+       * A sphere at the middle of a picture whose whole organising idea is a
+       * flat horizon asks the eye to hold two incompatible things at once: a
+       * world seen from space, and a view from a spot on its surface. It also
+       * sat squarely across the horizon line and broke it in half, which is
+       * the one line that has to read as continuous for the drawing to make
+       * sense. So the middle is left flat and the line runs clean through it.
+       *
+       * The place is still named, and marked with a small point, because
+       * where the looking is done from is the premise of the whole picture. */
+      parts.push('<circle cx="' + CX + '" cy="' + CY + '" r="3.5" ' +
+        'fill="var(--today)" stroke="var(--bg)" stroke-width="1.2"/>');
+      parts.push('<text x="' + CX + '" y="' + (CY + 22) + '" text-anchor="middle" ' +
         'font-size="12" font-family="var(--serif)" fill="var(--ink-2)">' +
         esc(opts.placeName || '') + '</text>');
-      parts.push('<text x="' + CX + '" y="' + (CY + 118) + '" text-anchor="middle" ' +
+      parts.push('<text x="' + CX + '" y="' + (CY + 39) + '" text-anchor="middle" ' +
         'font-size="10" font-family="var(--mono)" fill="var(--ink-3)">' +
         esc(opts.stamp || '') + '</text>');
+
+      /* Which half is which, said in words rather than left to the shading. */
+      if (spin) {
+        parts.push('<text x="' + CX + '" y="' + (CY - 74) + '" text-anchor="middle" ' +
+          'font-size="10" letter-spacing="1.8" fill="var(--sun-bright)" ' +
+          'opacity=".6">ABOVE THE HORIZON</text>');
+        parts.push('<text x="' + CX + '" y="' + (CY - 60) + '" text-anchor="middle" ' +
+          'font-size="9" letter-spacing=".4" fill="var(--ink-3)" ' +
+          'opacity=".8">in view now</text>');
+        parts.push('<text x="' + CX + '" y="' + (CY + 74) + '" text-anchor="middle" ' +
+          'font-size="10" letter-spacing="1.8" fill="var(--ink-3)" ' +
+          'opacity=".6">BELOW THE HORIZON</text>');
+        parts.push('<text x="' + CX + '" y="' + (CY + 88) + '" text-anchor="middle" ' +
+          'font-size="9" letter-spacing=".4" fill="var(--ink-3)" ' +
+          'opacity=".55">out of view, under your feet</text>');
+      }
       return { svg: parts.join(''), precession: pre };
     }
 
