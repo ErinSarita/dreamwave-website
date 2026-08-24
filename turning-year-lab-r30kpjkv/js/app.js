@@ -1394,41 +1394,23 @@
     var d = state.day ? cycle.days[state.day - 1] : null;
     var when = momentFor(d);
 
-    /* Looking up rather than down. The sky renderer already exists, drawn for
-     * the ecliptic window; this puts the same picture on the main stage where
-     * it can be lived with rather than glanced at. */
+    /* Two pictures of one moment. Only the drawing changes here: the panel
+     * underneath is the same list of where each body stands, because that is
+     * the same fact whichever side of it you are standing on, and having it
+     * change shape with the picture would suggest otherwise. */
     if (SKY_ON && state.systemView === 'here') {
-      /* The ecliptic wheel rather than the horizon dome: the earth held at
-       * the middle with the sun, the moon and the planets going round it
-       * against the signs and the constellations behind them. */
-      var skyOut = Zodiac.render({
+      showSvg($('orrery-svg'), false);
+      showSvg($('sky-dome-svg'), true);
+      $('sky-dome-svg').innerHTML = Zodiac.render({
         lat: cycle.lat, lon: cycle.lon, when: when, centre: 'earth',
         placeName: state.place ? (state.place.name || state.place.label) : '',
         stamp: momentLabel(when)
-      });
-      $('sky-dome-svg').innerHTML = skyOut.svg;
-      showSvg($('sky-dome-svg'), true);
-      showSvg($('orrery-svg'), false);
-      $('orrery-readout').innerHTML =
-        '<div class="o-head">The sky over ' +
-          esc(state.place ? (state.place.name || state.place.label) : 'here') + '</div>' +
-        '<div class="o-when">' + esc(momentLabel(when)) + '</div>' +
-        '<p class="o-note">The earth at the middle, and the sun, the moon and the ' +
-        'planets set round it where they stand from here. <strong>Outside</strong> are ' +
-        'the twelve signs, equal cuts from the equinox. <strong>Inside</strong> is the ' +
-        'sky itself: the constellations the ecliptic really crosses, at their real and ' +
-        'very unequal widths.</p>' +
-        '<p class="o-note">The two rings run about ' +
-        (28.7 - skyOut.precession).toFixed(0) + '\u00b0 out of step, which is why a ' +
-        'planet is so often listed in one sign and standing in front of another.</p>';
-      syncSystemSwitch();
-      return;
+      }).svg;
+    } else {
+      showSvg($('sky-dome-svg'), false);
+      showSvg($('orrery-svg'), true);
+      $('orrery').innerHTML = Orrery.render({ when: when }).svg;
     }
-
-    showSvg($('sky-dome-svg'), false);
-    showSvg($('orrery-svg'), true);
-    var out = Orrery.render({ when: when });
-    $('orrery').innerHTML = out.svg;
 
     /* What the map means from inside it. Each dashed line on the drawing ends
      * somewhere, and this says where: the sign it lands in, and the
@@ -1438,19 +1420,52 @@
      * month because it is near, not because it is high. */
     var jdw = A.jdFromDate(when), jdew = A.jdeFromJD(jdw);
     var prew = Planets.precession((jdew - 2451545) / 36525);
+    var epsw = A.sunPosition(jdew).obliquity;
+
+    /* Sixteen points rather than eight: "south-west" covers forty-five
+     * degrees of sky, which is a lot of horizon to search. */
+    var COMPASS = ['N','NNE','NE','ENE','E','ESE','SE','SSE',
+                   'S','SSW','SW','WSW','W','WNW','NW','NNW'];
+    function compass(az) {
+      return COMPASS[Math.round(A.norm360(az) / 22.5) % 16];
+    }
+
+    /* Where to actually look, which is the one thing neither ring can say.
+     * A direction for something under the horizon would be a direction to
+     * look at the ground, so that case says so instead.
+     *
+     * Taken on the ecliptic itself: the planets stray a degree or two off it
+     * in latitude, which moves a bearing by less than the width of a hand
+     * held up at arm's length and does not change where to turn. */
+    function whereToLook(lon) {
+      var eq = Planets.toEquatorial(A.norm360(lon), 0, epsw);
+      var alt = A.altitudeOf(eq.ra, eq.dec, jdw, cycle.lat, cycle.lon);
+      var az = A.azimuthOf(eq.ra, eq.dec, jdw, cycle.lat, cycle.lon);
+      if (alt < -0.5) return { up: false, text: 'below the horizon' };
+      return { up: true, text: compass(az) + ' &#183; ' + Math.round(alt) + '&#176; up' };
+    }
+
     function orow(glyph, name, lon, colour, au) {
       var sg = Planets.signOf(lon);
       var con = Planets.constellationOf(((lon - prew) % 360 + 360) % 360);
+      var look = whereToLook(lon);
       return '<div class="o-pl">' +
         '<i class="o-pl-g" style="color:' + colour + '">' + glyph + '</i>' +
         '<span class="o-pl-n">' + name + '</span>' +
         '<b>' + sg.name + ' ' + sg.degree.toFixed(1) + '&#176;</b>' +
         '<span class="o-pl-c">in ' + con +
-        (au ? ' &#183; ' + au.toFixed(2) + ' AU from earth' : '') + '</span></div>';
+        (au ? ' &#183; ' + au.toFixed(2) + ' AU from earth' : '') + '</span>' +
+        '<span class="o-pl-look' + (look.up ? ' is-up' : '') + '">' +
+        look.text + '</span></div>';
     }
     var sunp = A.sunPosition(jdew);
     var rows = orow('\u2609', 'Sun', A.norm360(sunp.longitude), 'var(--sun-bright)',
                     sunp.distanceAU);
+    /* The moon goes round the earth, not the sun, so it has no orbit on the
+     * map from above. It is emphatically in the sky from here, though, and
+     * the panel is shared, so it belongs on the list either way. */
+    var moonp = A.moonPosition(jdew);
+    rows += orow('\u263D', 'Moon', A.norm360(moonp.longitude), 'var(--moon)', null);
     Planets.ORDER.forEach(function (nm) {
       var pp = Planets.position(nm, jdew);
       rows += orow(Planets.GLYPH[nm], nm, pp.longitude, PLANET_COLOUR[nm], pp.distanceAU);

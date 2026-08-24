@@ -1486,7 +1486,7 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
 
 /* ---- the circle/strip switch ---- */
 .view-switch { position: absolute; z-index: 30; display: flex;
-  top: 8px; inset-inline-start: 8px;
+  top: 56px; inset-inline-start: 8px;
   border: 1px solid var(--line); border-radius: 9px; overflow: hidden;
   background: var(--panel, rgba(10,12,20,.8)); backdrop-filter: blur(6px); }
 /* A class that sets `display` beats the browser's own rule for [hidden], so
@@ -1587,7 +1587,11 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
 }
 .scene-orbits #sky-dome-svg[hidden] { display: none; }
 .scene-orbits #orrery-svg[hidden] { display: none; }
-#system-switch { top: 8px; inset-inline-start: 8px; }
+/* Sits under the trail rather than beside it. On a wide screen the stage
+ * starts only a little left of where the breadcrumbs begin, so a switch on
+ * the same line runs into them, and being the higher of the two it wins and
+ * hides part of the trail. Dropping it a row keeps both readable. */
+#system-switch { top: 56px; inset-inline-start: 8px; }
 @media (max-width: 760px) {
   #system-switch { top: auto; bottom: calc(12px + env(safe-area-inset-bottom));
     inset-inline-start: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
@@ -1596,3 +1600,10 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
 .o-when { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
 .o-note { font-size: 12px; color: var(--ink-2); margin: 9px 0 0; line-height: 1.45;
   text-align: start; }
+
+/* Where to turn to actually see it, which is the one thing neither ring can
+ * say. Dimmed when the thing is under the horizon, since a bearing to
+ * something below your feet is not a direction to look in. */
+.o-pl-look { grid-column: 2 / -1; font-size: 11px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; opacity: .55; }
+.o-pl-look.is-up { color: var(--sun-bright); opacity: 1; }

@@ -42,12 +42,36 @@
            'L' + f(p3[0]) + ' ' + f(p3[1]) +
            'A' + r1 + ' ' + r1 + ' 0 ' + big + ' 0 ' + f(p4[0]) + ' ' + f(p4[1]) + 'Z';
   }
-  /* Text laid along the ring, kept upright on the lower half. */
-  function tangential(r, a, txt, size, fill, weight) {
+  /* Text set in its band. Two ways of doing it.
+   *
+   * Laid along the ring, curving with it, is the handsomer arrangement and
+   * the one the printed charts use. It also asks the reader to tilt their
+   * head, and on the small stage a name at the bottom of the wheel ends up
+   * the wrong way up however it is turned.
+   *
+   * Set flat, every name reads straight off the page at a glance, which is
+   * what the old painted clock faces did: the figures went round, the words
+   * stayed level. `flat` chooses the second.
+   */
+  /* A name set along its own band, turned with the ring and kept the right
+   * way up on the lower half, which is how the season names sit on the year
+   * wheel. `span` is how many degrees of ring the name has to live in: the
+   * size is brought down until the word fits inside its own slice rather than
+   * running out over its neighbours. Scorpius owns six degrees and cannot be
+   * given the same lettering as Virgo, which owns forty-four.
+   *
+   * The 0.55 is the width of a character as a fraction of its height for this
+   * face, near enough for fitting text nobody is going to measure. */
+  function tangential(r, a, txt, size, fill, weight, span) {
     var p = polar(r, a);
+    if (span) {
+      var room = 2 * Math.PI * r * (span / 360) * 0.86;   // a little padding
+      var need = String(txt).length * size * 0.55;
+      if (need > room) size = Math.max(7, size * room / need);
+    }
     var rot = a > 180 ? a + 90 : a - 90;
     return '<text x="' + f(p[0]) + '" y="' + f(p[1]) + '" text-anchor="middle" ' +
-      'dominant-baseline="middle" font-size="' + size + '" fill="' + fill + '"' +
+      'dominant-baseline="middle" font-size="' + f(size) + '" fill="' + fill + '"' +
       (weight ? ' font-weight="' + weight + '"' : '') +
       ' transform="rotate(' + f(rot) + ' ' + f(p[0]) + ' ' + f(p[1]) + ')">' +
       esc(txt) + '</text>';
@@ -73,6 +97,9 @@
     var T = (jde - 2451545) / 36525, pre = P.precession(T);
     var eps = A.sunPosition(jde).obliquity;
     var parts = [];
+    /* On the main stage the words lie flat and only the wheel turns, which is
+     * how a painted clock face reads: nothing asks the head to tilt. */
+    var flat = opts.centre === 'earth';
 
     /* -- the twelve signs, equal by construction ------------------------- */
     for (var i = 0; i < 12; i++) {
@@ -80,7 +107,7 @@
       parts.push('<path d="' + sector(R.signIn, R.signOut, a1, a2) +
         '" fill="var(--bg-2)" fill-opacity="' + (i % 2 ? '.85' : '.45') +
         '" stroke="var(--line-soft)" stroke-width=".8"/>');
-      parts.push(tangential(R.signLabel, a1 + 15, SIGNS[i], 12.5, 'var(--ink-2)', '500'));
+      parts.push(tangential(R.signLabel, a1 + 15, SIGNS[i], 12.5, 'var(--ink-2)', '500', 30));
     }
 
     /* -- the thirteen constellations, at the widths they really have ------
@@ -102,7 +129,7 @@
       var label = span < 20 ? (SHORT[BANDS[j][1]] || BANDS[j][1]) : BANDS[j][1];
       if (span > 5) {
         parts.push(tangential(R.conLabel, s1 + span / 2, label,
-          span < 14 ? 9 : 11, 'var(--ink-2)'));
+          11, 'var(--ink-2)', null, span));
       }
     }
 
@@ -145,7 +172,15 @@
         '<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="12" fill="var(--bg)" ' +
         'stroke="' + b.c + '" stroke-width="1.2"/>' +
         '<text x="' + f(q[0]) + '" y="' + f(q[1] + 0.5) + '" text-anchor="middle" ' +
-        'dominant-baseline="middle" font-size="13" fill="' + b.c + '">' + b.g + '</text></g>');
+        'dominant-baseline="middle" font-size="13" fill="' + b.c + '">' + b.g + '</text>' +
+        /* The glyph alone asks the reader to know their symbols. Set the name
+         * under it, level, so the wheel can simply be read. */
+        (flat
+          ? '<text x="' + f(q[0]) + '" y="' + f(q[1] + 22) + '" text-anchor="middle" ' +
+            'dominant-baseline="middle" font-size="9" fill="' + b.c +
+            '" opacity=".9">' + esc(b.n) + '</text>'
+          : '') +
+        '</g>');
     });
 
     /* -- the two angles, marked on the rim where they actually fall ------- */
