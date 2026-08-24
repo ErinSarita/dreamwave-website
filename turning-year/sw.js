@@ -14,45 +14,45 @@
  * cache is thrown away and the new files are taken. Without that, visitors
  * would sit on a stale copy forever, which is the classic way these go wrong.
  */
-var VERSION = '20260824-143014';
+var VERSION = '20260824-144030';
 var PREFIX = 'ty-public';          /* deploy.sh rewrites this for the lab */
 var CACHE = PREFIX + '-' + VERSION;
 
 var SHELL = [
   "./",
   "index.html",
-  "styles.css",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",
   "icons/apple-touch-icon.png",
-  "js/app.js",
-  "js/astro-moon.js",
-  "js/astro-riseset.js",
-  "js/astro-sun.js",
-  "js/astro.js",
-  "js/body.js",
-  "js/clock.js",
-  "js/cycle.js",
-  "js/features.js",
-  "js/globe.js",
-  "js/lunar.js",
-  "js/moon-glyph.js",
-  "js/orrery.js",
-  "js/places.js",
-  "js/planets.js",
-  "js/register-sw.js",
-  "js/render-day.js",
-  "js/render-month.js",
-  "js/render-moon.js",
-  "js/render-wheel.js",
-  "js/spiral.js",
-  "js/stars.js",
-  "js/timezone.js",
-  "js/zodiac-stars.js",
-  "js/zodiac.js",
-  "js/zoompan.js"
+  "styles.css?v=20260824-144030",
+  "js/app.js?v=20260824-144030",
+  "js/astro-moon.js?v=20260824-144030",
+  "js/astro-riseset.js?v=20260824-144030",
+  "js/astro-sun.js?v=20260824-144030",
+  "js/astro.js?v=20260824-144030",
+  "js/body.js?v=20260824-144030",
+  "js/clock.js?v=20260824-144030",
+  "js/cycle.js?v=20260824-144030",
+  "js/features.js?v=20260824-144030",
+  "js/globe.js?v=20260824-144030",
+  "js/lunar.js?v=20260824-144030",
+  "js/moon-glyph.js?v=20260824-144030",
+  "js/orrery.js?v=20260824-144030",
+  "js/places.js?v=20260824-144030",
+  "js/planets.js?v=20260824-144030",
+  "js/register-sw.js?v=20260824-144030",
+  "js/render-day.js?v=20260824-144030",
+  "js/render-month.js?v=20260824-144030",
+  "js/render-moon.js?v=20260824-144030",
+  "js/render-wheel.js?v=20260824-144030",
+  "js/spiral.js?v=20260824-144030",
+  "js/stars.js?v=20260824-144030",
+  "js/timezone.js?v=20260824-144030",
+  "js/zodiac-stars.js?v=20260824-144030",
+  "js/zodiac.js?v=20260824-144030",
+  "js/zoompan.js?v=20260824-144030"
 ];
 
 /* Each file is taken separately rather than in one lot. addAll is all or
