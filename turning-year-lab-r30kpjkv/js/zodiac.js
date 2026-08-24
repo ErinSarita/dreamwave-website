@@ -42,8 +42,23 @@
             starMid: 278, starSpread: 38, starLatMax: 16,
             tick: 222, bodyMax: 212, bodyMin: 136, hub: 120 };
 
+  /* How far the whole wheel is turned before anything is drawn.
+   *
+   * Left at nought, the wheel is a map of ecliptic longitude and the horizon
+   * falls wherever the hour puts it, which is almost never level. Set so that
+   * the rising point lands on the left and the setting point on the right,
+   * the horizon becomes a straight line across the middle, everything above
+   * it is up in the sky and everything below it is under your feet. The same
+   * drawing, read as a sky instead of as a chart.
+   *
+   * Every angle in this file goes through polar(), so turning the frame here
+   * turns the rings, the stars, the planets and the marks together, and the
+   * labels keep their own upright logic because they read the turned angle
+   * too. */
+  var spin = 0;
+
   function polar(r, a) {
-    var t = (a - 90) * Math.PI / 180;
+    var t = (a + spin - 90) * Math.PI / 180;
     return [CX + r * Math.cos(t), CY + r * Math.sin(t)];
   }
   function f(n) { return Math.round(n * 100) / 100; }
@@ -100,7 +115,8 @@
      * Between ninety and two hundred and seventy degrees the same rotation
      * would leave the word upside down, so it is turned the rest of the way,
      * which is exactly what the year wheel does with its season names. */
-    var rot = (a > 90 && a < 270) ? a + 180 : a;
+    var ad = ((a + spin) % 360 + 360) % 360;
+    var rot = (ad > 90 && ad < 270) ? ad + 180 : ad;
     return '<text x="' + f(p[0]) + '" y="' + f(p[1]) + '" text-anchor="middle" ' +
       'dominant-baseline="middle" font-size="' + f(size) + '" fill="' + fill + '"' +
       (weight ? ' font-weight="' + weight + '"' : '') +
@@ -131,6 +147,33 @@
     /* On the main stage the words lie flat and only the wheel turns, which is
      * how a painted clock face reads: nothing asks the head to tilt. */
     var flat = opts.centre === 'earth';
+
+    /* Stand the horizon level. Facing south, which is the way you look to see
+     * the zodiac from these latitudes, the sky rises on your left and sets on
+     * your right, so the rising point goes to the left of the picture and the
+     * setting point to the right. Longitude then runs clockwise from the left,
+     * over the top and down to the right, which puts the whole visible half
+     * above the line and the whole hidden half below it. */
+    spin = 0;
+    if (opts.orient === 'horizon' && opts.lat !== undefined && opts.lon !== undefined) {
+      var a0 = P.angles(A.jdFromDate(when), jde, opts.lat, opts.lon);
+      /* The rising point goes to the right, not the left, and the reason is
+       * worth setting down because the first attempt got it backwards.
+       *
+       * Longitude runs clockwise on this wheel. The ascendant is the longitude
+       * that is rising *now*, and it climbs as the night goes on, so anything
+       * already up has a longitude *lower* than it. Put the ascendant on the
+       * left and those lower longitudes fall anticlockwise, into the bottom of
+       * the picture, and the whole visible sky ends up under the line. Put it
+       * on the right and they sweep up over the top, which is where the sky
+       * belongs.
+       *
+       * The cost is that the picture is handed like a chart held up over your
+       * head rather than laid on a table, so the rising side is on the right.
+       * Both marks say outright which they are and which way they bear, so
+       * there is nothing to guess at. */
+      spin = norm360(90 - a0.ascendant);
+    }
 
     /* -- the horizon, and where to actually look ---------------------------
      *
@@ -186,6 +229,19 @@
       /* The meridian point is whichever of the midheaven or its opposite is
        * actually up; below the pole it is the other one that shows. */
       if (altAzOf(mid).alt < 0) mid = norm360(mid + 180);
+
+      /* With the frame turned, the two horizon points sit opposite each other
+       * across the middle, so the horizon can be drawn as what it is: one
+       * line, with the sky above it and the ground below. */
+      if (spin) {
+        var e1 = polar(R.horizonOut + 6, asc);
+        var e2 = polar(R.horizonOut + 6, norm360(asc + 180));
+        parts.push('<path d="M' + f(e1[0]) + ' ' + f(e1[1]) + 'L' + f(e2[0]) + ' ' +
+          f(e2[1]) + '" stroke="var(--sun-bright)" stroke-width="1.5" opacity=".75"/>');
+        parts.push('<text x="' + f(CX) + '" y="' + f(CY - 6) + '" text-anchor="middle" ' +
+          'font-size="9.5" letter-spacing="1.6" fill="var(--sun-bright)" ' +
+          'opacity=".65">THE HORIZON</text>');
+      }
 
       [{ a: asc, k: 'Rising' },
        { a: mid, k: 'Highest' },

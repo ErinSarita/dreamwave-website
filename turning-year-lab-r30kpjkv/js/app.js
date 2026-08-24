@@ -810,18 +810,21 @@
       'the constellations are thirteen unequal patches of real sky.</p>' +
 
       '<h4>How to read it as a sky</h4>' +
-      '<p>Worth being plain about this: the angle round this wheel is ' +
-      '<b>position along the ecliptic</b>, not a compass bearing. Where a ' +
-      'constellation sits on the ring does not by itself tell you which way ' +
-      'to turn. Three marks do that.</p>' +
-      '<p>The ecliptic cuts the horizon at two opposite points, one ' +
-      '<b>rising</b> and one <b>setting</b>, and the highest point of the ' +
-      'visible half is marked <b>highest</b>. Each carries the bearing it ' +
-      'really has right now. Read from the rising mark round to the setting ' +
-      'mark and you are sweeping from one horizon, up over your head, and ' +
-      'down to the other: near the rising mark means low and climbing, near ' +
-      'the highest mark means at its best, near the setting mark means on ' +
-      'its way down.</p>' +
+      '<p>The whole wheel is turned so that <b>the horizon lies flat across ' +
+      'the middle</b>. Everything drawn above that line is up in the sky ' +
+      'right now. Everything below it is under your feet. The line is real: ' +
+      'it is where the ecliptic actually cuts your horizon from this place at ' +
+      'this minute, and it swings round through the day as the earth turns.</p>' +
+      '<p>The ecliptic meets the horizon at two opposite points, marked ' +
+      '<b>rising</b> and <b>setting</b>, and the top of the visible half is ' +
+      'marked <b>highest</b>. Each carries the bearing it really has. So ' +
+      'height on the picture is height in the sky: near the line means low ' +
+      'and near the top means overhead.</p>' +
+      '<p>One oddity to know about. The rising side is on the <b>right</b>. ' +
+      'That is the handedness of a chart held up over your head rather than ' +
+      'laid on a table, and it falls out of putting the visible half on top, ' +
+      'which is the more useful of the two things. Both marks name themselves ' +
+      'and give their compass bearing, so there is nothing to guess.</p>' +
       '<p>The <b>darkened stretch is the half under your feet</b>. Anything ' +
       'standing in it is really there, but not to be seen from here now. ' +
       'Exactly half is shaded at every moment, and the whole ring swings ' +
@@ -1492,6 +1495,7 @@
       showSvg($('sky-dome-svg'), true);
       $('sky-dome-svg').innerHTML = Zodiac.render({
         lat: cycle.lat, lon: cycle.lon, when: when, centre: 'earth',
+        orient: 'horizon',
         placeName: state.place ? (state.place.name || state.place.label) : '',
         stamp: momentLabel(when)
       }).svg;

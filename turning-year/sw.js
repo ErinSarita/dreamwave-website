@@ -14,7 +14,7 @@
  * cache is thrown away and the new files are taken. Without that, visitors
  * would sit on a stale copy forever, which is the classic way these go wrong.
  */
-var VERSION = '20260824-043624';
+var VERSION = '20260824-044811';
 var PREFIX = 'ty-public';          /* deploy.sh rewrites this for the lab */
 var CACHE = PREFIX + '-' + VERSION;
 
