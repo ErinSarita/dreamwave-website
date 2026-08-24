@@ -53,6 +53,11 @@
      * actually stands over this place: the same planets, the same instant,
      * seen from the two positions a person can imagine occupying. */
     systemView: 'above',
+    /* 'common' or 'own'. The blueprint is a reference worth keeping: it is
+     * how somebody learns what the phases are before they have any dates of
+     * their own, and it stays reachable afterwards. Recording dates offers a
+     * second thing to look at, it does not replace the first. */
+    mensesView: 'common',
     moonMin: false,     // lunation readout collapsed to a single line
     readoutMin: false,  // year readout collapsed to a single line
     /* The lunar clock counts up from the start of the lunar day, the way a
@@ -94,7 +99,7 @@
         place: state.place, layers: state.layers, frost: state.frost,
         theme: state.theme, hour12: state.hour12, useDST: state.useDST,
         panelMin: state.panelMin, moonMin: state.moonMin, dayView: state.dayView,
-        systemView: state.systemView,
+        systemView: state.systemView, mensesView: state.mensesView,
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
         monthRun: state.monthRun, monthMin: state.monthMin,
         mensesOpen: state.mensesOpen, mensesMin: state.mensesMin,
@@ -121,6 +126,7 @@
       if (typeof o.panelMin === 'boolean') state.panelMin = o.panelMin;
       if (o.dayView === 'strip' || o.dayView === 'dial') state.dayView = o.dayView;
       if (o.systemView === 'above' || o.systemView === 'here') state.systemView = o.systemView;
+      if (o.mensesView === 'common' || o.mensesView === 'own') state.mensesView = o.mensesView;
       if (typeof o.moonMin === 'boolean') state.moonMin = o.moonMin;
       if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
       if (typeof o.lunarCountdown === 'boolean') state.lunarCountdown = o.lunarCountdown;
@@ -920,10 +926,13 @@
      * wheel already scales its phases to any length; all it ever lacked was a
      * real number to scale to. */
     var log = LOG_ON ? MensesLog.summary(todayISO()) : null;
-    var length = (log && log.typicalLength) || Menses.BLUEPRINT_DAYS;
-    var isOwn = !!(log && log.typicalLength);
-    var todayDay = (log && log.dayOfCycle && log.dayOfCycle <= length)
+    var hasOwn = !!(log && log.typicalLength);
+    /* Hers only when there is one and it is the one asked for. */
+    var isOwn = hasOwn && state.mensesView === 'own';
+    var length = isOwn ? log.typicalLength : Menses.BLUEPRINT_DAYS;
+    var todayDay = (isOwn && log.dayOfCycle && log.dayOfCycle <= length)
       ? log.dayOfCycle : null;
+    syncMensesSwitch(hasOwn);
     /* No day-frame: the moon ring falls back to the idealised progression,
      * dark at day one and full at the middle, which is the whole point of an
      * example. Real dates arrive with real logged days. */
@@ -2977,6 +2986,27 @@
    * what those dates actually support. Deliberately plain: a date, a list,
    * and numbers that say how sure they are.
    */
+  function syncMensesSwitch(hasOwn) {
+    var sw = $('menses-switch');
+    if (!sw) return;
+    sw.hidden = !hasOwn;
+    if (!hasOwn) { state.mensesView = 'common'; return; }
+    $('mn-view-common').setAttribute('aria-pressed', String(state.mensesView !== 'own'));
+    $('mn-view-own').setAttribute('aria-pressed', String(state.mensesView === 'own'));
+  }
+
+  function wireMensesSwitch() {
+    if (!$('menses-switch')) return;
+    function pick(which) {
+      if (state.mensesView === which) return;
+      state.mensesView = which;
+      save();
+      drawMenses();
+    }
+    $('mn-view-common').addEventListener('click', function () { pick('common'); });
+    $('mn-view-own').addEventListener('click', function () { pick('own'); });
+  }
+
   function markMensesToday(day, length) {
     var el = $('menseswheel').querySelector('.mn-day[data-day="' + day + '"]');
     if (!el) return;
@@ -3065,7 +3095,12 @@
     $('mn-add').addEventListener('click', function () {
       var v = $('mn-date').value;
       if (!v) return;
+      var before = MensesLog.summary(todayISO()).typicalLength;
       MensesLog.add(v);
+      /* The moment a length becomes knowable, show it: that is the thing
+       * she has just done the work to see. Afterwards the switch is hers. */
+      if (!before && MensesLog.summary(todayISO()).typicalLength) state.mensesView = 'own';
+      save();
       drawMenses();
       drawWheel();
     });
@@ -3574,7 +3609,7 @@
 
     /* The wheel is opened from the sidebar rather than the trail: it is not a
      * zoom level of the year, it is a different clock entirely. */
-    if (BODY_ON) wireBodyCycles();
+    if (BODY_ON) { wireBodyCycles(); wireMensesSwitch(); }
 
     $('month-prev').addEventListener('click', function () {
       state.monthRun = Math.max(0, (state.monthRun || 0) - 1); drawMonth(); writeHash();

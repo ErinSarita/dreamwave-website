@@ -1742,3 +1742,9 @@ body[data-theme="day"] { --zstar: #2b2f3d; --zstar-glow: #6b7386; --zstar-line: 
 
 /* Today's own place on the ring. */
 .mn-day.is-today { stroke: var(--sun-bright); stroke-width: 2; }
+/* The cycle scene's own switch, clear of the flyout on the left. */
+.mn-switch { top: 56px; inset-inline-end: 8px; inset-inline-start: auto; }
+@media (max-width: 760px) {
+  .mn-switch { top: auto; bottom: calc(12px + env(safe-area-inset-bottom));
+    inset-inline-end: 12px; inset-inline-start: auto; }
+}
