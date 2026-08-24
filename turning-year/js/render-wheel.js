@@ -161,23 +161,81 @@
     parts.push('<path d="' + annulus(R.bandIn, R.bandOut) + '" fill-rule="evenodd" ' +
                'fill="var(--night)" stroke="none"/>');
 
-    /* -- gold daylight wave ---------------------------------------------- */
-    var wave = [], curve = [];
-    for (var i = 0; i < N; i++) {
-      var d = cycle.days[i];
-      var frac = Math.max(0, Math.min(1, d.daylightHours / 24));
-      var r = R.bandIn + frac * (R.bandOut - R.bandIn);
-      var p = polar(r, dayAngle(cycle, d.n));
-      wave.push((i === 0 ? 'M' : 'L') + fmt(p[0]) + ' ' + fmt(p[1]));
-      curve.push([p[0], p[1]]);
-    }
+    /* -- the day band, two ways of spending the same radius ---------------
+     *
+     * The radius across this band can carry one of two things, and they are
+     * different questions rather than different drawings of one.
+     *
+     *   As a length. Each day's gold reaches out by however many hours of
+     *   light it had, so the edge traces the year's own curve: the wave that
+     *   rises to the summer solstice and falls away again. It answers how
+     *   much light, and it answers it at a glance across all three hundred
+     *   and sixty-five days.
+     *
+     *   As an hour axis. Midnight at the inner edge, midnight again at the
+     *   outer, so the gold sits where the light actually falls, held between
+     *   the dark of early morning and the dark of evening. It answers when,
+     *   and it is the same axis the month fan and the day strip already use,
+     *   which is what lets anything scheduled be drawn at its real hour here
+     *   too.
+     *
+     * The first is the shape the year makes. The second is the shape a day
+     * makes, three hundred and sixty-five times over. Neither is truer, so
+     * both are kept and the switch chooses.
+     */
+    var hourR = function (h) {
+      return R.bandIn + Math.max(0, Math.min(24, h)) / 24 * (R.bandOut - R.bandIn);
+    };
     var inner = 'M' + (CX - R.bandIn) + ' ' + CY +
       'a' + R.bandIn + ' ' + R.bandIn + ' 0 1 0 ' + (2 * R.bandIn) + ' 0' +
       'a' + R.bandIn + ' ' + R.bandIn + ' 0 1 0 ' + (-2 * R.bandIn) + ' 0Z';
-    parts.push('<path d="' + wave.join('') + 'Z' + inner + '" fill-rule="evenodd" ' +
-               'fill="url(#g-gold)" opacity=".92"/>');
-    parts.push('<path d="' + wave.join('') + 'Z" fill="none" stroke="var(--sun-bright)" ' +
-               'stroke-width="1.4" stroke-linejoin="round" opacity=".85"/>');
+    var curve = [];
+
+    if (opts.layers.scheduleBand) {
+      /* Each day is its own wedge of gold between its sunrise and its
+       * sunset, so across the ring the two edges of the block are the year's
+       * sunrise and sunset curves, drifting apart into summer and closing
+       * again into winter. */
+      for (var i = 0; i < N; i++) {
+        var d = cycle.days[i];
+        var a1 = dayEdge(cycle, d.n), a2 = dayEdge(cycle, d.n + 1);
+        var lit = null;
+        if (d.sunAlwaysUp) lit = [0, 24];
+        else if (!d.sunAlwaysDown && d.sunrise && d.sunset) {
+          var sr = TZ.hoursIntoDay(cycle.tz, d.sunrise);
+          var ss = TZ.hoursIntoDay(cycle.tz, d.sunset);
+          if (ss > sr) lit = [sr, ss];
+        }
+        /* The curve the readout's hover marker follows still wants a point
+         * per day; the middle of the light will do, and on a polar night
+         * there is no light so it sits on the inner edge. */
+        var midH = lit ? (lit[0] + lit[1]) / 2 : 0;
+        curve.push(polar(hourR(midH), dayAngle(cycle, d.n)));
+        if (!lit) continue;
+        parts.push('<path d="' + sector(hourR(lit[0]), hourR(lit[1]), a1, a2) +
+                   '" fill="url(#g-gold)" opacity=".92"/>');
+      }
+      /* Noon, and the two ends of the day, so the block can be read against
+       * a clock rather than only against itself. */
+      [[6, '6'], [12, 'noon'], [18, '18']].forEach(function (m) {
+        parts.push('<circle cx="500" cy="500" r="' + fmt(hourR(m[0])) + '" fill="none" ' +
+                   'stroke="var(--line-soft)" stroke-width="' + (m[0] === 12 ? '1' : '.8') +
+                   '" stroke-dasharray="' + (m[0] === 12 ? '4 5' : '2 6') + '"/>');
+      });
+    } else {
+      var wave = [];
+      for (i = 0; i < N; i++) {
+        d = cycle.days[i];
+        var frac = Math.max(0, Math.min(1, d.daylightHours / 24));
+        var p = polar(R.bandIn + frac * (R.bandOut - R.bandIn), dayAngle(cycle, d.n));
+        wave.push((i === 0 ? 'M' : 'L') + fmt(p[0]) + ' ' + fmt(p[1]));
+        curve.push([p[0], p[1]]);
+      }
+      parts.push('<path d="' + wave.join('') + 'Z' + inner + '" fill-rule="evenodd" ' +
+                 'fill="url(#g-gold)" opacity=".92"/>');
+      parts.push('<path d="' + wave.join('') + 'Z" fill="none" stroke="var(--sun-bright)" ' +
+                 'stroke-width="1.4" stroke-linejoin="round" opacity=".85"/>');
+    }
 
     /* -- daily separators, faint until zoomed ---------------------------- */
     var seps = [];
@@ -686,7 +744,26 @@
      * which is why it is drawn without pointer events of its own: the sector
      * underneath is already the target, and a dot small enough to be quiet is
      * far too small to aim at. */
-    if (opts.plannedDays) {
+    if (opts.plannedDays && opts.layers.scheduleBand) {
+      /* With the band on its hour axis, an event can be drawn where it
+       * actually sits: its own two hours across its own day's wedge, the
+       * same way the month fan does it. The dot below is for the other
+       * arrangement, where there is no hour to put it at. */
+      cycle.days.forEach(function (d) {
+        var list = opts.plannedDays[d.iso];
+        if (!list || !list.length) return;
+        var e1 = dayEdge(cycle, d.n), e2 = dayEdge(cycle, d.n + 1);
+        list.forEach(function (e) {
+          if (e.untimed) return;
+          var h1 = e.allDay ? 0 : (e.dayStartMin != null ? e.dayStartMin : e.startMin) / 60;
+          var h2 = e.allDay ? 24 : (e.dayEndMin != null ? e.dayEndMin : e.endMin) / 60;
+          if (h2 - h1 < 0.25) h2 = h1 + 0.25;
+          parts.push('<path d="' + sector(hourR(h1), hourR(h2), e1, e2) +
+                     '" fill="var(--sc-' + (e.colour || 'amber') + ')" fill-opacity=".85" ' +
+                     'pointer-events="none"/>');
+        });
+      });
+    } else if (opts.plannedDays) {
       cycle.days.forEach(function (d) {
         var list = opts.plannedDays[d.iso];
         if (!list || !list.length) return;

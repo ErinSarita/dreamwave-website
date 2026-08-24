@@ -33,7 +33,7 @@
     day: null,
     hover: null,
     noteOpen: false,
-    layers: { moon: true, terms: false, frost: true, months: true, seasons: true, traditional: false, skyClock: true, declination: true, analemma: false },
+    layers: { moon: true, terms: false, frost: true, months: true, seasons: true, traditional: false, skyClock: true, declination: true, analemma: false, scheduleBand: false },
     frost: { last: null, first: null },
     theme: 'night',
     hour12: false,
@@ -3356,7 +3356,8 @@
     [['lay-moon', 'moon'], ['lay-terms', 'terms'], ['lay-frost', 'frost'],
      ['lay-months', 'months'], ['lay-seasons', 'seasons'],
      ['lay-trad', 'traditional'], ['lay-sky', 'skyClock'],
-     ['lay-dec', 'declination'], ['lay-analemma', 'analemma']].forEach(function (pair) {
+     ['lay-dec', 'declination'], ['lay-analemma', 'analemma'],
+     ['lay-schedband', 'scheduleBand']].forEach(function (pair) {
       var el = $(pair[0]);
       el.checked = state.layers[pair[1]];
       el.addEventListener('change', function () {
