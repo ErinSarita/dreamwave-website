@@ -18,6 +18,7 @@
    * written, and no part of the interface offers it. See features.js. */
   var NOTES_ON = !!(global.FEATURES && global.FEATURES.notes);
   var BODY_ON  = !!(global.FEATURES && global.FEATURES.bodyCycles);
+  var LOG_ON   = BODY_ON && !!global.MensesLog;
   var PLAN_ON  = !!(global.FEATURES && global.FEATURES.planner) && !!global.Planner;
   var STRIP_ON = !!global.StripView;
   var SKY_ON   = !!(global.Zodiac && global.Zodiac.sky);
@@ -914,12 +915,21 @@
    */
   function drawMenses() {
     if (!global.MensesView || !cycle) return;
-    var length = Menses.BLUEPRINT_DAYS;
+
+    /* Her own cycle if there is one on record, the blueprint if not. The
+     * wheel already scales its phases to any length; all it ever lacked was a
+     * real number to scale to. */
+    var log = LOG_ON ? MensesLog.summary(todayISO()) : null;
+    var length = (log && log.typicalLength) || Menses.BLUEPRINT_DAYS;
+    var isOwn = !!(log && log.typicalLength);
+    var todayDay = (log && log.dayOfCycle && log.dayOfCycle <= length)
+      ? log.dayOfCycle : null;
     /* No day-frame: the moon ring falls back to the idealised progression,
      * dark at day one and full at the middle, which is the whole point of an
      * example. Real dates arrive with real logged days. */
     var out = MensesView.render({ length: length });
     $('menseswheel').innerHTML = out.svg;
+    if (LOG_ON) renderMensesPanel(log);
 
     function showHub(day) {
       var ph = day ? Menses.phaseOfDay(day, length) : null;
@@ -930,17 +940,28 @@
         { text: ph.name, size: 17, serif: true, gap: 20,
           colour: MensesView.COLOUR[ph.key] },
         { text: mn ? mn.name : '', size: 12, gap: 18, colour: 'var(--moon)' }
+      ] : (isOwn ? [
+        { text: 'YOUR CYCLE', size: 10, gap: 26, colour: 'var(--ink-3)' },
+        { text: String(length), size: 44, serif: true, gap: 22, colour: 'var(--ink)' },
+        { text: 'days, typical of ' + log.lengths.length +
+          (log.lengths.length === 1 ? ' recorded gap' : ' recorded gaps'),
+          size: 11, gap: 18, colour: 'var(--ink-3)' },
+        { text: todayDay ? 'today is day ' + todayDay : '', size: 13, gap: 18,
+          colour: 'var(--sun-bright)' }
       ] : [
         { text: 'ONE COMMON CYCLE', size: 10, gap: 26, colour: 'var(--ink-3)' },
         { text: String(length), size: 44, serif: true, gap: 24, colour: 'var(--ink)' },
         { text: 'days, laid on a lunation', size: 12, gap: 20, colour: 'var(--ink-3)' },
         { text: 'an example to read your own against', size: 10, gap: 18,
           colour: 'var(--ink-3)' }
-      ]);
+      ]));
       MensesView.highlight($('menseswheel'), day, length);
       state.mensesDay = day;
     }
     showHub(null);
+    /* Today's own place on the ring, marked so the wheel is about now rather
+     * than about cycles in general. */
+    if (todayDay) markMensesToday(todayDay, length);
 
     Array.prototype.forEach.call($('menseswheel').querySelectorAll('.mn-day'),
       function (el) {
@@ -981,9 +1002,17 @@
         (state.mensesMin ? 'Expand the blueprint' : 'Minimise the blueprint') +
         '" title="' + (state.mensesMin ? 'Expand' : 'Minimise') + '">' +
         (state.mensesMin ? '\u25B4' : '\u25BE') + '</button>' +
-      '<div class="r-mini">One common cycle &#183; ' + length + ' days</div>' +
-      '<div class="r-lab">One common cycle</div>' +
-      '<div class="r-date">' + length + ' days, laid on one lunation</div>' +
+      /* Once there are real dates behind it, this is no longer an example of
+       * a cycle: it is hers, and calling it common would be describing the
+       * wrong thing. */
+      '<div class="r-mini">' + (isOwn ? 'Your cycle' : 'One common cycle') +
+        ' &#183; ' + length + ' days</div>' +
+      '<div class="r-lab">' + (isOwn ? 'Your cycle' : 'One common cycle') + '</div>' +
+      '<div class="r-date">' + length + ' days' +
+        (isOwn
+          ? ', from ' + log.lengths.length +
+            (log.lengths.length === 1 ? ' recorded gap' : ' recorded gaps')
+          : ', laid on one lunation') + '</div>' +
       '<div class="r-rows">' + spans.map(function (s) {
         return '<div><span>' + esc(s.phase.name) + '</span> · ' + s.from + '–' + s.to + '</div>';
       }).join('') + '</div>' +
@@ -2943,6 +2972,112 @@
     sw.style.insetInlineEnd = '12px';
   }
 
+  /* ------------------------------------------------ the cycle record ------
+   * Where a person puts in the dates her own cycles began, and reads back
+   * what those dates actually support. Deliberately plain: a date, a list,
+   * and numbers that say how sure they are.
+   */
+  function markMensesToday(day, length) {
+    var el = $('menseswheel').querySelector('.mn-day[data-day="' + day + '"]');
+    if (!el) return;
+    el.classList.add('is-today');
+  }
+
+  function fmtShort(iso) {
+    if (!iso) return '';
+    var p = iso.split('-');
+    var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return +p[2] + ' ' + MON[+p[1] - 1] + ' ' + p[0];
+  }
+
+  function renderMensesPanel(log) {
+    var box = $('menses-record');
+    if (!box) return;
+
+    var head = '<label for="mn-date">When did a period start?</label>' +
+      '<div class="mn-add">' +
+        '<input type="date" id="mn-date" max="2100-12-31">' +
+        '<button id="mn-add" class="ghost-btn">Add</button>' +
+      '</div>';
+
+    var read;
+    if (!log.count) {
+      read = '<p class="mn-empty">Put in the first day of as many past periods ' +
+        'as you can remember. Two dates give a first guess, and three or four ' +
+        'gaps make it worth trusting.</p>';
+    } else if (!log.canPredict) {
+      read = '<p class="mn-empty">One date recorded. It can count the days ' +
+        'since, but a length needs two, because a cycle is the gap between ' +
+        'one start and the next.</p>' +
+        (log.dayOfCycle ? '<div class="mn-big"><b>' + log.dayOfCycle +
+          '</b><span>days since it began</span></div>' : '');
+    } else {
+      var spread = log.shortest === log.longest
+        ? 'every recorded gap ran ' + log.shortest + ' days'
+        : 'recorded gaps ran ' + log.shortest + ' to ' + log.longest + ' days';
+      read =
+        '<div class="mn-big"><b>' + (log.dayOfCycle || '–') +
+          '</b><span>day of your cycle today</span></div>' +
+        '<dl class="mn-facts">' +
+          '<dt>Typical length</dt><dd>' + log.typicalLength + ' days</dd>' +
+          '<dt>Next likely start</dt><dd>' + fmtShort(log.nextStart) +
+            (log.daysToNext > 0
+              ? ' · in ' + log.daysToNext + (log.daysToNext === 1 ? ' day' : ' days')
+              : log.daysToNext === 0 ? ' · today'
+              : ' · ' + log.overdueBy + (log.overdueBy === 1 ? ' day' : ' days') + ' late') +
+            '</dd>' +
+          '<dt>Could fall between</dt><dd>' + fmtShort(log.nextEarliest) +
+            ' and ' + fmtShort(log.nextLatest) + '</dd>' +
+          '<dt>Ovulation, roughly</dt><dd>' + fmtShort(log.ovulation) + '</dd>' +
+          '<dt>Most fertile days</dt><dd>' + fmtShort(log.fertileFrom) + ' to ' +
+            fmtShort(log.fertileTo) + '</dd>' +
+        '</dl>' +
+        '<p class="mn-note">' +
+          (log.confident
+            ? 'Based on ' + log.lengths.length + ' gaps; ' + spread + '.'
+            : 'Based on only ' + log.lengths.length +
+              (log.lengths.length === 1 ? ' gap' : ' gaps') + ', so treat it lightly; ' +
+              spread + '.') +
+          (log.skippedGaps ? ' ' + log.skippedGaps +
+            (log.skippedGaps === 1 ? ' gap looked' : ' gaps looked') +
+            ' too long or short to be one cycle and was left out.' : '') +
+        '</p>';
+    }
+
+    var list = log.starts.length
+      ? '<ul class="mn-list">' + log.starts.slice().reverse().map(function (r, i, arr) {
+          var next = arr[i - 1];
+          var gap = next ? MensesLog.daysBetween(r.date, next.date) : null;
+          return '<li><span class="mn-d">' + fmtShort(r.date) + '</span>' +
+            (gap ? '<span class="mn-g">' + gap + ' days</span>' : '') +
+            '<button class="mn-x" data-remove="' + esc(r.id) +
+            '" aria-label="Remove ' + fmtShort(r.date) + '">&times;</button></li>';
+        }).join('') + '</ul>'
+      : '';
+
+    box.innerHTML = head + read + list +
+      '<p class="mn-caveat">Worked out from your own dates only. Cycles move ' +
+      'with illness, travel, stress and much else, so this is an estimate and ' +
+      'not a medical opinion. Stored on this device alone.</p>';
+
+    var dateBox = $('mn-date');
+    if (dateBox && log.lastStart) dateBox.value = '';
+    $('mn-add').addEventListener('click', function () {
+      var v = $('mn-date').value;
+      if (!v) return;
+      MensesLog.add(v);
+      drawMenses();
+      drawWheel();
+    });
+    Array.prototype.forEach.call(box.querySelectorAll('.mn-x'), function (b) {
+      b.addEventListener('click', function () {
+        MensesLog.remove(b.getAttribute('data-remove'));
+        drawMenses();
+        drawWheel();
+      });
+    });
+  }
+
   /* ------------------------------------------------------------- schedule --
    * Clicking an empty hour on the schedule ring opens an editor already set
    * to that hour, because the commonest thing to want is the hour you just
@@ -3650,6 +3785,7 @@
     load();
     loadNotes();
     if (PLAN_ON) Planner.load();
+    if (LOG_ON) MensesLog.load();
     if (!NOTES_ON) stripNotesUI();
     if (!BODY_ON) stripBodyCyclesUI();
     readHash();
