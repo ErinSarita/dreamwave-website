@@ -135,6 +135,38 @@
     return { name: SIGNS[i], degree: d, index: i };
   }
 
+  /* ------------------------------------------------------- the two zodiacs
+   *
+   * Both divide the ecliptic into twelve equal thirtieths and give them the
+   * same twelve names. They disagree only about where to start counting.
+   *
+   *   Tropical  starts at the March equinox: 0° Aries is defined as the point
+   *             where the sun crosses the equator going north. It is tied to
+   *             the seasons, and to the earth's tilt rather than to any star.
+   *             This is what Western astrology uses.
+   *
+   *   Sidereal  starts from the fixed stars, so a sign stays with the stars
+   *             it was named for. This is what Vedic astrology, jyotisha,
+   *             uses, and it is why a Vedic chart so often puts a planet one
+   *             sign back from where a Western one puts it.
+   *
+   * The gap between the two starting points is the ayanamsa. It grows by
+   * about fifty arcseconds a year, because the equinox itself creeps
+   * backwards round the ecliptic once every twenty-six thousand years. The
+   * two zodiacs last agreed somewhere around the fifth century, which is why
+   * the ancient texts can describe them as if they were the same thing.
+   *
+   * Lahiri is used here: it is the ayanamsa the Indian government adopted in
+   * 1955 and the one most jyotisha software reckons by, so the signs below
+   * should match a Vedic chart. Rendered from its usual definition, 23.85°
+   * at J2000 with precession carried on from there.
+   */
+  function ayanamsa(T) { return 23.853 + precession(T); }
+
+  function siderealSignOf(lonOfDate, T, places) {
+    return signOf(norm360(lonOfDate - ayanamsa(T)), places);
+  }
+
   /* Where the IAU boundaries cut the ecliptic, in J2000 longitude. Thirteen
    * constellations touch it, and they are nothing like equal: the sun spends
    * six weeks in front of Virgo and one week in front of Scorpius. */
@@ -212,7 +244,8 @@
 
   global.Planets = {
     ORDER: ORDER, GLYPH: GLYPH, position: position, all: all,
-    signOf: signOf, constellationOf: constellationOf, angles: angles,
+    signOf: signOf, siderealSignOf: siderealSignOf, ayanamsa: ayanamsa,
+    constellationOf: constellationOf, angles: angles,
     lookAt: lookAt, toEquatorial: toEquatorial,
     helio: helio, helioAtMean: helioAtMean,
     precession: precession

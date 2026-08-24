@@ -86,7 +86,14 @@
   /* Renders the globe centred on (lat0, lon0) at the given instant. Returns
    * SVG markup (no outer <svg> wrapper) sized to a viewBox of [-R,-R,2R,2R]
    * around (0,0). */
-  function render(jde, jd, lat0, lon0, R) {
+  /* `mark` is where to put the you-are-here dot when the globe is not centred
+   * on the observer. Centring on their latitude tips the world over by
+   * whatever that latitude is, so from Chicago the north pole leans nearly
+   * fifty degrees off the top of the picture. On a view whose whole business
+   * is which way things lie, the earth should stand up the way an earth
+   * stands up, with north near the top; so the tilt is chosen for the picture
+   * and the observer is drawn where they actually are on it. */
+  function render(jde, jd, lat0, lon0, R, mark) {
     var sub = subsolarPoint(jde, jd);
     var parts = [];
 
@@ -135,9 +142,28 @@
     var term = terminatorSamples(sub, lat0, lon0, R, 180);
     parts.push('<path d="' + pathFromSamples(term) + '" fill="none" stroke="var(--sun-bright)" stroke-width="1" opacity=".9"/>');
 
-    // Globe outline and the observer, dead centre by construction.
     parts.push('<circle cx="0" cy="0" r="' + R + '" fill="none" stroke="var(--line)" stroke-width="1.2"/>');
-    parts.push('<circle cx="0" cy="0" r="3" fill="var(--today)" stroke="var(--bg)" stroke-width="1"/>');
+
+    /* North, so the picture can be read. Drawn as a tick at the top of the
+     * axis rather than a letter, which at this size would be a smudge. */
+    if (mark) {
+      var np = projectRaw(90, lon0, lat0, lon0, R);
+      if (np.front) {
+        parts.push('<path d="M' + np.x.toFixed(1) + ' ' + np.y.toFixed(1) +
+          'L' + np.x.toFixed(1) + ' ' + (np.y - 7).toFixed(1) +
+          '" stroke="var(--ink-3)" stroke-width="1.2"/>');
+        parts.push('<text x="' + np.x.toFixed(1) + '" y="' + (np.y - 11).toFixed(1) +
+          '" text-anchor="middle" font-size="9" fill="var(--ink-3)">N</text>');
+      }
+    }
+
+    /* The observer: dead centre when the globe is centred on them, otherwise
+     * wherever they really are, and only when that side is facing us. */
+    var me = mark ? projectRaw(mark.lat, mark.lon, lat0, lon0, R) : { x: 0, y: 0, front: true };
+    if (me.front) {
+      parts.push('<circle cx="' + me.x.toFixed(1) + '" cy="' + me.y.toFixed(1) +
+        '" r="3" fill="var(--today)" stroke="var(--bg)" stroke-width="1"/>');
+    }
 
     return parts.join('');
   }

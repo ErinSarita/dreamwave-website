@@ -1618,3 +1618,14 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
 .o-pl-look { grid-column: 2 / -1; font-size: 11px; color: var(--ink-3);
   font-variant-numeric: tabular-nums; opacity: .55; }
 .o-pl-look.is-up { color: var(--sun-bright); opacity: 1; }
+
+/* Both zodiacs on one line, since the whole point is the comparison. */
+.o-pl-z { grid-column: 2 / -1; font-size: 11px; color: var(--ink-2); }
+.o-pl-z em { font-style: normal; color: var(--ink-3); letter-spacing: .04em;
+  font-size: 10px; text-transform: uppercase; }
+.mr-info-which { font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-3); margin: 0 0 8px; }
+.mr-info-which b { color: var(--sun-bright); font-weight: 600; }
+.mr-info-panel h4 { margin: 14px 0 4px; font-size: 12.5px; color: var(--sun-bright);
+  font-weight: 600; }
+.o-pl-x { grid-column: 2 / -1; font-size: 11px; color: var(--moon); }

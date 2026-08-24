@@ -154,7 +154,13 @@
     var sun = A.sunPosition(jde);
     bodies.push({ g: '☉', n: 'Sun', lon: norm360(sun.longitude), c: 'var(--sun-bright)' });
     var moon = A.moonPosition(jde);
-    bodies.push({ g: '☽', n: 'Moon', lon: norm360(moon.longitude), c: 'var(--moon)' });
+    /* Elongation from the sun is the moon's age in degrees: nought at new,
+     * a hundred and eighty at full. It is also the angle the sunlight is
+     * coming in at, which is the same fact said the other way round, and it
+     * is what decides the shape. */
+    var moonAge = norm360(moon.longitude - sun.longitude);
+    bodies.push({ g: '☽', n: 'Moon', lon: norm360(moon.longitude), c: 'var(--moon)',
+                  age: moonAge });
     var COL = { Mercury: '#8fa3b8', Venus: '#c98fb9', Mars: '#d1685a',
                 Jupiter: '#c9a24a', Saturn: '#8d8ab5' };
     P.ORDER.forEach(function (nm) {
@@ -184,8 +190,15 @@
         sg.degree.toFixed(1) + '° · in ' + con + '</title>' +
         '<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="12" fill="var(--bg)" ' +
         'stroke="' + b.c + '" stroke-width="1.2"/>' +
-        '<text x="' + f(q[0]) + '" y="' + f(q[1] + 0.5) + '" text-anchor="middle" ' +
-        'dominant-baseline="middle" font-size="13" fill="' + b.c + '">' + b.g + '</text>' +
+        /* The moon is drawn as it actually looks tonight rather than as its
+         * symbol: the one body whose face is worth showing. */
+        (b.age != null && global.MoonGlyph
+          ? '<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="9" ' +
+            'fill="var(--moon-shadow, #2a2d3d)"/>' +
+            '<path d="' + global.MoonGlyph.litPath(q[0], q[1], 9, b.age) +
+            '" fill="var(--moon)"/>'
+          : '<text x="' + f(q[0]) + '" y="' + f(q[1] + 0.5) + '" text-anchor="middle" ' +
+            'dominant-baseline="middle" font-size="13" fill="' + b.c + '">' + b.g + '</text>') +
         /* The glyph alone asks the reader to know their symbols. Set the name
          * under it, level, so the wheel can simply be read. */
         (flat
@@ -226,7 +239,8 @@
     if (opts.centre === 'earth' && global.Globe &&
         opts.lat !== undefined && opts.lon !== undefined) {
       parts.push('<g transform="translate(' + CX + ' ' + CY + ')">' +
-        global.Globe.render(jde, jd, opts.lat, opts.lon, 74) + '</g>');
+        global.Globe.render(jde, jd, 18, opts.lon, 74,
+                            { lat: opts.lat, lon: opts.lon }) + '</g>');
       parts.push('<text x="' + CX + '" y="' + (CY + 100) + '" text-anchor="middle" ' +
         'font-size="12" font-family="var(--serif)" fill="var(--ink-2)">' +
         esc(opts.placeName || '') + '</text>');

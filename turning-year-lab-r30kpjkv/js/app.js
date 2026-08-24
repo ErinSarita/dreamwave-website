@@ -739,7 +739,11 @@
    * then wanted out of the way. */
   var orbitsInfoOpen = false;
   function orbitsInfoHTML() {
+    /* The panel is shared by two very different pictures, so it has to say
+     * which one is being looked at before it explains anything about it. */
+    if (SKY_ON && state.systemView === 'here') return earthViewInfoHTML();
     return '<div class="mr-info-panel">' +
+      '<p class="mr-info-which">The view <b>from above</b></p>' +
       '<p>You are looking down on the solar system from above the north pole. ' +
       'The sun is at the middle and every planet is where it really is today. ' +
       'The rings are drawn to <b>true scale</b>, which is why the inner four ' +
@@ -757,6 +761,54 @@
       'are twelve equal cuts from the equinox; the constellations are the real ' +
       'and unequal patches of sky, and the equinox has slid roughly thirty ' +
       'degrees away from them since the signs were named.</p>' +
+      '<button class="mr-info-more" id="zodiac-open">Open the ecliptic wheel</button>' +
+      '</div>';
+  }
+
+  function earthViewInfoHTML() {
+    var T = (A.jdeFromJD(A.jdFromDate(new Date())) - 2451545) / 36525;
+    var ayan = Planets.ayanamsa(T);
+    return '<div class="mr-info-panel">' +
+      '<p class="mr-info-which">The view <b>from earth</b></p>' +
+      '<p>The earth is held at the middle and everything else is set round it ' +
+      'where it stands from here. This is not how the solar system is built, ' +
+      'and it is exactly how the sky looks: the old painted clock faces put ' +
+      'the world at the centre for the same reason.</p>' +
+
+      '<h4>The outer ring: the tropical zodiac</h4>' +
+      '<p>Twelve equal thirty-degree cuts, counted from the <b>March ' +
+      'equinox</b>. Zero degrees of Aries is defined as the point where the ' +
+      'sun crosses the equator going north, so this zodiac is tied to the ' +
+      'seasons and to the earth\u2019s tilt rather than to any star. This is ' +
+      'the one Western astrology uses.</p>' +
+
+      '<h4>The inner ring: the constellations</h4>' +
+      '<p>Not a zodiac at all, but the sky itself: the thirteen constellations ' +
+      'the ecliptic really crosses, at their real and very unequal widths. ' +
+      'The sun spends six weeks in front of Virgo and about one in front of ' +
+      'Scorpius. <b>Ophiuchus</b>, the serpent-bearer, is the thirteenth. It ' +
+      'sits between Scorpius and Sagittarius and the sun passes through it ' +
+      'every year, from roughly the last days of November. It is left out of ' +
+      'both zodiacs because twelve divides a year neatly and thirteen does ' +
+      'not, but it is there in the sky whether or not it is counted.</p>' +
+
+      '<h4>And the sidereal zodiac, which is not drawn</h4>' +
+      '<p>There is a third division, and it is probably the one you recognise ' +
+      'if you have a Vedic chart. <b>Sidereal</b> \u2014 the zodiac of ' +
+      'jyotisha \u2014 also cuts twelve equal signs, but counts them from the ' +
+      '<b>fixed stars</b> instead of from the equinox, so a sign stays with ' +
+      'the stars it was named for. Every body in the list below carries both ' +
+      'readings.</p>' +
+      '<p>The gap between the two starting points is the <b>ayanamsa</b>, ' +
+      'about ' + ayan.toFixed(1) + '\u00b0 today, which is why a Vedic chart ' +
+      'so often puts a planet one whole sign back from where a Western one ' +
+      'puts it. It grows by roughly fifty arcseconds a year, because the ' +
+      'equinox creeps backwards round the ecliptic once every twenty-six ' +
+      'thousand years. The two last agreed around the fifth century.</p>' +
+      '<p>So the inner ring resembles a Vedic chart because both are anchored ' +
+      'to the stars, but they are not the same thing: the sidereal zodiac is ' +
+      'twelve equal signs, and the constellations are thirteen unequal ' +
+      'patches of real sky.</p>' +
       '<button class="mr-info-more" id="zodiac-open">Open the ecliptic wheel</button>' +
       '</div>';
   }
@@ -1445,16 +1497,30 @@
       return { up: true, text: compass(az) + ' &#183; ' + Math.round(alt) + '&#176; up' };
     }
 
-    function orow(glyph, name, lon, colour, au) {
+    var Tw = (jdew - 2451545) / 36525;
+    /* The eight names, cut at the quarters and the halves of the quarters,
+     * which is where the eye stops seeing one shape and starts seeing the
+     * next. */
+    function phaseName(age) {
+      var names = ['New', 'Waxing crescent', 'First quarter', 'Waxing gibbous',
+                   'Full', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
+      return names[Math.floor(((age + 22.5) % 360) / 45)];
+    }
+
+    function orow(glyph, name, lon, colour, au, extra) {
       var sg = Planets.signOf(lon);
+      var vd = Planets.siderealSignOf(lon, Tw);
       var con = Planets.constellationOf(((lon - prew) % 360 + 360) % 360);
       var look = whereToLook(lon);
       return '<div class="o-pl">' +
         '<i class="o-pl-g" style="color:' + colour + '">' + glyph + '</i>' +
         '<span class="o-pl-n">' + name + '</span>' +
         '<b>' + sg.name + ' ' + sg.degree.toFixed(1) + '&#176;</b>' +
-        '<span class="o-pl-c">in ' + con +
+        '<span class="o-pl-z"><em>tropical</em> ' + sg.name + ' &#183; ' +
+          '<em>sidereal</em> ' + vd.name + ' ' + vd.degree.toFixed(1) + '&#176;</span>' +
+        '<span class="o-pl-c">in front of ' + con +
         (au ? ' &#183; ' + au.toFixed(2) + ' AU from earth' : '') + '</span>' +
+        (extra ? '<span class="o-pl-x">' + extra + '</span>' : '') +
         '<span class="o-pl-look' + (look.up ? ' is-up' : '') + '">' +
         look.text + '</span></div>';
     }
@@ -1465,7 +1531,14 @@
      * map from above. It is emphatically in the sky from here, though, and
      * the panel is shared, so it belongs on the list either way. */
     var moonp = A.moonPosition(jdew);
-    rows += orow('\u263D', 'Moon', A.norm360(moonp.longitude), 'var(--moon)', null);
+    /* Elongation from the sun: the moon's age in degrees, nought at new and a
+     * hundred and eighty at full. It is also the angle the sunlight arrives
+     * at, which is why it decides the shape, and both are worth saying. */
+    var moonAge = A.norm360(moonp.longitude - sunp.longitude);
+    var moonLit = (1 - Math.cos(moonAge * Math.PI / 180)) / 2;
+    rows += orow('\u263D', 'Moon', A.norm360(moonp.longitude), 'var(--moon)', null,
+      phaseName(moonAge) + ' \u00b7 ' + Math.round(moonLit * 100) + '% lit \u00b7 ' +
+      'sun at ' + Math.round(moonAge) + '\u00b0');
     Planets.ORDER.forEach(function (nm) {
       var pp = Planets.position(nm, jdew);
       rows += orow(Planets.GLYPH[nm], nm, pp.longitude, PLANET_COLOUR[nm], pp.distanceAU);
