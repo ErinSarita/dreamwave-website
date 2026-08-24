@@ -809,15 +809,27 @@
       'are not the same thing: the sidereal zodiac is twelve equal signs, and ' +
       'the constellations are thirteen unequal patches of real sky.</p>' +
 
-      '<h4>The shaded part</h4>' +
-      '<p>Exactly half the ring is above the horizon at any moment and half ' +
-      'below, and the whole thing swings round once a day as the earth turns. ' +
-      'The <b>darkened stretch is the half under your feet</b>: anything ' +
-      'standing in it is there, but you could not see it from here now. The ' +
-      'two dashed marks are where the ecliptic cuts the horizon, rising on ' +
-      'one side and setting on the other.</p>' +
-      '<p>This is why the sun so often sits in the shaded half. At night the ' +
-      'sun is below the horizon by definition, and the earth at the middle is ' +
+      '<h4>How to read it as a sky</h4>' +
+      '<p>Worth being plain about this: the angle round this wheel is ' +
+      '<b>position along the ecliptic</b>, not a compass bearing. Where a ' +
+      'constellation sits on the ring does not by itself tell you which way ' +
+      'to turn. Three marks do that.</p>' +
+      '<p>The ecliptic cuts the horizon at two opposite points, one ' +
+      '<b>rising</b> and one <b>setting</b>, and the highest point of the ' +
+      'visible half is marked <b>highest</b>. Each carries the bearing it ' +
+      'really has right now. Read from the rising mark round to the setting ' +
+      'mark and you are sweeping from one horizon, up over your head, and ' +
+      'down to the other: near the rising mark means low and climbing, near ' +
+      'the highest mark means at its best, near the setting mark means on ' +
+      'its way down.</p>' +
+      '<p>The <b>darkened stretch is the half under your feet</b>. Anything ' +
+      'standing in it is really there, but not to be seen from here now. ' +
+      'Exactly half is shaded at every moment, and the whole ring swings ' +
+      'round once a day as the earth turns.</p>' +
+      '<p>For anything more exact, touch a constellation band or read the ' +
+      'list below: both give the bearing and the height above the horizon.</p>' +
+      '<p>This is also why the sun so often sits in the shaded half. At night ' +
+      'it is below the horizon by definition, and the earth at the middle is ' +
       'lit from whichever side the sun is on.</p>' +
       '<button class="mr-info-more" id="zodiac-open">Open the ecliptic wheel</button>' +
       '</div>';

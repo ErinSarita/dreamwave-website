@@ -132,45 +132,75 @@
      * how a painted clock face reads: nothing asks the head to tilt. */
     var flat = opts.centre === 'earth';
 
-    /* -- which half of the ring is under your feet -------------------------
-     * At any moment exactly half the ecliptic is above the horizon and half
-     * below, and the whole thing swings round once a day as the earth turns.
-     * Without this the wheel says where a planet stands but not whether it
-     * could be seen, which is the difference between a chart and a sky.
+    /* -- the horizon, and where to actually look ---------------------------
      *
-     * Sampled every two degrees rather than solved: the horizon crossings can
-     * be worked out exactly, but sampling handles the far north, where the
-     * ecliptic can behave oddly, without any special cases.
+     * This wheel spends its angle on ecliptic longitude, not on compass
+     * bearing, so a constellation's place on it does not by itself say which
+     * way to turn. What does say so is where it falls between the three
+     * marks below.
+     *
+     * At any moment the ecliptic cuts the horizon at two opposite points: one
+     * rising, one setting. Between them, over your head, runs the visible
+     * half, and the highest point of that half is where it crosses the
+     * meridian. Read from the rising mark round to the setting mark, the
+     * visible half sweeps from one horizon, up across the sky, and down to
+     * the other. So something near the rising mark is low and about to climb;
+     * something near the highest mark is at its best; something near the
+     * setting mark is on its way down.
+     *
+     * The three marks carry the compass bearing they actually have, worked
+     * out rather than assumed, because it is not the same from every latitude
+     * and it is not the same at every hour.
      */
+    var COMPASS16 = ['N','NNE','NE','ENE','E','ESE','SE','SSE',
+                     'S','SSW','SW','WSW','W','WNW','NW','NNW'];
+    function altAzOf(lonEcl) {
+      var e2 = P.toEquatorial(norm360(lonEcl), 0, eps);
+      return { alt: A.altitudeOf(e2.ra, e2.dec, jd, opts.lat, opts.lon),
+               az: A.azimuthOf(e2.ra, e2.dec, jd, opts.lat, opts.lon) };
+    }
+    function compassOf(az) { return COMPASS16[Math.round(norm360(az) / 22.5) % 16]; }
+
     if (opts.lat !== undefined && opts.lon !== undefined) {
+      /* The half under your feet, shaded. */
       var below = [], run = null;
       for (var h = 0; h <= 360; h += 2) {
-        var he = P.toEquatorial(norm360(h), 0, eps);
-        var down = A.altitudeOf(he.ra, he.dec, jd, opts.lat, opts.lon) < 0;
-        if (down && !run) run = { a1: h, a2: h };
-        else if (down) run.a2 = h;
-        else if (run) { below.push(run); run = null; }
+        if (altAzOf(h).alt < 0) {
+          if (!run) run = { a1: h, a2: h }; else run.a2 = h;
+        } else if (run) { below.push(run); run = null; }
       }
       if (run) below.push(run);
       below.forEach(function (b2) {
         if (b2.a2 - b2.a1 < 1) return;
         parts.push('<path d="' + sector(R.horizonIn, R.horizonOut, b2.a1, b2.a2) +
-          '" fill="var(--void)" fill-opacity=".55" pointer-events="none"><title>' +
-          'Below the horizon from here right now</title></path>');
+          '" fill="var(--void)" fill-opacity=".62" pointer-events="none"><title>' +
+          'Under the horizon from here right now</title></path>');
       });
 
-      /* The two points where the ecliptic cuts the horizon: rising in the
-       * east, setting in the west. Everything between them, the long way over
-       * your head, is the half you could actually look at. */
-      var ang = P.angles(jd, jde, opts.lat, opts.lon);
-      [[ang.ascendant, 'rising'], [norm360(ang.ascendant + 180), 'setting']]
-        .forEach(function (m) {
-          var q1 = polar(R.horizonIn, m[0]), q2 = polar(R.horizonOut, m[0]);
-          parts.push('<path d="M' + f(q1[0]) + ' ' + f(q1[1]) + 'L' + f(q2[0]) + ' ' +
-            f(q2[1]) + '" stroke="var(--sun-bright)" stroke-width="1.4" ' +
-            'stroke-dasharray="5 4" opacity=".8"><title>The horizon: ' + m[1] +
-            '</title></path>');
-        });
+      /* Rising, highest, setting: the three marks that turn longitude into a
+       * direction to face. Drawn right across the rings so they read as
+       * boundaries rather than as ticks on one of them. */
+      var ang2 = P.angles(jd, jde, opts.lat, opts.lon);
+      var asc = norm360(ang2.ascendant);
+      var mid = norm360(ang2.midheaven);
+      /* The meridian point is whichever of the midheaven or its opposite is
+       * actually up; below the pole it is the other one that shows. */
+      if (altAzOf(mid).alt < 0) mid = norm360(mid + 180);
+
+      [{ a: asc, k: 'Rising' },
+       { a: mid, k: 'Highest' },
+       { a: norm360(asc + 180), k: 'Setting' }].forEach(function (m) {
+        var aa = altAzOf(m.a);
+        var dir = compassOf(aa.az);
+        var q1 = polar(R.horizonIn, m.a), q2 = polar(R.horizonOut + 8, m.a);
+        parts.push('<path d="M' + f(q1[0]) + ' ' + f(q1[1]) + 'L' + f(q2[0]) + ' ' +
+          f(q2[1]) + '" stroke="var(--sun-bright)" stroke-width="1.6" opacity=".85"/>');
+        var lab = m.k === 'Highest'
+          ? dir + ' \u00b7 ' + Math.round(aa.alt) + '\u00b0 up'
+          : dir + ' horizon';
+        parts.push(tangential(R.horizonOut + 22, m.a, m.k.toUpperCase() + '  ' + lab,
+          10, 'var(--sun-bright)', '600'));
+      });
     }
 
     /* -- the twelve signs, equal by construction ------------------------- */
@@ -206,10 +236,21 @@
       var s1 = norm360(BANDS[j][0] + pre);
       var s2 = norm360(BANDS[(j + 1) % BANDS.length][0] + pre);
       var span = norm360(s2 - s1);
+      /* Where to turn to find it, said on the band itself. The wheel can
+       * only place a constellation along the ecliptic; this is the part that
+       * answers "so which way do I face". */
+      var whereCon = '';
+      if (opts.lat !== undefined && opts.lon !== undefined) {
+        var ca = altAzOf(norm360(s1 + span / 2));
+        whereCon = ca.alt < 0
+          ? ' · under the horizon now'
+          : ' · look ' + compassOf(ca.az) + ', ' + Math.round(ca.alt) + '° up';
+      }
       parts.push('<path d="' + sector(R.conIn, R.conOut, s1, s1 + span) +
         '" fill="var(--panel)" fill-opacity="' + (j % 2 ? '.9' : '.55') +
         '" stroke="var(--line-soft)" stroke-width=".8"><title>' +
-        esc(BANDS[j][1]) + ', ' + span.toFixed(1) + '° of the ecliptic</title></path>');
+        esc(BANDS[j][1]) + ', ' + span.toFixed(1) + '° of the ecliptic' +
+        whereCon + '</title></path>');
       /* Scorpius gets seven degrees of ecliptic and cannot hold its own name
        * at any readable size, so the narrow bands are abbreviated and the
        * full name stays in the tooltip. */
