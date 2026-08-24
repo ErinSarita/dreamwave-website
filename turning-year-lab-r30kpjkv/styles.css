@@ -1748,3 +1748,18 @@ body[data-theme="day"] { --zstar: #2b2f3d; --zstar-glow: #6b7386; --zstar-line: 
   .mn-switch { top: auto; bottom: calc(12px + env(safe-area-inset-bottom));
     inset-inline-end: 12px; inset-inline-start: auto; }
 }
+
+/* The invitation to start recording. Deliberately the most prominent control
+ * on the cycle view when there is nothing recorded yet, because the whole
+ * feature is unreachable without it. */
+.mn-cta {
+  display: block; width: 100%; margin: 14px 0 0; padding: 11px 14px;
+  background: var(--sun-deep); color: #12100a;
+  border: 0; border-radius: 9px;
+  font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.mn-cta:hover { filter: brightness(1.08); }
+/* Once there is a record it is a way back in, not a summons. */
+.menses-readout .mn-cta:not(:only-of-type) { }
+.mn-cta-why { font-size: 11.5px; color: var(--ink-3); line-height: 1.5;
+  margin: 8px 2px 0; }

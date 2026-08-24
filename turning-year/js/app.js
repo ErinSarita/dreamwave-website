@@ -1022,6 +1022,21 @@
           ? ', from ' + log.lengths.length +
             (log.lengths.length === 1 ? ' recorded gap' : ' recorded gaps')
           : ', laid on one lunation') + '</div>' +
+      /* Said plainly, on the face of the view, because the way in was
+       * impossible to find otherwise: it sat at the foot of a panel that
+       * only opened if you already guessed a phase could be tapped. */
+      (LOG_ON
+        ? '<button class="mn-cta" id="mn-open-record">' +
+            (hasOwn
+              ? 'Your dates \u00b7 ' + log.count +
+                (log.count === 1 ? ' period recorded' : ' periods recorded')
+              : 'Track your own cycle') +
+          '</button>' +
+          (hasOwn ? '' :
+            '<div class="mn-cta-why">Put in the first days of a few past ' +
+            'periods and this wheel becomes yours, with your own length and ' +
+            'what is likely next.</div>')
+        : '') +
       '<div class="r-rows">' + spans.map(function (s) {
         return '<div><span>' + esc(s.phase.name) + '</span> · ' + s.from + '–' + s.to + '</div>';
       }).join('') + '</div>' +
@@ -1037,6 +1052,12 @@
       '<b>tap the moon ring</b> for the moon read on its own, ' +
       '<b>tap a curve</b> for the hormone behind it.</div>';
 
+    if ($('mn-open-record')) {
+      $('mn-open-record').addEventListener('click', function (e) {
+        e.stopPropagation();
+        openMensesRecord();
+      });
+    }
     Array.prototype.forEach.call($('menses-readout').querySelectorAll('.r-key-btn'),
       function (b) {
         b.addEventListener('click', function (e) {
@@ -1270,6 +1291,8 @@
     var ph = null;
     Menses.PHASES.forEach(function (p) { if (p.key === key) ph = p; });
     if (!ph) return;
+    if ($('menses-flyout-title')) $('menses-flyout-title').textContent = 'The menstrual wheel';
+    $('menses-prose').hidden = false;
     $('menses-prose').innerHTML =
       '<h4 style="margin-top:0;color:' + MensesView.COLOUR[ph.key] + '">' +
         esc(ph.name) + '</h4>' +
@@ -2986,6 +3009,22 @@
    * what those dates actually support. Deliberately plain: a date, a list,
    * and numbers that say how sure they are.
    */
+  /* The way in.
+   *
+   * The record used to live at the foot of the panel that opens when a phase
+   * is tapped, which means it could only be found by someone who already
+   * suspected it was there. Nothing on the screen said so. This opens it
+   * directly, and the button that calls it sits on the face of the view. */
+  function openMensesRecord() {
+    if (!LOG_ON) return;
+    $('menses-flyout-title').textContent = 'Your own cycle';
+    $('menses-prose').innerHTML = '';
+    $('menses-prose').hidden = true;
+    renderMensesPanel(MensesLog.summary(todayISO()));
+    $('menses-flyout').hidden = false;
+    setTimeout(function () { var d = $('mn-date'); if (d) d.focus(); }, 0);
+  }
+
   function syncMensesSwitch(hasOwn) {
     var sw = $('menses-switch');
     if (!sw) return;
