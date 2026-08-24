@@ -14,7 +14,7 @@
  * cache is thrown away and the new files are taken. Without that, visitors
  * would sit on a stale copy forever, which is the classic way these go wrong.
  */
-var VERSION = '20260824-150154';
+var VERSION = '20260824-150522';
 var PREFIX = 'ty-public';          /* deploy.sh rewrites this for the lab */
 var CACHE = PREFIX + '-' + VERSION;
 
@@ -26,33 +26,33 @@ var SHELL = [
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",
   "icons/apple-touch-icon.png",
-  "styles.css?v=20260824-150154",
-  "js/app.js?v=20260824-150154",
-  "js/astro-moon.js?v=20260824-150154",
-  "js/astro-riseset.js?v=20260824-150154",
-  "js/astro-sun.js?v=20260824-150154",
-  "js/astro.js?v=20260824-150154",
-  "js/body.js?v=20260824-150154",
-  "js/clock.js?v=20260824-150154",
-  "js/cycle.js?v=20260824-150154",
-  "js/features.js?v=20260824-150154",
-  "js/globe.js?v=20260824-150154",
-  "js/lunar.js?v=20260824-150154",
-  "js/moon-glyph.js?v=20260824-150154",
-  "js/orrery.js?v=20260824-150154",
-  "js/places.js?v=20260824-150154",
-  "js/planets.js?v=20260824-150154",
-  "js/register-sw.js?v=20260824-150154",
-  "js/render-day.js?v=20260824-150154",
-  "js/render-month.js?v=20260824-150154",
-  "js/render-moon.js?v=20260824-150154",
-  "js/render-wheel.js?v=20260824-150154",
-  "js/spiral.js?v=20260824-150154",
-  "js/stars.js?v=20260824-150154",
-  "js/timezone.js?v=20260824-150154",
-  "js/zodiac-stars.js?v=20260824-150154",
-  "js/zodiac.js?v=20260824-150154",
-  "js/zoompan.js?v=20260824-150154"
+  "styles.css?v=20260824-150522",
+  "js/app.js?v=20260824-150522",
+  "js/astro-moon.js?v=20260824-150522",
+  "js/astro-riseset.js?v=20260824-150522",
+  "js/astro-sun.js?v=20260824-150522",
+  "js/astro.js?v=20260824-150522",
+  "js/body.js?v=20260824-150522",
+  "js/clock.js?v=20260824-150522",
+  "js/cycle.js?v=20260824-150522",
+  "js/features.js?v=20260824-150522",
+  "js/globe.js?v=20260824-150522",
+  "js/lunar.js?v=20260824-150522",
+  "js/moon-glyph.js?v=20260824-150522",
+  "js/orrery.js?v=20260824-150522",
+  "js/places.js?v=20260824-150522",
+  "js/planets.js?v=20260824-150522",
+  "js/register-sw.js?v=20260824-150522",
+  "js/render-day.js?v=20260824-150522",
+  "js/render-month.js?v=20260824-150522",
+  "js/render-moon.js?v=20260824-150522",
+  "js/render-wheel.js?v=20260824-150522",
+  "js/spiral.js?v=20260824-150522",
+  "js/stars.js?v=20260824-150522",
+  "js/timezone.js?v=20260824-150522",
+  "js/zodiac-stars.js?v=20260824-150522",
+  "js/zodiac.js?v=20260824-150522",
+  "js/zoompan.js?v=20260824-150522"
 ];
 
 /* Each file is taken separately rather than in one lot. addAll is all or

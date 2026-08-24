@@ -481,7 +481,7 @@
           'opacity=".6">BELOW THE HORIZON</text>');
         parts.push('<text x="' + CX + '" y="' + (CY + 88) + '" text-anchor="middle" ' +
           'font-size="9" letter-spacing=".4" fill="var(--ink-3)" ' +
-          'opacity=".55">out of view, under your feet</text>');
+          'opacity=".55">out of view</text>');
       }
       return { svg: parts.join(''), precession: pre };
     }
