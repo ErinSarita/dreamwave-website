@@ -2196,6 +2196,19 @@
     });
   }
 
+  /* The moon scene reserves room at its foot for the readout that floats
+   * there. A fixed share of the screen is the wrong measure: the card is tall
+   * when open and one line when folded, and a fixed reserve means folding it
+   * away buys the circle nothing. Measuring the card and reserving exactly
+   * that means the circle grows into the room the moment it is given up. */
+  function sizeMoonReserve() {
+    var scene = $('scene-moon'), ro = $('moon-readout');
+    if (!scene || !ro) return;
+    var h = ro.offsetHeight;
+    if (!h) return;
+    scene.style.paddingBottom = (h + 26) + 'px';
+  }
+
   function stepMoon(delta) {
     state.lunationK += delta;
     /* Carry the selection into the month arrived at, so its middle keeps
@@ -3417,6 +3430,9 @@
     }
     applyTheme();
     wirePlaceSearch(); wireGeo(); wireControls(); wireZoom();
+    if (typeof ResizeObserver === 'function' && $('moon-readout')) {
+      new ResizeObserver(function () { sizeMoonReserve(); }).observe($('moon-readout'));
+    }
     if (STRIP_ON) {
       wireViewSwitch();
       window.addEventListener('resize', function () { setTimeout(placeViewSwitch, 0); });

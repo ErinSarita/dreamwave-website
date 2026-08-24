@@ -920,11 +920,18 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
  * readout. The lunation arrows sit beside the title they step, and the day
  * arrows sit inside the readout beside the face they step, so each pair is
  * next to the thing it moves. */
+/* Two rows now, not three. The readout used to be the third, which meant it
+ * took real height out of the layout and left the circle a short, wide box to
+ * sit in: on a phone it could only grow to about three hundred pixels while
+ * two hundred and forty went to the card beneath it. Every other view floats
+ * its detail box over the drawing instead, and reserves room underneath with
+ * padding, so the circle gets the whole height and can be centred in it. This
+ * one now does the same, which is also why it lines up with the others. */
 .scene-moon {
   display: grid; place-items: stretch;
   grid-template-columns: 1fr;
-  grid-template-rows: auto 1fr auto;
-  padding: 58px 10px 18px;
+  grid-template-rows: auto 1fr;
+  padding: 58px 10px calc(32dvh + 28px);
 }
 .scene-moon .moon-topbar {
   grid-row: 1; display: flex; align-items: center; justify-content: center; gap: 12px;
@@ -935,8 +942,8 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
   width: 100%; height: 100%; display: block; overflow: visible;
 }
 
-.moon-head { text-align: center; pointer-events: none; padding-bottom: 8px; }
-.moon-head .mh-name { font-family: var(--serif); font-size: 24px; color: var(--moon); }
+.moon-head { text-align: center; pointer-events: none; padding-bottom: 4px; }
+.moon-head .mh-name { font-family: var(--serif); font-size: 21px; color: var(--moon); }
 .moon-head .mh-year { color: var(--ink-3); font-size: .72em; letter-spacing: .04em; }
 .moon-head .mh-sub { margin-top: 3px; font-size: 12px; color: var(--ink-3); }
 .moon-head .mh-day { margin-top: 4px; font-size: 12.5px; color: var(--ink-2); }
@@ -1007,9 +1014,10 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 .moon-readout.min { padding: 9px 14px; width: min(300px, 100%); }
 
 .scene-moon .moon-readout {
-  position: relative; grid-row: 3; justify-self: center; margin-top: 8px;
-  width: min(420px, 100%); box-sizing: border-box; text-align: center;
-  padding: 8px 14px 10px; border-radius: 14px;
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  width: min(420px, calc(100% - 32px)); box-sizing: border-box; text-align: center;
+  max-height: 40dvh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 10px 16px 12px; border-radius: 14px;
   background: var(--panel); border: 1px solid var(--line);
   backdrop-filter: blur(10px); box-shadow: var(--shadow);
 }
@@ -1070,7 +1078,7 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
 /* Short screens: the circle is the thing, so the box gives ground. */
 @media (max-height: 760px), (max-width: 560px) {
   .scene-moon { padding-top: 50px; }
-  .scene-moon .moon-readout { padding: 6px 6px 8px; margin-top: 6px; }
+  .scene-moon .moon-readout { padding: 8px 12px 10px; }
   .moon-readout .mr-solar b { font-size: 30px; }
   .moon-readout .mr-date { font-size: 13.5px; margin-top: 5px; }
   .moon-readout .mr-phase { font-size: 11.5px; margin-top: 3px; }
@@ -1097,11 +1105,20 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
  * being described rather than on top of it. */
 @media (max-width: 560px) {
   .scene-moon .moon-topbar { gap: 6px; }
+  /* Three lines of header cost the circle about ninety pixels. Tightened
+   * rather than removed: the words still matter, they just took up the room
+   * the drawing needed. */
+  .moon-head { padding-bottom: 2px; }
+  .moon-head .mh-name { font-size: 18px; }
+  .moon-head .mh-sub { font-size: 10.5px; line-height: 1.25; margin-top: 1px; }
+  .moon-head .mh-day { font-size: 11px; margin-top: 2px; }
   .moon-readout .mr-facerow { gap: 12px; }
 }
 
 @media (max-width: 900px) {
-  .scene-moon { padding: 54px 4px 14px; }
+  /* Bottom padding left alone on purpose: it reserves the room the readout
+   * floats in, and a shorthand here would quietly wipe it. */
+  .scene-moon { padding-top: 54px; padding-left: 4px; padding-right: 4px; }
   .moon-head .mh-name { font-size: 20px; }
   .moon-arrow { width: 38px; height: 38px; font-size: 19px; }
   .moon-prev { margin-left: 4px; }

@@ -220,7 +220,12 @@
         <button class="moon-arrow moon-next" id="moon-next" aria-label="Next lunation"
                 title="Next lunation">›</button>
       </div>
+      <!-- Held to the top of the room it is given rather than floated in the
+           middle of it. Centred, the circle sank as the space grew: folding
+           the card away made the drawing bigger and also pushed it further
+           down, which is the opposite of what giving it more room should do. -->
       <svg id="moon-svg" viewBox="-40 -40 1080 1080" role="img"
+           preserveAspectRatio="xMidYMin meet"
            aria-label="One lunar month, new moon to new moon">
         <g id="moonwheel"></g>
       </svg>
