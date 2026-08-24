@@ -69,7 +69,20 @@
       var need = String(txt).length * size * 0.55;
       if (need > room) size = Math.max(7, size * room / need);
     }
-    var rot = a > 180 ? a + 90 : a - 90;
+    /* A segment of a ring is long the way the ring runs and short across it,
+     * and a name wants the long way. Text drawn in SVG runs left to right, so
+     * at the top of the circle, where the ring runs horizontally, it needs no
+     * turning at all; a quarter turn further round it needs a quarter turn to
+     * match. The rotation is therefore the angle itself.
+     *
+     * It was the angle minus ninety, which set every name across the narrow
+     * dimension instead of along the wide one, so the words ran outwards like
+     * spokes and had only the depth of the band to fit into.
+     *
+     * Between ninety and two hundred and seventy degrees the same rotation
+     * would leave the word upside down, so it is turned the rest of the way,
+     * which is exactly what the year wheel does with its season names. */
+    var rot = (a > 90 && a < 270) ? a + 180 : a;
     return '<text x="' + f(p[0]) + '" y="' + f(p[1]) + '" text-anchor="middle" ' +
       'dominant-baseline="middle" font-size="' + f(size) + '" fill="' + fill + '"' +
       (weight ? ' font-weight="' + weight + '"' : '') +

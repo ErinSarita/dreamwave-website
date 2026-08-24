@@ -330,6 +330,17 @@ input[type="date"]:focus { outline: none; border-color: var(--sun); }
  * underneath it still needs the hover. */
 /* Wider than the readout, because two columns of times stand half as tall as
  * one, and the wheel behind matters more than the panel does. */
+/* The system panel carries seven bodies and four lines each, so it overflows
+ * and has to be scrollable. It cannot be while it refuses the pointer, which
+ * the readout does by default so the wheel behind it stays hoverable. This one
+ * takes its events like the day panel does. */
+/* Kept inside the strip of screen the scene reserves for it. Taller than
+ * that and it climbs over the middle of the wheel, which on this view is
+ * where the earth is: the card was hiding the very thing the view is named
+ * for. It scrolls instead, now that it can. */
+#orrery-readout { pointer-events: auto; max-height: min(31dvh, 300px);
+  width: min(360px, calc(100% - 32px)); }
+
 .day-panel { max-height: min(58dvh, 520px); pointer-events: auto;
   width: min(540px, calc(100% - 32px)); }
 .day-panel .d-num { font-family: var(--serif); font-size: 46px; line-height: .95; }
