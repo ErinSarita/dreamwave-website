@@ -62,7 +62,6 @@
     lunarCountdown: false,
     /* The planets and the two angles, off by default: the day clock is about
      * the sun and moon first, and five more curves on it is a choice. */
-    showPlanets: false,
     /* Two separate layers now. They were one switch, which forced the
      * measured curves and the traditional watches on together; they are
      * different kinds of claim and deserve to be looked at one at a time. */
@@ -98,7 +97,6 @@
         readoutMin: state.readoutMin, lunarCountdown: state.lunarCountdown,
         monthRun: state.monthRun, monthMin: state.monthMin,
         mensesOpen: state.mensesOpen, mensesMin: state.mensesMin,
-        showPlanets: state.showPlanets,
         showBio: state.showBio, showOrgans: state.showOrgans,
         orbitsMin: state.orbitsMin,
         moment: state.moment,
@@ -125,7 +123,6 @@
       if (typeof o.moonMin === 'boolean') state.moonMin = o.moonMin;
       if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
       if (typeof o.lunarCountdown === 'boolean') state.lunarCountdown = o.lunarCountdown;
-      if (typeof o.showPlanets === 'boolean') state.showPlanets = o.showPlanets;
       /* Anyone carrying the old single setting gets the measured band, which
        * is the half that needs no framing to read. */
       if (typeof o.showBody === 'boolean') { state.showBio = o.showBody; }
@@ -694,52 +691,6 @@
    * the ecliptic wheel, where the angle actually means longitude. Keeping it
    * here as well said the same thing twice in a view that cannot draw it.
    */
-  function planetsMarkup(d, out) {
-    if (!global.Planets || !state.showPlanets) return '';
-    var head = '';
-
-    var jdStart = A.jdFromDate(d.date);
-    var live = haveRealInstant(d) ? momentFor(d) : null;
-    var rows = '';
-
-    Planets.ORDER.forEach(function (nm) {
-      var rs = A.riseSet(nm, jdStart, 1, cycle.lat, cycle.lon);
-      function leg(word, jdEv) {
-        if (!jdEv) return '';
-        var pp = Planets.position(nm, A.jdeFromJD(jdEv));
-        var L = Planets.lookAt(pp.ra, pp.dec, jdEv, cycle.lat, cycle.lon);
-        return word + ' ' + Clock.time(cycle, A.dateFromJD(jdEv), state.useDST, state.hour12) +
-          ' <em>' + L.compass + '</em>';
-      }
-      var legs = [leg('rises', rs && rs.rise), leg('sets', rs && rs.set)]
-        .filter(Boolean).join(' &#183; ');
-      if (!legs) legs = '<em class="d-pl-down">stays ' +
-        ((rs && rs.maxAlt > 0) ? 'up all day' : 'below the horizon') + '</em>';
-
-      var nowLine = '';
-      if (live) {
-        var pn = Planets.position(nm, A.jdeFromJD(A.jdFromDate(live)));
-        var Ln = Planets.lookAt(pn.ra, pn.dec, A.jdFromDate(live), cycle.lat, cycle.lon);
-        nowLine = Ln.up
-          ? '<b>' + Ln.altitude.toFixed(0) + '&#176; up, ' + Ln.compass + '</b>'
-          : '<b class="d-pl-down">under</b>';
-      }
-      rows += '<div class="d-pl">' +
-        '<i class="d-pl-g" style="color:' + PLANET_COLOUR[nm] + '">' +
-        Planets.GLYPH[nm] + '</i>' +
-        '<span class="d-pl-n">' + nm + '</span>' + nowLine +
-        '<span class="d-pl-c">' + legs + '</span></div>';
-    });
-
-    return '<div class="d-planets">' + head +
-      '<div class="d-pl-list">' + rows + '</div>' +
-      '<p class="d-pl-note">Times and bearings are for ' +
-      esc(state.place ? (state.place.name || state.place.label) : 'this place') +
-      '. Move the place and they all change, which is the whole difference ' +
-      'between this and where a planet sits in the zodiac.' +
-      (live ? '' : ' Add a time beside the date to see where each one stands at a given moment.') +
-      '</p></div>';
-  }
 
   var PLANET_COLOUR = {
     Mercury: '#8fa3b8', Venus: '#c98fb9', Mars: '#d1685a',
@@ -1315,7 +1266,7 @@
     state.monthRun = idx;
     var pack = monthDaysFor(idx);
     var run = pack.run;
-    var out = MonthView.render(cycle, run, { days: pack.days });
+    var out = MonthView.render(cycle, run, { days: pack.days, layers: state.layers });
     $('monthfan').innerHTML = out.svg;
 
     $('month-head').innerHTML =
@@ -1836,19 +1787,6 @@
         : '');
   }
 
-  function planetsPanelHTML() {
-    return '<label class="tog tp-switch"><input type="checkbox" id="planet-tog"' +
-      (state.showPlanets ? ' checked' : '') + '><span>Draw it on the dial</span></label>' +
-      '<p>Each planet leaves two marks on the dial: one where it clears the ' +
-      'horizon and one where it slips back under, lined up with the hour, the ' +
-      'same way moonrise and moonset are drawn. The arrow shows which way it is ' +
-      'crossing and the label carries the time.</p>' +
-      '<p>This is the one planetary question that belongs to your own patch of ' +
-      'ground. Where a planet sits in the zodiac reads the same from anywhere ' +
-      'on earth, while the hour it rises and the direction you turn to catch ' +
-      'it are yours alone, shifting with every degree of latitude. For the ' +
-      'positions, open the <b>System</b> view.</p>';
-  }
 
   /* When a watch actually falls today, on this place's clock.
    *
@@ -1920,7 +1858,7 @@
     if (!d) return;
     var out = DayView.render(cycle, d, { hour12: state.hour12, useDST: state.useDST,
       now: new Date(), placeName: state.place ? (state.place.name || state.place.label) : '',
-      planets: state.showPlanets, bio: state.showBio, organs: state.showOrgans,
+      bio: state.showBio, organs: state.showOrgans,
       schedule: PLAN_ON ? { iso: d.iso, events: Planner.onDate(d.iso, todayISO()) } : null });
     $('dayclock').innerHTML = out.svg + '<g id="day-clock-ring"></g>';
     startDayRing();
@@ -1975,7 +1913,6 @@
         '<div class="d-dark"><b>' + (d.sunAlwaysDown ? '24 h' : d.sunAlwaysUp ? '0 h' : DayView.hm(d.nightHours)) + '</b>dark</div>' +
       '</div>' +
       timesMarkup(d, out.darkMidpoint, out) +
-      planetsMarkup(d, out) +
       clockShiftMarkup(d) +
       noteMarkup(d.iso);
 
@@ -2512,26 +2449,25 @@
      * collapsed out of sight with them. */
     function wireToolProse(k) {
       [['bio-tog', 'showBio'], ['organ-tog', 'showOrgans'],
-       ['planet-tog', 'showPlanets']].forEach(function (pair) {
+      ].forEach(function (pair) {
         var box = $(pair[0]);
         if (!box) return;
         box.addEventListener('change', function () {
           state[pair[1]] = box.checked;
           save(); syncDayTools(); drawDay();
           var d3 = state.day ? cycle.days[state.day - 1] : null;
-          $('tool-panel-prose').innerHTML =
-            k === 'body' ? bodyPanelHTML(d3) : planetsPanelHTML();
+          $('tool-panel-prose').innerHTML = bodyPanelHTML(d3);
           wireToolProse(k);
         });
       });
     }
 
-    if (kind === 'body' || kind === 'planets') {
+    if (kind === 'body') {
       var d = state.day ? cycle.days[state.day - 1] : null;
-      $('tool-panel-title').textContent = kind === 'body' ? 'The body clock' : 'The planets';
+      $('tool-panel-title').textContent = 'The body clock';
       $('tool-panel-filter').hidden = true;
       $('tool-panel-list').innerHTML = '';
-      $('tool-panel-prose').innerHTML = kind === 'body' ? bodyPanelHTML(d) : planetsPanelHTML();
+      $('tool-panel-prose').innerHTML = bodyPanelHTML(d);
       $('tool-panel-prose').hidden = false;
       $('tool-panel').hidden = false;
       $('tool-panel').classList.add('is-prose');
@@ -2604,7 +2540,6 @@
     $('tool-stations').classList.remove('is-open');
     $('tool-moon').setAttribute('aria-expanded', 'false');
     $('tool-stations').setAttribute('aria-expanded', 'false');
-    $('tool-planets').setAttribute('aria-expanded', 'false');
     $('tool-body').setAttribute('aria-expanded', 'false');
     $('tool-panel').classList.remove('is-prose');
   }
@@ -3357,6 +3292,8 @@
       el.addEventListener('change', function () {
         state.layers[pair[1]] = el.checked;
         save(); drawWheel(); syncLegend();
+        /* The month is a slice of the wheel and has to follow it. */
+        if (state.level === 'month') drawMonth();
       });
     });
 
@@ -3421,15 +3358,11 @@
      * way of the panel that kept swallowing them. */
     syncDayTools = function () {
       var on = state.level === 'day';
-      $('tool-planets').hidden = !on;
       $('tool-body').hidden = !on;
-      $('tool-planets').classList.toggle('is-on', state.showPlanets);
       $('tool-body').classList.toggle('is-on', state.showBio || state.showOrgans);
-      $('tool-planets').setAttribute('aria-pressed', state.showPlanets);
       $('tool-body').setAttribute('aria-pressed', state.showBio || state.showOrgans);
     };
     global.__syncDayTools = syncDayTools;
-    $('tool-planets').addEventListener('click', function () { openTool('planets'); });
     $('tool-body').addEventListener('click', function () { openTool('body'); });
     syncDayTools();
 

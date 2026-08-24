@@ -163,9 +163,16 @@
     runsOf(s, function (p) { return p.moonAlt >= p.moonH0 ? 'up' : 'down'; }).forEach(function (run) {
       if (run.key !== 'up') return;
       anyMoon = true;
+      /* --moon-lit, not --moon.
+       *
+       * --moon is an ink chosen to read against whichever ground the theme
+       * uses, so on the daylight theme it is dark. Fading it up by how full
+       * the moon is then made a full moon the darkest thing on the ring and a
+       * new moon the palest, which is backwards. --moon-lit is the moon's own
+       * face in both themes, so more of it always means more moonlight. */
       parts.push('<path d="' + sector(R.moonIn, R.moonOut, run.a1, run.a2) +
-                 '" fill="var(--moon)" fill-opacity="' + f(0.12 + 0.7 * day.moonIllumination) +
-                 '" fill-rule="evenodd"/>');
+                 '" fill="var(--moon-lit)" fill-opacity="' +
+                 f(0.2 + 0.75 * day.moonIllumination) + '" fill-rule="evenodd"/>');
     });
     parts.push('<circle cx="500" cy="500" r="' + R.moonOut + '" fill="none" stroke="var(--line-soft)" stroke-width="1"/>');
 
@@ -504,19 +511,10 @@
      * the clear space between the moon band and the altitude curves, and the
      * tiering below spreads any that fall within half an hour of each other.
      * The arrow says which way the planet is crossing. */
-    if (opts.planets && global.Planets) {
-      var PL = global.Planets;
-      PL.ORDER.forEach(function (nm) {
-        var rs = A.riseSet(nm, A.jdFromDate(win.start), 1, cycle.lat, cycle.lon);
-        [['\u2191', rs && rs.rise], ['\u2193', rs && rs.set]].forEach(function (ev) {
-          if (!ev[1]) return;
-          events.push({ t: A.dateFromJD(ev[1]), group: 'planet',
-                        label: PL.GLYPH[nm] + ev[0], colour: PLANET_COLOUR[nm],
-                        full: nm + (ev[0] === '\u2191' ? ' rises' : ' sets'),
-                        r1: R.planetIn, r2: R.planetOut });
-        });
-      });
-    }
+    /* The planets are no longer drawn here. Their rise and set belonged to
+     * this dial, but where they stand belongs to the System view, and having
+     * both meant the same seven bodies were explained twice in two different
+     * languages on two different faces. The System view keeps them. */
 
     /* The present moment, when the day on screen is today. It carries a time
      * like every other mark, and reads by whichever clock is set, so toggling

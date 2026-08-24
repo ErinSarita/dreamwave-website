@@ -194,7 +194,12 @@
           esc(lab) + '</text>');
       });
 
-    /* -- the solar terms crossing the month ------------------------------ */
+    /* -- the solar terms crossing the month ------------------------------
+     * Behind the same switch the year wheel uses. The month is a slice of
+     * that wheel, so a layer turned off on the one it came from should stay
+     * off here: switching the terms away and finding them again a level down
+     * reads as the switch not having worked. */
+    if (opts.layers ? opts.layers.terms : true) {
     /* Numbers, and nothing else. A term's name is worth a line on the year
      * wheel where there is room for it; here the number is what tells you
      * which of the twenty-four you are in, and the divider at each boundary is
@@ -231,6 +236,7 @@
         'pointer-events="none" transform="' + tilt(m, q[0], q[1]) + '">' +
         d.dayInTerm + '</text>');
     });
+    }
 
     /* -- season and midpoint --------------------------------------------- */
     runsOf(days, function (d) { return d.season; }).forEach(function (r) {

@@ -405,9 +405,9 @@
          * symbol: the one body whose face is worth showing. */
         (b.age != null && global.MoonGlyph
           ? '<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="9" ' +
-            'fill="var(--moon-shadow, #2a2d3d)"/>' +
+            'fill="var(--moon-shadow)"/>' +
             '<path d="' + global.MoonGlyph.litPath(q[0], q[1], 9, b.age) +
-            '" fill="var(--moon)"/>'
+            '" fill="var(--moon-lit)"/>'
           : '<text x="' + f(q[0]) + '" y="' + f(q[1] + 0.5) + '" text-anchor="middle" ' +
             'dominant-baseline="middle" font-size="13" fill="' + b.c + '">' + b.g + '</text>') +
         /* The glyph alone asks the reader to know their symbols. Set the name

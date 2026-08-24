@@ -169,9 +169,9 @@
         '<path d="M' + f(e.xy[0]) + ' ' + f(e.xy[1]) + 'L' + f(mx) + ' ' + f(my) +
         '" stroke="var(--moon)" stroke-width=".8" opacity=".35"/>' +
         '<circle cx="' + f(mx) + '" cy="' + f(my) + '" r="7" ' +
-        'fill="var(--moon-shadow, #2a2d3d)" stroke="var(--moon)" stroke-width=".8"/>' +
+        'fill="var(--moon-shadow)" stroke="var(--moon-dim)" stroke-width=".8"/>' +
         '<path d="' + global.MoonGlyph.litPath(mx, my, 7, mAge) +
-        '" fill="var(--moon)"/></g>');
+        '" fill="var(--moon-lit)"/></g>');
     }
 
     return { svg: parts.join(''), earthLon: e.lon,
