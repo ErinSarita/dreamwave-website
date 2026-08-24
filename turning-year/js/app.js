@@ -770,10 +770,11 @@
     var ayan = Planets.ayanamsa(T);
     return '<div class="mr-info-panel">' +
       '<p class="mr-info-which">The view <b>from earth</b></p>' +
-      '<p>The earth is held at the middle and everything else is set round it ' +
-      'where it stands from here. This is not how the solar system is built, ' +
-      'and it is exactly how the sky looks: the old painted clock faces put ' +
-      'the world at the centre for the same reason.</p>' +
+      '<p>This is how the sky looks from <b>' +
+      esc(state.place ? (state.place.name || state.place.label) : 'here') +
+      '</b> at the moment shown. The earth is at the middle and everything ' +
+      'else is set round it where it stands from there: which constellation ' +
+      'each planet is in front of, and which way to turn to find it.</p>' +
 
       '<h4>The outer ring: the tropical zodiac</h4>' +
       '<p>Twelve equal thirty-degree cuts, counted from the <b>March ' +
