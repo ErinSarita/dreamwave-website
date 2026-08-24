@@ -4,7 +4,8 @@
  */
 (function (global) {
   'use strict';
-  var TZ = global.TZ, A = global.Astro, Stars = global.Stars, MoonGlyph = global.MoonGlyph;
+  var TZ = global.TZ, A = global.Astro, Stars = global.Stars, MoonGlyph = global.MoonGlyph,
+      Clock = global.Clock;
 
   var CX = 500, CY = 500;
   var R = {
@@ -202,8 +203,21 @@
         var lit = null;
         if (d.sunAlwaysUp) lit = [0, 24];
         else if (!d.sunAlwaysDown && d.sunrise && d.sunset) {
-          var sr = TZ.hoursIntoDay(cycle.tz, d.sunrise);
-          var ss = TZ.hoursIntoDay(cycle.tz, d.sunset);
+          /* Through Clock, not straight off the zone.
+           *
+           * TZ.hoursIntoDay always answers with the offset actually in force,
+           * so it ignores the daylight saving switch entirely. Every other
+           * view honours that switch, and this band did not, which is why
+           * turning the clocks off left the seam sitting there anyway.
+           *
+           * With it on, the step at the two changeover days is real and stays:
+           * the wall clock genuinely jumps an hour, and hiding that would be
+           * the drawing telling a lie the rest of the app is careful about.
+           * With it off, the zone keeps its winter offset all year and the
+           * two curves close up smooth, which is the whole point of the
+           * switch. */
+          var sr = Clock.hoursOf(cycle, d.sunrise, opts.useDST !== false);
+          var ss = Clock.hoursOf(cycle, d.sunset, opts.useDST !== false);
           if (ss > sr) lit = [sr, ss];
         }
         /* The curve the readout's hover marker follows still wants a point
