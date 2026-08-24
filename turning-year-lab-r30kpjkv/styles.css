@@ -1634,3 +1634,5 @@ body[data-theme="day"] .st-allday { color: #fffaf0; }
  * theme they become dark points, since a white star on cream is a hole. */
 :root { --zstar: #ffffff; --zstar-glow: #cfe0ff; --zstar-line: #8fa3c8; }
 body[data-theme="day"] { --zstar: #2b2f3d; --zstar-glow: #6b7386; --zstar-line: #7b8296; }
+.sw-analemma { background: var(--sun-bright); width: 7px; height: 13px;
+  border-radius: 50% / 40%; }

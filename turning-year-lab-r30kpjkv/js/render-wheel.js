@@ -583,6 +583,91 @@
       });
     }
 
+    /* -- the analemma, in the middle -------------------------------------
+     *
+     * The figure eight the sun makes if you photograph it from one spot at the
+     * same clock time all year. Two things bend it and the eight is what you
+     * get when they are added together.
+     *
+     * Up the page is the sun's DECLINATION: how high it climbs at its peak
+     * that day, swinging through 23.4 degrees either side of the equator
+     * because the earth's axis is tilted. That is the seasons, and it is the
+     * same number the declination ring outside is drawn from.
+     *
+     * Across the page is the EQUATION OF TIME: how many minutes early or late
+     * that peak was against a clock. The earth runs fastest in its orbit near
+     * perihelion in January and slowest near aphelion in July, so the sun's
+     * apparent drift is uneven while our clocks tick evenly. It reaches about
+     * sixteen minutes late in early November and fourteen minutes early in
+     * mid-February.
+     *
+     * The crossing is the interesting part. The tilt goes through its cycle
+     * twice a year and the orbit only once, and adding a twice-yearly wobble
+     * to a once-yearly one crosses the curve over itself. The loops come out
+     * unequal because the two do not cancel evenly.
+     *
+     * Nothing is fitted or canned: every point is this cycle's own day, from
+     * the same numbers the rest of the wheel is drawn from.
+     */
+    if (opts.layers.analemma) {
+      var AN = { h: 50, w: 1.5, tilt: 23.44 };     // units per degree, per minute
+
+      /* Minutes the sun's peak runs ahead of clock noon. Apparent solar time
+       * is twelve o'clock exactly at the transit, so the gap between that
+       * instant and mean noon on this meridian is the equation of time. */
+      function eotMinutes(day) {
+        if (!day.solarNoon) return null;
+        var t = day.solarNoon;
+        var utc = t.getUTCHours() + t.getUTCMinutes() / 60 + t.getUTCSeconds() / 3600;
+        var h = 12 - utc - cycle.lon / 15;
+        while (h < -12) h += 24;
+        while (h >= 12) h -= 24;
+        return h * 60;
+      }
+
+      var anPts = [], anToday = null;
+      for (i = 0; i < N; i++) {
+        var ad = cycle.days[i];
+        var em = eotMinutes(ad);
+        if (em === null) continue;
+        var ax = CX + em * AN.w;
+        var ay = CY - (ad.sunDeclination / AN.tilt) * AN.h;
+        anPts.push({ x: ax, y: ay, n: ad.n });
+        if (ad.n === opts.todayN) anToday = { x: ax, y: ay, em: em, dec: ad.sunDeclination };
+      }
+
+      if (anPts.length > 20) {
+        parts.push('<g class="analemma">');
+        /* The two axes it is measured against, drawn faintly so the curve
+         * reads as a shape rather than as a graph. */
+        parts.push('<path d="M' + fmt(CX) + ' ' + fmt(CY - AN.h) + 'L' + fmt(CX) + ' ' +
+          fmt(CY + AN.h) + '" stroke="var(--line)" stroke-width=".7" opacity=".35"/>');
+        parts.push('<path d="M' + fmt(CX - 20) + ' ' + fmt(CY) + 'L' + fmt(CX + 20) + ' ' +
+          fmt(CY) + '" stroke="var(--line)" stroke-width=".7" opacity=".35"/>');
+
+        var d2 = anPts.map(function (q, k) {
+          return (k ? 'L' : 'M') + fmt(q.x) + ' ' + fmt(q.y);
+        }).join('') + 'Z';
+        parts.push('<path d="' + d2 + '" fill="none" stroke="var(--sun-bright)" ' +
+          'stroke-width="1.4" opacity=".85" stroke-linejoin="round"><title>' +
+          'The analemma: the sun\u2019s place at the same clock time through the ' +
+          'year. Height is how high it climbs, width is how early or late its ' +
+          'peak runs against the clock.</title></path>');
+
+        if (anToday) {
+          parts.push('<circle cx="' + fmt(anToday.x) + '" cy="' + fmt(anToday.y) +
+            '" r="3.2" fill="var(--today)" stroke="var(--bg)" stroke-width="1"><title>' +
+            'Today: the sun peaks ' + Math.abs(Math.round(anToday.em)) + ' minutes ' +
+            (anToday.em >= 0 ? 'before' : 'after') + ' clock noon, at ' +
+            anToday.dec.toFixed(1) + '\u00b0 declination</title></circle>');
+        }
+        /* No caption here. The only clear space below the figure is where
+         * the declination ring already writes its own -23.4, and two labels
+         * fighting over one gap reads worse than none. The legend names it. */
+        parts.push('</g>');
+      }
+    }
+
     /* -- days with a note on them, a quiet dot in the otherwise empty ring
      * just inside the frost band ------------------------------------------- */
     if (opts.notedDays) {

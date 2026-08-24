@@ -33,7 +33,7 @@
     day: null,
     hover: null,
     noteOpen: false,
-    layers: { moon: true, terms: false, frost: true, months: true, seasons: true, traditional: false, skyClock: true, declination: true },
+    layers: { moon: true, terms: false, frost: true, months: true, seasons: true, traditional: false, skyClock: true, declination: true, analemma: false },
     frost: { last: null, first: null },
     theme: 'night',
     hour12: false,
@@ -522,8 +522,15 @@
     writeHash();
   }
 
-  var YEAR_LEGEND =
-    '<li><i class="sw sw-day"></i> Daylight hours (bar length)</li>' +
+  /* Built when asked for rather than held as a constant, so a layer switched
+   * on after load can add its own line.
+   *
+   * The opening quote stays on the same line as the return. A return followed
+   * by a line break is given a semicolon by the language whether or not one
+   * was wanted, and everything under it becomes unreachable: the legend came
+   * back empty and the list simply vanished. */
+  function yearLegend() {
+    return '<li><i class="sw sw-day"></i> Daylight hours (bar length)</li>' +
     '<li><i class="sw sw-night"></i> Dark hours</li>' +
     '<li><i class="sw sw-moon"></i> Moon, shaded by illumination</li>' +
     '<li><i class="sw sw-grow"></i> Growing season, dark where it\'s safe, fading to light where frost still could</li>' +
@@ -532,7 +539,12 @@
     (NOTES_ON ? '<li><i class="sw sw-noted"></i> A day you\'ve written a note on</li>' : '') +
     '<li><i class="sw sw-sky"></i> The Big Dipper facing north at nightfall</li>' +
     '<li><i class="sw sw-polaris"></i> Polaris, held still by the pointer stars\' dashed sightline</li>' +
-    '<li><i class="sw sw-dec"></i> The sun\u2019s declination, turning at &#177;23.4&#176;</li>';
+    '<li><i class="sw sw-dec"></i> The sun\u2019s declination, turning at &#177;23.4&#176;</li>' +
+    (state.layers.analemma
+      ? '<li><i class="sw sw-analemma"></i> The analemma: the sun\u2019s place at one ' +
+        'clock time all year. Tall for how high it climbs, wide for how early or ' +
+        'late its peak runs</li>'
+      : ''); }
 
   var DAY_LEGEND =
     '<li><i class="sw sw-day"></i> Sun above the horizon (gold ring)</li>' +
@@ -546,7 +558,7 @@
 
   function syncLegend() {
     var isDay = state.level === 'day';
-    $('legend-list').innerHTML = isDay ? DAY_LEGEND : YEAR_LEGEND;
+    $('legend-list').innerHTML = isDay ? DAY_LEGEND : yearLegend();
     $('legend-context').hidden = !isDay;
   }
 
@@ -3338,12 +3350,12 @@
     [['lay-moon', 'moon'], ['lay-terms', 'terms'], ['lay-frost', 'frost'],
      ['lay-months', 'months'], ['lay-seasons', 'seasons'],
      ['lay-trad', 'traditional'], ['lay-sky', 'skyClock'],
-     ['lay-dec', 'declination']].forEach(function (pair) {
+     ['lay-dec', 'declination'], ['lay-analemma', 'analemma']].forEach(function (pair) {
       var el = $(pair[0]);
       el.checked = state.layers[pair[1]];
       el.addEventListener('change', function () {
         state.layers[pair[1]] = el.checked;
-        save(); drawWheel();
+        save(); drawWheel(); syncLegend();
       });
     });
 
