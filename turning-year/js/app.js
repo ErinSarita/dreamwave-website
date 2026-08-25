@@ -3568,6 +3568,10 @@
      ['lay-dec', 'declination'], ['lay-analemma', 'analemma'],
      ['lay-schedband', 'scheduleBand']].forEach(function (pair) {
       var el = $(pair[0]);
+      /* A layer can be cut out of a build entirely, so its switch may simply
+       * not be in the document. Reaching for one that is not there would
+       * throw here and take every switch after it down with it. */
+      if (!el) return;
       el.checked = state.layers[pair[1]];
       el.addEventListener('change', function () {
         state.layers[pair[1]] = el.checked;
