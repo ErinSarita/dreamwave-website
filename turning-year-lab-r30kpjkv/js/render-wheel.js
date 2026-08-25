@@ -806,12 +806,28 @@
         var m1 = polar(R.bandIn, ang), m2 = polar(R.bandOut, ang);
         parts.push('<path d="M' + fmt(m1[0]) + ' ' + fmt(m1[1]) + 'L' + fmt(m2[0]) + ' ' + fmt(m2[1]) +
                    '" stroke="var(--cross)" stroke-width="1.6" stroke-dasharray="3 3" opacity=".9"/>');
-        var lp = polar(R.bandOut + 13, ang);
+        /* Set on the daylight band itself, which is the only clear space.
+         *
+         * Every ring around it carries words. Outward, bandOut is 418 and the
+         * term ring starts at 420, so a label just past the band ran through
+         * the term numbers; further out clears those and lands on the station
+         * names, which is how "fall back" came to be written across Samhain.
+         * Inward, the month ring's letters sit at 271 and caught it there.
+         *
+         * The band between 284 and 418 is the one wide annulus with no text
+         * in it at all. A small plate behind the words keeps them legible
+         * over the gold, and the dashed mark spans the band as before, so the
+         * label sits on the very day it belongs to.
+         *
+         * The wording is what people actually call these. */
+        var lp = polar(R.bandIn + 74, ang);
         parts.push(rotLabel(ang, lp[0], lp[1],
+          '<rect x="' + fmt(lp[0] - 38) + '" y="' + fmt(lp[1] - 7) + '" width="76" ' +
+          'height="14" rx="7" fill="var(--void)" opacity=".78"/>' +
           '<text class="clock-step" x="' + fmt(lp[0]) + '" y="' + fmt(lp[1]) + '" ' +
           'text-anchor="middle" dominant-baseline="middle" font-size="9" ' +
-          'fill="var(--cross)">clocks ' +
-          (d.clockShiftMinutes > 0 ? 'forward' : 'back') + '</text>'));
+          'fill="var(--cross)">' +
+          (d.clockShiftMinutes > 0 ? 'spring forward' : 'fall back') + '</text>'));
       });
     }
 
