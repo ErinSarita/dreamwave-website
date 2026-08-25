@@ -27,7 +27,7 @@
      right, and still do their work on a device that reports them. -->
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TY Lab">
-<link rel="stylesheet" href="styles.css?v=20260825-041617">
+<link rel="stylesheet" href="styles.css?v=20260825-043203">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='none' stroke='%23e8b84b' stroke-width='7'/><circle cx='50' cy='50' r='16' fill='%23e8b84b'/></svg>">
 </head>
 <body data-theme="night">
@@ -86,7 +86,7 @@
       <div class="toggles">
         <label class="tog"><input type="checkbox" id="lay-moon" checked><span>Moon</span></label>
         <label class="tog"><input type="checkbox" id="lay-terms"><span>24 solar terms</span></label>
-        <label class="tog"><input type="checkbox" id="lay-frost" checked><span>Frost</span></label>
+        <label class="tog"><input type="checkbox" id="lay-frost" checked><span>Growing season</span></label>
         <label class="tog"><input type="checkbox" id="lay-months" checked><span>Months</span></label>
         <label class="tog"><input type="checkbox" id="lay-seasons" checked><span>Seasons &amp; midpoints</span></label>
         <label class="tog"><input type="checkbox" id="lay-trad"><span>Traditional festival dates</span></label>
@@ -108,7 +108,9 @@
         <input type="text" id="frost-first" class="md-input" placeholder="Oct 15" aria-label="First autumn frost">
       </div>
       <p class="meta" id="frost-meta"></p>
+<!-- private:start -->
       <div class="grow-windows" id="grow-windows"></div>
+<!-- private:end -->
     </section>
 
     <section class="field" id="notes-section">
@@ -810,7 +812,7 @@
     <p>Algorithms after Jean Meeus, <em>Astronomical Algorithms</em>, and the VSOP87
     theory of Bretagnon &amp; Francou. Everything runs in your browser; the page makes
     no network requests and stores only your place and frost dates, locally.</p>
-    <p class="meta">From <a href="../" style="color:inherit">DreamWave Journal</a>.</p>
+
   </div>
 </div>
 
@@ -841,43 +843,45 @@
   </div>
 </div>
 
-<script src="js/features.js?v=20260825-041617"></script>
-<script src="js/astro.js?v=20260825-041617"></script>
-<script src="js/astro-sun.js?v=20260825-041617"></script>
-<script src="js/astro-moon.js?v=20260825-041617"></script>
-<script src="js/astro-riseset.js?v=20260825-041617"></script>
-<script src="js/timezone.js?v=20260825-041617"></script>
-<script src="js/clock.js?v=20260825-041617"></script>
-<script src="js/places.js?v=20260825-041617"></script>
-<script src="js/lunar.js?v=20260825-041617"></script>
-<script src="js/cycle.js?v=20260825-041617"></script>
-<script src="js/growing.js?v=20260825-041617"></script>
-<script src="js/moon-glyph.js?v=20260825-041617"></script>
-<script src="js/stars.js?v=20260825-041617"></script>
-<script src="js/globe.js?v=20260825-041617"></script>
-<script src="js/render-wheel.js?v=20260825-041617"></script>
-<script src="js/planets.js?v=20260825-041617"></script>
-<script src="js/body.js?v=20260825-041617"></script>
-<script src="js/zodiac-stars.js?v=20260825-041617"></script>
-<script src="js/zodiac.js?v=20260825-041617"></script>
-<script src="js/orrery.js?v=20260825-041617"></script>
+<script src="js/features.js?v=20260825-043203"></script>
+<script src="js/astro.js?v=20260825-043203"></script>
+<script src="js/astro-sun.js?v=20260825-043203"></script>
+<script src="js/astro-moon.js?v=20260825-043203"></script>
+<script src="js/astro-riseset.js?v=20260825-043203"></script>
+<script src="js/timezone.js?v=20260825-043203"></script>
+<script src="js/clock.js?v=20260825-043203"></script>
+<script src="js/places.js?v=20260825-043203"></script>
+<script src="js/lunar.js?v=20260825-043203"></script>
+<script src="js/cycle.js?v=20260825-043203"></script>
 <!-- private:start -->
-<script src="js/planner.js?v=20260825-041617"></script>
-<script src="js/menses.js?v=20260825-041617"></script>
-<script src="js/menses-log.js?v=20260825-041617"></script>
-<script src="js/pregnancy.js?v=20260825-041617"></script>
-<script src="js/render-pregnancy.js?v=20260825-041617"></script>
-<script src="js/render-menses.js?v=20260825-041617"></script>
+<script src="js/growing.js?v=20260825-043203"></script>
 <!-- private:end -->
-<script src="js/render-month.js?v=20260825-041617"></script>
-<script src="js/render-day.js?v=20260825-041617"></script>
+<script src="js/moon-glyph.js?v=20260825-043203"></script>
+<script src="js/stars.js?v=20260825-043203"></script>
+<script src="js/globe.js?v=20260825-043203"></script>
+<script src="js/render-wheel.js?v=20260825-043203"></script>
+<script src="js/planets.js?v=20260825-043203"></script>
+<script src="js/body.js?v=20260825-043203"></script>
+<script src="js/zodiac-stars.js?v=20260825-043203"></script>
+<script src="js/zodiac.js?v=20260825-043203"></script>
+<script src="js/orrery.js?v=20260825-043203"></script>
 <!-- private:start -->
-<script src="js/render-strip.js?v=20260825-041617"></script>
+<script src="js/planner.js?v=20260825-043203"></script>
+<script src="js/menses.js?v=20260825-043203"></script>
+<script src="js/menses-log.js?v=20260825-043203"></script>
+<script src="js/pregnancy.js?v=20260825-043203"></script>
+<script src="js/render-pregnancy.js?v=20260825-043203"></script>
+<script src="js/render-menses.js?v=20260825-043203"></script>
 <!-- private:end -->
-<script src="js/render-moon.js?v=20260825-041617"></script>
-<script src="js/spiral.js?v=20260825-041617"></script>
-<script src="js/zoompan.js?v=20260825-041617"></script>
-<script src="js/app.js?v=20260825-041617"></script>
-<script src="js/register-sw.js?v=20260825-041617"></script>
+<script src="js/render-month.js?v=20260825-043203"></script>
+<script src="js/render-day.js?v=20260825-043203"></script>
+<!-- private:start -->
+<script src="js/render-strip.js?v=20260825-043203"></script>
+<!-- private:end -->
+<script src="js/render-moon.js?v=20260825-043203"></script>
+<script src="js/spiral.js?v=20260825-043203"></script>
+<script src="js/zoompan.js?v=20260825-043203"></script>
+<script src="js/app.js?v=20260825-043203"></script>
+<script src="js/register-sw.js?v=20260825-043203"></script>
 </body>
 </html>
