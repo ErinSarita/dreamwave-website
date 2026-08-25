@@ -845,22 +845,37 @@
      * Early spring and late autumn genuinely suit both, and a gardener is
      * choosing between them rather than being told which it is. */
     if (opts.layers.frost && opts.growing && opts.growing.length) {
-      var gDepth = (R.growOut - R.growIn) / 2;
+      /* One strip, not three.
+       *
+       * These windows genuinely overlap: early spring suits both the cool
+       * crops and, at its end, the first warm ones, and high summer is hot
+       * and warm at once. Giving each its own rung drew that as three
+       * separate rings and hid the very thing worth seeing, which is where
+       * they lie over each other.
+       *
+       * Laid on one strip at part opacity, an overlap simply reads as a
+       * deeper, mixed colour, and the number of choices open on any given
+       * week can be seen at a glance. Where nothing overlaps the colour is
+       * its own, plain and unmixed. */
+      var gMid = (R.growIn + R.growOut) / 2, gW = R.growOut - R.growIn;
+      parts.push('<path d="' + annulus(R.growIn, R.growOut) + '" fill-rule="evenodd" ' +
+                 'fill="var(--line-soft)" opacity=".22"/>');
       opts.growing.forEach(function (g) {
-        var rung = (g.key === 'coolSpring' || g.key === 'coolAutumn') ? 0 : 1;
-        var r1 = R.growIn + rung * gDepth, r2 = r1 + gDepth - 1;
         var a1 = dayAngle(cycle, g.from), a2 = dayAngle(cycle, g.to);
         var span = ((a2 - a1) % 360 + 360) % 360;
         if (span < 1) return;
         var big = span > 180 ? 1 : 0;
-        var mid = (r1 + r2) / 2, w = r2 - r1;
-        var q1 = polar(mid, a1), q2 = polar(mid, a2);
-        parts.push('<path d="M' + fmt(q1[0]) + ' ' + fmt(q1[1]) + 'A' + fmt(mid) + ' ' +
-          fmt(mid) + ' 0 ' + big + ' 1 ' + fmt(q2[0]) + ' ' + fmt(q2[1]) + '" fill="none" ' +
-          'stroke="' + g.colour + '" stroke-width="' + fmt(w) + '" opacity=".72" ' +
+        var q1 = polar(gMid, a1), q2 = polar(gMid, a2);
+        parts.push('<path class="gw-arc" data-grow="' + esc(g.key) + '" d="M' +
+          fmt(q1[0]) + ' ' + fmt(q1[1]) + 'A' + fmt(gMid) + ' ' + fmt(gMid) + ' 0 ' +
+          big + ' 1 ' + fmt(q2[0]) + ' ' + fmt(q2[1]) + '" fill="none" ' +
+          'stroke="' + g.colour + '" stroke-width="' + fmt(gW) + '" opacity=".42" ' +
           'stroke-linecap="butt"><title>' + esc(g.name) + ' \u00b7 ' + esc(g.when) +
-          ' \u00b7 air ' + esc(g.airF) + '\u00b0F, ' + esc(g.airC) + '\u00b0C' +
-          (g.edited ? ' \u00b7 your own dates' : '') + '</title></path>');
+          '\n' + esc(g.fromLabel || '') + ' to ' + esc(g.toLabel || '') +
+          '\nAir ' + esc(g.airF) + '\u00b0F, ' + esc(g.airC) + '\u00b0C' +
+          '\n' + esc(g.note) +
+          (g.edited ? '\n(your own dates)' : '\n(worked out from your frost dates)') +
+          '</title></path>');
       });
     }
 

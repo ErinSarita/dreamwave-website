@@ -150,6 +150,8 @@
         from: fromN, to: toN,
         fromMD: monthDayOfDay(cycle, fromN),
         toMD: monthDayOfDay(cycle, toN),
+        fromLabel: cycle.days[fromN - 1] ? cycle.days[fromN - 1].iso : '',
+        toLabel: cycle.days[toN - 1] ? cycle.days[toN - 1].iso : '',
         edited: edited
       };
     });

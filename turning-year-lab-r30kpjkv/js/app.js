@@ -338,6 +338,7 @@
     $('wheel').innerHTML = WheelView.render(cycle, opts);
     $('hud').innerHTML = WheelView.renderSky(cycle, opts);
     bindHits();
+    if (GROW_ON) bindGrowArcs();
     applyZoom();
     updateReadout(state.hover || state.day || todayNumber() || 1);
   }
@@ -562,6 +563,11 @@
     '<li><i class="sw sw-night"></i> Dark hours</li>' +
     '<li><i class="sw sw-moon"></i> Moon, shaded by illumination</li>' +
     '<li><i class="sw sw-grow"></i> Growing season, dark where it\'s safe, fading to light where frost still could</li>' +
+    (GROW_ON
+      ? '<li><i class="sw sw-gw"></i> Cool, warm and hot growing windows on one ' +
+        'strip. Where two overlap the colour deepens, and both suit that week. ' +
+        'Tap a band for what it means</li>'
+      : '') +
     '<li><i class="sw sw-wheel"></i> The eight stations, each its own colour round the year</li>' +
     '<li><i class="sw sw-sol"></i> Solstice a disc, equinox a ring, midseason a diamond</li>' +
     (NOTES_ON ? '<li><i class="sw sw-noted"></i> A day you\'ve written a note on</li>' : '') +
@@ -3012,6 +3018,51 @@
    * gardener knows their own ground better than any of this does, so every
    * date and every note can be replaced.
    */
+  /* Tapping a band on the ring, which is the way in on a phone where there
+   * is no hover at all. */
+  function bindGrowArcs() {
+    if (!GROW_ON) return;
+    Array.prototype.forEach.call($('wheel').querySelectorAll('.gw-arc'), function (el) {
+      el.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openGrowWindow(el.getAttribute('data-grow'));
+      });
+    });
+  }
+
+  function openGrowWindow(key) {
+    var ws = GROW_ON ? Growing.windows(cycle) : null;
+    if (!ws) return;
+    var g = null;
+    ws.forEach(function (x) { if (x.key === key) g = x; });
+    if (!g) return;
+    $('watch-h').textContent = g.name;
+    $('watch-when').textContent = g.when + ' \u00b7 ' +
+      formatMonthDay(mdPair(g.fromMD)) + ' to ' + formatMonthDay(mdPair(g.toMD)) +
+      ' \u00b7 air ' + g.airF + '\u00b0F, ' + g.airC + '\u00b0C';
+    $('watch-body').innerHTML =
+      '<p>' + esc(g.note) + '</p>' +
+      '<h3>What this band is</h3>' +
+      '<p>The three temperaments inside one frost-free season. The frost band ' +
+      'below says when anything can be grown at all; this says what kind of ' +
+      'thing, because a lettuce and an okra want opposite weather and both of ' +
+      'them live inside the same stretch.</p>' +
+      '<h3>Why they overlap</h3>' +
+      '<p>They are laid on one strip on purpose. Late spring is the end of the ' +
+      'cool window and the start of the warm one at the same time, and high ' +
+      'summer is hot and warm together. Where two lie over each other the ' +
+      'colour deepens, and that deeper stretch is where you have a choice ' +
+      'rather than an instruction.</p>' +
+      '<h3>Where the dates come from</h3>' +
+      '<p>' + (g.edited
+        ? 'These are your own dates, typed in beside the frost dates.'
+        : 'Counted from your frost dates, with the year\u2019s heat lagging ' +
+          'the solstice by about four weeks. No temperature is measured or ' +
+          'looked up, so treat it as a starting point and change it beside ' +
+          'the frost dates to match your ground.') + '</p>';
+    $('watch').hidden = false;
+  }
+
   function renderGrowWindows() {
     var box = $('grow-windows');
     if (!box || !GROW_ON) return;

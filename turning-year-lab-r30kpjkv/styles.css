@@ -1790,3 +1790,9 @@ body[data-theme="day"] { --gw-cool: #2f7ea8; --gw-warm: #3f8f5f; --gw-hot: #b879
   background: var(--void); color: var(--ink); border: 1px solid var(--line);
   border-radius: 7px; font: inherit; font-size: 12px; resize: vertical; }
 .gw-hint { font-size: 11px; color: var(--ink-3); line-height: 1.45; margin: 5px 2px 0; }
+/* One strip, so an overlap has to read as a deeper colour rather than as a
+ * second ring. */
+.gw-arc { cursor: pointer; transition: opacity .12s ease; }
+.gw-arc:hover { opacity: .72 !important; }
+.sw-gw { background: linear-gradient(90deg, var(--gw-cool), var(--gw-warm), var(--gw-hot));
+  width: 16px; height: 8px; border-radius: 2px; }
