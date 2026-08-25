@@ -3747,11 +3747,16 @@
       if (state.level === 'moon') tickMoonClock();
     });
 
-    $('ethos-btn').addEventListener('click', function () { $('ethos').hidden = false; });
-    $('ethos-close').addEventListener('click', function () { $('ethos').hidden = true; });
+    /* Cut from some builds, so nothing here may assume it is in the page.
+     * Reaching for a missing element would throw and take the rest of this
+     * wiring down with it. */
+    if ($('ethos-btn')) {
+      $('ethos-btn').addEventListener('click', function () { $('ethos').hidden = false; });
+      $('ethos-close').addEventListener('click', function () { $('ethos').hidden = true; });
+    }
     /* The backdrop closes it, and the links inside it hand off to the view
      * they name rather than rebuilding anything: one door, one key. */
-    $('ethos').addEventListener('click', function (e) {
+    if ($('ethos')) $('ethos').addEventListener('click', function (e) {
       if (e.target === $('ethos')) { $('ethos').hidden = true; return; }
       var go = e.target.getAttribute && e.target.getAttribute('data-go');
       if (!go) return;
@@ -3890,7 +3895,7 @@
       if (e.key === 'Escape') {
         if (!$('watch').hidden) { $('watch').hidden = true; return; }
         if (!$('zodiac').hidden) { $('zodiac').hidden = true; return; }
-        if (!$('ethos').hidden) { $('ethos').hidden = true; return; }
+        if ($('ethos') && !$('ethos').hidden) { $('ethos').hidden = true; return; }
         if (!$('about').hidden) { $('about').hidden = true; return; }
         if (!$('compare').hidden) { $('compare').hidden = true; return; }
         if (!$('spiral').hidden) { $('spiral').hidden = true; return; }
