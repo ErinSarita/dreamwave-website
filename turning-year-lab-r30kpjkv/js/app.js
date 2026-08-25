@@ -19,6 +19,7 @@
   var NOTES_ON = !!(global.FEATURES && global.FEATURES.notes);
   var BODY_ON  = !!(global.FEATURES && global.FEATURES.bodyCycles);
   var LOG_ON   = BODY_ON && !!global.MensesLog;
+  var GROW_ON  = !!global.Growing;
   var PLAN_ON  = !!(global.FEATURES && global.FEATURES.planner) && !!global.Planner;
   var STRIP_ON = !!global.StripView;
   var SKY_ON   = !!(global.Zodiac && global.Zodiac.sky);
@@ -330,6 +331,7 @@
   function drawWheel() {
     var svg = $('wheel-svg');
     var opts = { layers: state.layers, todayN: todayNumber(),
+                 growing: GROW_ON ? Growing.windows(cycle) : null,
                  notedDays: NOTES_ON ? notes : null,
                  plannedDays: PLAN_ON ? plannedByDate() : null,
                  useDST: state.useDST };
@@ -3004,6 +3006,86 @@
     sw.style.insetInlineEnd = '12px';
   }
 
+  /* --------------------------------------------- the growing windows -----
+   * Cool, warm and hot, worked out from this place's frost dates and offered
+   * for correction. Nobody's garden matches an arithmetic rule, and a
+   * gardener knows their own ground better than any of this does, so every
+   * date and every note can be replaced.
+   */
+  function renderGrowWindows() {
+    var box = $('grow-windows');
+    if (!box || !GROW_ON) return;
+    var ws = Growing.windows(cycle);
+    if (!ws) {
+      box.innerHTML = '<p class="meta gw-none">Cool, warm and hot windows are ' +
+        'worked out from the frost dates above. With no frost expected here ' +
+        'there is nothing to count from, so they are not drawn.</p>';
+      return;
+    }
+
+    box.innerHTML =
+      '<label>Growing windows</label>' +
+      '<p class="meta gw-intro">Counted from your frost dates, with the ' +
+      'year’s heat lagging the solstice by about four weeks. A starting ' +
+      'point, not a reading: change any of it to match your ground.</p>' +
+      ws.map(function (g) {
+        return '<div class="gw-row" data-key="' + esc(g.key) + '">' +
+          '<div class="gw-head">' +
+            '<i class="gw-dot" style="background:' + g.colour + '"></i>' +
+            '<b>' + esc(g.name) + '</b>' +
+            '<span class="gw-temp">' + esc(g.airF) + '°F · ' +
+              esc(g.airC) + '°C</span>' +
+          '</div>' +
+          '<div class="gw-dates">' +
+            '<input type="text" class="md-input gw-from" value="' +
+              esc(formatMonthDay(mdPair(g.fromMD))) + '" aria-label="' +
+              esc(g.name) + ' starts" placeholder="Mar 15">' +
+            '<span class="gw-to">to</span>' +
+            '<input type="text" class="md-input gw-to-in" value="' +
+              esc(formatMonthDay(mdPair(g.toMD))) + '" aria-label="' +
+              esc(g.name) + ' ends" placeholder="May 20">' +
+            (g.edited ? '<button class="gw-reset" aria-label="Back to the ' +
+              'worked-out dates">reset</button>' : '') +
+          '</div>' +
+          '<textarea class="gw-note" rows="2" aria-label="Notes for ' +
+            esc(g.name) + '" placeholder="What you actually sow, and when it ' +
+            'worked">' + esc(g.noteIsOwn ? g.note : '') + '</textarea>' +
+          (g.noteIsOwn ? '' : '<p class="gw-hint">' + esc(g.note) + '</p>') +
+        '</div>';
+      }).join('');
+
+    Array.prototype.forEach.call(box.querySelectorAll('.gw-row'), function (row) {
+      var key = row.getAttribute('data-key');
+      function commit() {
+        var f = parseMonthDay(row.querySelector('.gw-from').value);
+        var t = parseMonthDay(row.querySelector('.gw-to-in').value);
+        Growing.setWindow(key, {
+          from: f ? f[0] + '-' + f[1] : null,
+          to: t ? t[0] + '-' + t[1] : null,
+          note: row.querySelector('.gw-note').value
+        });
+        drawWheel();
+        renderGrowWindows();
+      }
+      row.querySelector('.gw-from').addEventListener('change', commit);
+      row.querySelector('.gw-to-in').addEventListener('change', commit);
+      row.querySelector('.gw-note').addEventListener('change', commit);
+      var rst = row.querySelector('.gw-reset');
+      if (rst) rst.addEventListener('click', function () {
+        Growing.clearWindow(key);
+        drawWheel();
+        renderGrowWindows();
+      });
+    });
+  }
+
+  /* "3-15" to the [month, day] pair the existing frost inputs speak. */
+  function mdPair(md) {
+    if (!md) return null;
+    var p = md.split('-');
+    return [+p[0], +p[1]];
+  }
+
   /* ------------------------------------------------ the cycle record ------
    * Where a person puts in the dates her own cycles began, and reads back
    * what those dates actually support. Deliberately plain: a date, a list,
@@ -3374,6 +3456,7 @@
         : 'Shown as a ±15 day window around each date.');
     }
     syncNotesCount();
+    if (GROW_ON) renderGrowWindows();
     syncCrumbs();
   }
 
@@ -3599,6 +3682,7 @@
       save();
       CycleModel.applyFrost(cycle, state.frost);
       drawWheel(); syncChrome();
+      if (GROW_ON) renderGrowWindows();
     }
     if (NOTES_ON) wireNotesBackup();
 
@@ -3864,6 +3948,7 @@
     loadNotes();
     if (PLAN_ON) Planner.load();
     if (LOG_ON) MensesLog.load();
+    if (GROW_ON) Growing.load();
     if (!NOTES_ON) stripNotesUI();
     if (!BODY_ON) stripBodyCyclesUI();
     readHash();

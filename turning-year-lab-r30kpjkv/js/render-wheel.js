@@ -46,6 +46,10 @@
     moonHitIn: 199,
     decOut: 138, decZero: 100, decIn: 62,
     frostOut: 175, frostIn: 165,
+    /* The three growing temperaments, just outside the frost band they sit
+     * inside. Kept to its own ring rather than subdividing the frost band,
+     * which is only ten units deep and already says one thing clearly. */
+    growOut: 199, growIn: 179,
     noteMark: 157, planMark: 146,
     hitIn: 150, hitOut: 462
   };
@@ -828,6 +832,35 @@
           'text-anchor="middle" dominant-baseline="middle" font-size="9" ' +
           'fill="var(--cross)">' +
           (d.clockShiftMinutes > 0 ? 'spring forward' : 'fall back') + '</text>'));
+      });
+    }
+
+    /* -- cool, warm and hot inside the growing season ----------------------
+     * The frost band says when anything can be grown. This says what kind of
+     * thing: a lettuce and an okra want opposite weather and both of them
+     * live inside the same frost-free stretch.
+     *
+     * The two cool windows overlap the warm one at both ends, which is not a
+     * mistake and is why they are drawn on two rungs rather than one line.
+     * Early spring and late autumn genuinely suit both, and a gardener is
+     * choosing between them rather than being told which it is. */
+    if (opts.layers.frost && opts.growing && opts.growing.length) {
+      var gDepth = (R.growOut - R.growIn) / 2;
+      opts.growing.forEach(function (g) {
+        var rung = (g.key === 'coolSpring' || g.key === 'coolAutumn') ? 0 : 1;
+        var r1 = R.growIn + rung * gDepth, r2 = r1 + gDepth - 1;
+        var a1 = dayAngle(cycle, g.from), a2 = dayAngle(cycle, g.to);
+        var span = ((a2 - a1) % 360 + 360) % 360;
+        if (span < 1) return;
+        var big = span > 180 ? 1 : 0;
+        var mid = (r1 + r2) / 2, w = r2 - r1;
+        var q1 = polar(mid, a1), q2 = polar(mid, a2);
+        parts.push('<path d="M' + fmt(q1[0]) + ' ' + fmt(q1[1]) + 'A' + fmt(mid) + ' ' +
+          fmt(mid) + ' 0 ' + big + ' 1 ' + fmt(q2[0]) + ' ' + fmt(q2[1]) + '" fill="none" ' +
+          'stroke="' + g.colour + '" stroke-width="' + fmt(w) + '" opacity=".72" ' +
+          'stroke-linecap="butt"><title>' + esc(g.name) + ' \u00b7 ' + esc(g.when) +
+          ' \u00b7 air ' + esc(g.airF) + '\u00b0F, ' + esc(g.airC) + '\u00b0C' +
+          (g.edited ? ' \u00b7 your own dates' : '') + '</title></path>');
       });
     }
 

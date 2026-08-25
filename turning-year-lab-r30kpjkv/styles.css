@@ -1763,3 +1763,30 @@ body[data-theme="day"] { --zstar: #2b2f3d; --zstar-glow: #6b7386; --zstar-line: 
 .menses-readout .mn-cta:not(:only-of-type) { }
 .mn-cta-why { font-size: 11.5px; color: var(--ink-3); line-height: 1.5;
   margin: 8px 2px 0; }
+
+/* ------------------------------------------------- the growing windows -----
+ * Three temperaments inside one frost-free season. Cool at both ends of the
+ * year and hot in the middle, so the two cool windows share a colour: they
+ * are the same gardening, done twice.
+ */
+:root { --gw-cool: #6fb3d8; --gw-warm: #6fbf8b; --gw-hot: #e0a24c; }
+body[data-theme="day"] { --gw-cool: #2f7ea8; --gw-warm: #3f8f5f; --gw-hot: #b8791f; }
+
+.grow-windows { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.gw-intro { margin: 0 0 12px; }
+.gw-none { margin: 0; }
+.gw-row { margin: 0 0 14px; }
+.gw-head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.gw-head b { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.gw-dot { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
+.gw-temp { margin-inline-start: auto; font-size: 10.5px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; }
+.gw-dates { display: flex; align-items: center; gap: 6px; }
+.gw-dates .md-input { flex: 1 1 0; min-width: 0; }
+.gw-to { font-size: 11px; color: var(--ink-3); flex: 0 0 auto; }
+.gw-reset { flex: 0 0 auto; background: transparent; border: 0; color: var(--ink-3);
+  font: inherit; font-size: 10.5px; cursor: pointer; text-decoration: underline; }
+.gw-note { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 6px 8px;
+  background: var(--void); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 7px; font: inherit; font-size: 12px; resize: vertical; }
+.gw-hint { font-size: 11px; color: var(--ink-3); line-height: 1.45; margin: 5px 2px 0; }
