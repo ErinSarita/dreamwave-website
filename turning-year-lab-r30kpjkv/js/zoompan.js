@@ -7,6 +7,13 @@
 (function (global) {
   'use strict';
 
+  /* Zooming out below the natural size was not allowed, because every wheel
+   * on this site is drawn to fit its stage exactly and there was nothing
+   * outside it to go and look at. A planet's rose is the exception: it is
+   * a dense figure whose whole point is the pattern across the whole of
+   * it, and being able to pull back from it is worth having. So the floor
+   * is per-view now, and stays at the natural size unless a caller asks
+   * for room below it. */
   var MIN = 1, MAX = 4;
 
   /* Attaches zoom/pan to `svgEl` (gestures captured on `hostEl`, normally the
@@ -14,7 +21,8 @@
    * Returns { zoomIn, zoomOut, reset, refresh, destroy }. `refresh()` should
    * be called after the svg's content is rebuilt, since a fresh render
    * doesn't itself reset the user's zoom — only navigating away does. */
-  function attach(svgEl, hostEl) {
+  function attach(svgEl, hostEl, opts) {
+    var min = (opts && opts.min) || MIN;
     var scale = 1, tx = 0, ty = 0;
     var pointers = {};             // active pointer id -> {x, y}
     var pinchStartDist = null, pinchStartScale = null;
@@ -36,13 +44,15 @@
     function zoomAt(factor, cx, cy) {
       var rect = svgEl.getBoundingClientRect();
       var mx = cx - (rect.left + rect.width / 2), my = cy - (rect.top + rect.height / 2);
-      var next = Math.max(MIN, Math.min(MAX, scale * factor));
+      var next = Math.max(min, Math.min(MAX, scale * factor));
       var actual = next / scale;
       // Keep the point under the cursor/fingers visually fixed while scaling.
       tx = mx - (mx - tx) * actual;
       ty = my - (my - ty) * actual;
       scale = next;
-      if (scale <= MIN) { scale = MIN; tx = 0; ty = 0; }
+      /* Back at the natural size, or below it, the drawing is centred and
+       * there is nothing off-screen to pan to, so the offset is dropped. */
+      if (scale <= 1) { tx = 0; ty = 0; }
       clampPan();
       apply();
     }

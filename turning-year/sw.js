@@ -14,7 +14,7 @@
  * cache is thrown away and the new files are taken. Without that, visitors
  * would sit on a stale copy forever, which is the classic way these go wrong.
  */
-var VERSION = '20260928-030602';
+var VERSION = '20260928-032011';
 var PREFIX = 'ty-public';          /* deploy.sh rewrites this for the lab */
 var CACHE = PREFIX + '-' + VERSION;
 
@@ -26,35 +26,35 @@ var SHELL = [
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",
   "icons/apple-touch-icon.png",
-  "styles.css?v=20260928-030602",
-  "js/app.js?v=20260928-030602",
-  "js/astro-moon.js?v=20260928-030602",
-  "js/astro-riseset.js?v=20260928-030602",
-  "js/astro-sun.js?v=20260928-030602",
-  "js/astro.js?v=20260928-030602",
-  "js/body.js?v=20260928-030602",
-  "js/clock.js?v=20260928-030602",
-  "js/cycle.js?v=20260928-030602",
-  "js/features.js?v=20260928-030602",
-  "js/globe.js?v=20260928-030602",
-  "js/lunar.js?v=20260928-030602",
-  "js/moon-glyph.js?v=20260928-030602",
-  "js/orrery.js?v=20260928-030602",
-  "js/places.js?v=20260928-030602",
-  "js/planets.js?v=20260928-030602",
-  "js/register-sw.js?v=20260928-030602",
-  "js/render-day.js?v=20260928-030602",
-  "js/render-month.js?v=20260928-030602",
-  "js/render-moon.js?v=20260928-030602",
-  "js/render-venus.js?v=20260928-030602",
-  "js/render-wheel.js?v=20260928-030602",
-  "js/spiral.js?v=20260928-030602",
-  "js/stars.js?v=20260928-030602",
-  "js/timezone.js?v=20260928-030602",
-  "js/venus-rose.js?v=20260928-030602",
-  "js/zodiac-stars.js?v=20260928-030602",
-  "js/zodiac.js?v=20260928-030602",
-  "js/zoompan.js?v=20260928-030602"
+  "styles.css?v=20260928-032011",
+  "js/app.js?v=20260928-032011",
+  "js/astro-moon.js?v=20260928-032011",
+  "js/astro-riseset.js?v=20260928-032011",
+  "js/astro-sun.js?v=20260928-032011",
+  "js/astro.js?v=20260928-032011",
+  "js/body.js?v=20260928-032011",
+  "js/clock.js?v=20260928-032011",
+  "js/cycle.js?v=20260928-032011",
+  "js/features.js?v=20260928-032011",
+  "js/globe.js?v=20260928-032011",
+  "js/lunar.js?v=20260928-032011",
+  "js/moon-glyph.js?v=20260928-032011",
+  "js/orrery.js?v=20260928-032011",
+  "js/places.js?v=20260928-032011",
+  "js/planets.js?v=20260928-032011",
+  "js/register-sw.js?v=20260928-032011",
+  "js/render-day.js?v=20260928-032011",
+  "js/render-month.js?v=20260928-032011",
+  "js/render-moon.js?v=20260928-032011",
+  "js/render-rose.js?v=20260928-032011",
+  "js/render-wheel.js?v=20260928-032011",
+  "js/rose.js?v=20260928-032011",
+  "js/spiral.js?v=20260928-032011",
+  "js/stars.js?v=20260928-032011",
+  "js/timezone.js?v=20260928-032011",
+  "js/zodiac-stars.js?v=20260928-032011",
+  "js/zodiac.js?v=20260928-032011",
+  "js/zoompan.js?v=20260928-032011"
 ];
 
 /* Each file is taken separately rather than in one lot. addAll is all or

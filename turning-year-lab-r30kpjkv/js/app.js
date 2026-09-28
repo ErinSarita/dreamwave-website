@@ -23,7 +23,9 @@
   var PLAN_ON  = !!(global.FEATURES && global.FEATURES.planner) && !!global.Planner;
   var STRIP_ON = !!global.StripView;
   var SKY_ON   = !!(global.Zodiac && global.Zodiac.sky);
-  var VENUS_ON = !!(global.VenusRose && global.VenusView);
+  var ROSE_ON  = !!(global.Rose && global.RoseView);
+  /* Which system views are a planet's rose rather than a vantage point. */
+  var ROSE_VIEWS = { venus: 'Venus', mars: 'Mars' };
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -93,7 +95,7 @@
   var notes = {};                 // { 'YYYY-MM-DD': 'free text' }, one per calendar date
   var wheelZoom = null, dayZoom = null, moonZoom = null, orbitsZoom = null,
       monthZoom = null, mensesZoom = null, pregZoom = null, skyZoom = null,
-      venusZoom = null;
+      roseZoom = null;
 
   /* ------------------------------------------------------------ persistence */
   function save() {
@@ -129,7 +131,7 @@
       if (typeof o.panelMin === 'boolean') state.panelMin = o.panelMin;
       if (o.dayView === 'strip' || o.dayView === 'dial') state.dayView = o.dayView;
       if (o.systemView === 'above' || o.systemView === 'here' ||
-          o.systemView === 'venus') state.systemView = o.systemView;
+          ROSE_VIEWS[o.systemView]) state.systemView = o.systemView;
       if (o.mensesView === 'common' || o.mensesView === 'own') state.mensesView = o.mensesView;
       if (typeof o.moonMin === 'boolean') state.moonMin = o.moonMin;
       if (typeof o.readoutMin === 'boolean') state.readoutMin = o.readoutMin;
@@ -780,7 +782,7 @@
     /* The panel is shared by two very different pictures, so it has to say
      * which one is being looked at before it explains anything about it. */
     if (SKY_ON && state.systemView === 'here') return earthViewInfoHTML();
-    if (VENUS_ON && state.systemView === 'venus') return venusInfoHTML();
+    if (ROSE_ON && ROSE_VIEWS[state.systemView]) return roseInfoHTML();
     return '<div class="mr-info-panel">' +
       '<p class="mr-info-which">The view <b>from above</b></p>' +
       '<p>You are looking down on the solar system from above the north pole. ' +
@@ -1594,9 +1596,9 @@
      * underneath is the same list of where each body stands, because that is
      * the same fact whichever side of it you are standing on, and having it
      * change shape with the picture would suggest otherwise. */
-    if (VENUS_ON && state.systemView === 'venus') { drawVenusRose(when); return; }
+    if (ROSE_ON && ROSE_VIEWS[state.systemView]) { drawRose(when); return; }
 
-    showSvg($('venus-svg'), false);
+    showSvg($('rose-svg'), false);
     if (SKY_ON && state.systemView === 'here') {
       showSvg($('orrery-svg'), false);
       showSvg($('sky-dome-svg'), true);
@@ -1740,100 +1742,129 @@
     }
   }
 
-  /* ------------------------------------------------------- Venus's rose ----
+  /* ---------------------------------------------------- a planet's rose ----
    *
-   * One planet followed for eight years, rather than every planet at one
-   * moment. It belongs with the system views because it is the same question
-   * those two ask -- where is that thing, really -- stretched over time
-   * instead of over space.
+   * One planet followed for years, rather than every planet at one moment. It
+   * belongs with the system views because it is the same question those two
+   * ask -- where is that thing, really -- stretched over time instead of over
+   * space.
    *
-   * The figure is expensive to work out: it solves for every conjunction,
-   * elongation and station in a sixteen-year net and then walks eight years of
-   * orbit a day and a half at a time, which is tens of thousands of Kepler
-   * solutions. It changes only when the day does, so it is worked out once a
-   * day and kept. Toggling the info panel or minimising the readout redraws
-   * from the same figure.
+   * Venus and Mars share every line of this. What differs between them lives
+   * in the model: how many petals, how far the figure reaches, and whether the
+   * marked angle is a greatest elongation or a quadrature. Adding Jupiter
+   * would be an entry in Rose.CONF and a button.
+   *
+   * A figure is expensive to work out: it solves for every conjunction,
+   * opposition, elongation and station in a net many synodic periods wide and
+   * then walks the whole span a day or two at a time, which is tens of
+   * thousands of Kepler solutions. It changes only when the day does, so each
+   * planet's is worked out once a day and kept. Toggling the info panel or
+   * minimising the readout redraws from the same figure.
    */
-  var venusFig = null, venusFigDay = null;
+  var roseFig = {}, roseFigDay = {};
 
-  function venusFigure(when) {
+  function roseFigure(planet, when) {
     var jde = A.jdeFromJD(A.jdFromDate(when));
     var day = Math.floor(jde);
-    if (venusFig && venusFigDay === day) return venusFig;
-    venusFig = VenusRose.figure(jde);
-    venusFigDay = day;
-    return venusFig;
+    if (roseFig[planet] && roseFigDay[planet] === day) return roseFig[planet];
+    roseFig[planet] = Rose.figure(planet, jde);
+    roseFigDay[planet] = day;
+    return roseFig[planet];
   }
 
-  var VR_SWATCH = {
+  /* The swatches echo the drawing's own dots, so the list and the figure can
+   * be read against each other. An inferior planet's greatest elongation and a
+   * superior planet's quadrature share a colour because they share a slot: the
+   * marked angle, evening side warm and morning side cool. */
+  var ROSE_SWATCH = {
     inferior:          'background:var(--vr)',
+    opposition:        'background:var(--vr)',
     superior:          'border-color:var(--vr-deep)',
+    conjunction:       'border-color:var(--vr-deep)',
     greatestEast:      'background:var(--sun-bright)',
+    quadratureEast:    'background:var(--sun-bright)',
     greatestWest:      'background:var(--moon)',
+    quadratureWest:    'background:var(--moon)',
     stationRetrograde: 'background:var(--ink-3)',
     stationDirect:     'background:var(--ink-3)'
   };
 
-  function vrDate(iso) {
+  function roseDate(iso) {
     var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     var p = iso.split('-');
     return (+p[2]) + ' ' + MON[+p[1] - 1] + ' ' + p[0];
   }
   /* Where in the sky, said both ways, because the two zodiacs disagree by
    * about a sign and this site never picks one over the other. */
-  function vrWhere(e) {
+  function roseWhere(e) {
     return '<em>tropical</em> ' + e.tropical.name + ' ' +
       Math.round(e.tropical.degree) + '° · ' +
       '<em>sidereal</em> ' + e.sidereal.name + ' ' +
       Math.round(e.sidereal.degree) + '° · in front of ' + e.constellation;
   }
 
-  function vrRow(e, fig, opts) {
+  function roseRow(e, fig, opts) {
     opts = opts || {};
     var cls = 'vr-row' + (e === fig.next ? ' is-next' : '') +
               (e.jde < fig.now.jde ? ' is-past' : '');
     return '<div class="' + cls + '">' +
-      '<i class="vr-swatch" style="' + (VR_SWATCH[e.kind] || '') + '"></i>' +
+      '<i class="vr-swatch" style="' + (ROSE_SWATCH[e.kind] || '') + '"></i>' +
       '<span class="vr-what">' + (opts.n ? opts.n + '. ' : '') + esc(e.label) + '</span>' +
-      '<span class="vr-when">' + vrDate(e.iso) + '</span>' +
-      '<span class="vr-where">' + vrWhere(e) + ' · ' + e.dist.toFixed(2) + ' AU</span>' +
+      '<span class="vr-when">' + roseDate(e.iso) + '</span>' +
+      '<span class="vr-where">' + roseWhere(e) + ' · ' + e.dist.toFixed(2) + ' AU</span>' +
       (opts.note ? '<span class="vr-note">' + esc(e.note) + '</span>' : '') +
       '</div>';
   }
 
-  function drawVenusRose(when) {
+  function drawRose(when) {
+    var planet = ROSE_VIEWS[state.systemView];
     showSvg($('orrery-svg'), false);
     showSvg($('sky-dome-svg'), false);
-    showSvg($('venus-svg'), true);
+    showSvg($('rose-svg'), true);
 
-    var fig = venusFigure(when);
+    var fig = roseFigure(planet, when);
+    /* The colour rides on the element rather than on the drawing, so one
+     * renderer serves both planets and neither knows what colour it is. */
+    $('rose-svg').setAttribute('data-body', planet.toLowerCase());
+    $('rose-svg').setAttribute('aria-label',
+      planet + '’s path around the earth over ' + Math.round(fig.years) +
+      ' years, a figure of ' + fig.tips.length + ' petals');
+
     /* The system views follow the selected day, so this one can be showing a
      * date years off. The marker has to say which. */
     var isToday = Math.abs(A.jdFromDate(when) - A.jdFromDate(new Date())) < 1;
-    $('venus-svg').innerHTML = VenusView.render(fig, {
-      nowLabel: isToday ? 'Venus now' : 'Venus then'
+    $('rose-svg').innerHTML = RoseView.render(fig, {
+      nowLabel: planet + (isToday ? ' now' : ' then')
     }).svg;
 
     var now = fig.now;
     var days = fig.next ? Math.round(fig.next.jde - now.jde) : null;
 
-    /* The next four, which is about a year of them: enough to be planning
+    /* The next four, which is a year or two of them: enough to be planning
      * around and few enough to read. */
     var upcoming = fig.events.filter(function (e) { return e.jde > now.jde; }).slice(0, 4);
     var rows = '<div class="vr-head">Coming up</div><div class="vr-rows">' +
       (upcoming.length
-        ? upcoming.map(function (e, i) { return vrRow(e, fig, { note: i === 0 }); }).join('')
+        ? upcoming.map(function (e, i) { return roseRow(e, fig, { note: i === 0 }); }).join('')
         : '<div class="vr-row"><i class="vr-swatch"></i><span class="vr-what">' +
           'Nothing left inside the drawn span.</span></div>') +
       '</div>';
 
-    /* The turn from one tip to the next is the pentagram in one number, and it
-     * is measured here rather than quoted from the explanation. */
-    var step = fig.meanTipStep;
-    rows += '<div class="vr-head">The five petal tips' +
-      (step ? ' \u00b7 each ' + Math.round(step) + '\u00b0 on from the last' : '') +
+    /* The turn from one tip to the next is the pattern in one number, and it
+     * is measured here rather than quoted from the explanation. Venus's five
+     * steps sit within a few degrees of each other, so the mean says it all;
+     * Mars's run from about thirty-four degrees to about seventy-seven,
+     * because its orbit is a good deal off round, and a mean would hide the
+     * one thing worth noticing. */
+    var spread = (fig.maxTipStep - fig.minTipStep) > 20;
+    var turn = fig.meanTipStep === null ? '' :
+      (spread
+        ? ' · each ' + Math.round(fig.minTipStep) + '° to ' +
+          Math.round(fig.maxTipStep) + '° on from the last'
+        : ' · each ' + Math.round(fig.meanTipStep) + '° on from the last');
+    rows += '<div class="vr-head">The ' + fig.tips.length + ' petal tips' + turn +
       '</div><div class="vr-rows">' +
-      fig.tips.map(function (t, i) { return vrRow(t, fig, { n: i + 1 }); }).join('') +
+      fig.tips.map(function (t, i) { return roseRow(t, fig, { n: i + 1 }); }).join('') +
       '</div>';
 
     $('orrery-readout').className = 'readout' + (state.orbitsMin ? ' min' : '') +
@@ -1843,12 +1874,12 @@
         '" aria-label="What this figure is showing" ' +
         'title="What this figure is showing">i</button>' +
       '<button class="panel-min" id="orbits-min" aria-label="' +
-        (state.orbitsMin ? 'Expand the Venus details' : 'Minimise the Venus details') +
+        (state.orbitsMin ? 'Expand the details' : 'Minimise the details') +
         '" title="' + (state.orbitsMin ? 'Expand' : 'Minimise') + '">' +
         (state.orbitsMin ? '▴' : '▾') + '</button>' +
-      '<div class="r-mini">Venus’s rose · ' +
+      '<div class="r-mini">' + esc(planet) + '’s rose · ' +
         TZ.formatDate(cycle.tz, when, 'short') + '</div>' +
-      (orbitsInfoOpen ? orbitsInfoHTML() : '') +
+      (orbitsInfoOpen ? roseInfoHTML() : '') +
       '<div class="r-lab">' + esc(now.phase) + ' · ' +
         Math.round(now.elongAbs) + '° from the sun</div>' +
       '<div class="r-date">' + now.tropical.name + ' ' +
@@ -1859,53 +1890,87 @@
           ' to the next mark' : '') + '</div>' +
       '<div class="o-list">' + rows + '</div>' +
       '<div class="r-hint">The angle round this figure is a real place in the ' +
-      'zodiac and the radius is a real distance, from 0.27 AU at a petal tip ' +
-      'to 1.74 AU at the far arc. The bright loop is the one being travelled ' +
-      'now. Eight years are drawn, which is five loops, and they nearly but ' +
-      'not quite land on top of each other: the whole rose creeps about two ' +
-      'degrees each time round.</div>';
+      'zodiac and the radius is a real distance, from ' +
+      fig.nearest.toFixed(2) + ' AU at a petal tip to ' +
+      fig.furthest.toFixed(2) + ' AU at the far arc. The bright loop is the ' +
+      'one being travelled now. ' + Math.round(fig.years) + ' years are drawn, ' +
+      'which is ' + fig.tips.length + ' loops, and they land ' +
+      Math.abs(Math.round(fig.shortBy)) + '° ' +
+      (fig.shortBy >= 0 ? 'short of' : 'past') + ' where they started: that is ' +
+      'how far the whole figure turns each time round.</div>';
 
     wireOrbitsPanel();
   }
 
-  function venusInfoHTML() {
+  /* The explanation is one text with the planet's own facts dropped in, rather
+   * than one per planet. The geometry is the same story twice; what changes is
+   * which marks exist, and the model already knows that. */
+  function roseInfoHTML() {
+    var planet = ROSE_VIEWS[state.systemView];
+    var fig = roseFig[planet];
+    if (!fig) return '';
+    var conf = fig.conf;
+    var inferior = fig.order === 'inferior';
+    var n = fig.tips.length;
+    var turn = Math.round(fig.meanTipStep);
+    /* Going 216 degrees on is the same as going 144 back, and the smaller
+     * number is the one the eye uses. Only worth saying when it is smaller. */
+    var back = turn > 180 ? (360 - turn) : null;
+
     return '<div class="mr-info-panel">' +
-      '<p class="mr-info-which"><b>Venus’s rose</b></p>' +
-      '<p>The earth is the dot at the centre. For every day of eight years, a ' +
-      'line was drawn from the earth to Venus: the <b>direction</b> is the ' +
-      'degree of the zodiac you would point at to find her, read off the ring ' +
-      'at the edge, and the <b>length</b> is how far away she is. The trail ' +
-      'those line-ends leave is the rose. Nothing is stylised and nothing is ' +
-      'nudged to make it close.</p>' +
-      '<p><b>Why five petals.</b> The earth laps Venus every 583.92 days. Five ' +
-      'of those is 2,919.6 days, which is 2.4 days short of eight years, so ' +
-      'after five loops Venus is back at almost the same distance in almost ' +
-      'the same direction and the figure joins up. Almost: each eight years ' +
-      'the whole rose turns about two degrees further on.</p>' +
-      '<p><b>Why a pentagram.</b> The petal tips are numbered in the order ' +
-      'they happen. Each one falls about 216° further round the zodiac ' +
-      'than the last, which is the same as 144° back. Five steps of ' +
-      '144° is 720°, two whole turns, so the five tips come out ' +
-      'evenly spaced and the order of visiting skips every other one. Joining ' +
-      'them in time order draws the star; joining them in longitude order ' +
-      'would draw the pentagon. The dashed star on the drawing is the one ' +
-      'thing here that is a way of pointing at the pattern rather than a ' +
-      'measurement, which is why it is the faintest.</p>' +
-      '<p><b>The marks.</b> A <b>petal tip</b> is an inferior conjunction: ' +
-      'Venus between us and the sun, nearest the earth, and the hinge where ' +
-      'the evening star becomes the morning star. The <b>far arc</b> is a ' +
-      'superior conjunction, Venus behind the sun and furthest away, morning ' +
-      'star turning back into evening star. <b>Greatest elongation</b> is as ' +
-      'far from the sun as she ever gets, about 46°, and it is the best ' +
-      'of an apparition: she sets latest after the sun, or rises earliest ' +
-      'before it. The <b>stations</b> are where her drift through the stars ' +
-      'reverses; she runs backwards for about six weeks, and that backwards ' +
-      'stretch is the tip itself.</p>' +
-      '<p>The wedge at the middle is her angle from the sun today. It never ' +
-      'opens past about 47°, which is why Venus is only ever seen near ' +
-      'dawn or near dusk and never overhead at midnight.</p>' +
+      '<p class="mr-info-which"><b>' + esc(planet) + '’s rose</b></p>' +
+      '<p>The earth is the dot at the centre. For every day of ' +
+      Math.round(fig.years) + ' years, a line was drawn from the earth to ' +
+      esc(planet) + ': the <b>direction</b> is the degree of the zodiac you ' +
+      'would point at to find it, read off the ring at the edge, and the ' +
+      '<b>length</b> is how far away it is, from ' + fig.nearest.toFixed(2) +
+      ' AU to ' + fig.furthest.toFixed(2) + ' AU. The trail those line-ends ' +
+      'leave is the rose. Nothing is stylised and nothing is nudged to make ' +
+      'it close.</p>' +
+
+      '<p><b>Why ' + n + ' petals.</b> The earth laps ' + esc(planet) +
+      ' every ' + conf.synodic + ' days, and each lap draws one loop. ' +
+      esc(conf.closes) + '</p>' +
+
+      '<p><b>The star.</b> The petal tips are numbered in the order they ' +
+      'happen, and each falls about ' + turn + '° further round the ' +
+      'zodiac than the last' +
+      (back ? ', which is the same as ' + back + '° back' : '') +
+      '. Joining them in that order is what draws the star rather than the ' +
+      'plain ' + n + '-sided figure. Those dashed lines are the one thing ' +
+      'here that is a way of pointing at the pattern rather than a ' +
+      'measurement, which is why they are the faintest.</p>' +
+
+      '<p><b>The marks.</b> ' +
+      (inferior
+        ? 'A <b>petal tip</b> is an inferior conjunction: ' + esc(planet) +
+          ' between us and the sun, nearest the earth, and the hinge where ' +
+          'the evening star becomes the morning star. The <b>far arc</b> is ' +
+          'a superior conjunction, behind the sun and furthest away. ' +
+          '<b>Greatest elongation</b> is as far from the sun as it ever ' +
+          'gets, and it is the best of an apparition: it sets latest after ' +
+          'the sun, or rises earliest before it.'
+        : 'A <b>petal tip</b> is an opposition: the earth passes between ' +
+          esc(planet) + ' and the sun, so it is nearest, brightest, and up ' +
+          'all night. The <b>far arc</b> is conjunction, behind the sun and ' +
+          'out of sight for weeks. <b>Quadrature</b> is where it stands ' +
+          'square to the sun, a quarter turn away, rising or setting around ' +
+          'midnight.') +
+      ' The <b>stations</b> are where its drift through the stars reverses; ' +
+      'it runs backwards for a few weeks, and that backwards stretch is the ' +
+      'tip itself.</p>' +
+
+      '<p>The wedge at the middle is its angle from the sun today. ' +
+      (inferior
+        ? 'It never opens past about 47°, which is why Venus is only ' +
+          'ever seen near dawn or near dusk and never overhead at midnight.'
+        : 'It opens the whole way to a half turn, which is what it means for ' +
+          'a planet to be outside us: there is nowhere in the sky it cannot ' +
+          'appear, and at opposition it is due south at midnight.') +
+      '</p>' +
       '</div>';
   }
+
 
   /* The body layer's switch and its legend.
    *
@@ -3144,11 +3209,12 @@
     }
     $('system-above').addEventListener('click', function () { pick('above'); });
     $('system-here').addEventListener('click', function () { pick('here'); });
-    if (VENUS_ON && $('system-venus')) {
-      $('system-venus').addEventListener('click', function () { pick('venus'); });
-    } else if ($('system-venus')) {
-      $('system-venus').hidden = true;
-    }
+    Object.keys(ROSE_VIEWS).forEach(function (key) {
+      var b = $('system-' + key);
+      if (!b) return;
+      if (ROSE_ON) b.addEventListener('click', function () { pick(key); });
+      else b.hidden = true;
+    });
     syncSystemSwitch();
   }
   function syncSystemSwitch() {
@@ -3156,9 +3222,10 @@
     $('system-switch').hidden = state.level !== 'orbits';
     $('system-above').setAttribute('aria-pressed', String(state.systemView === 'above'));
     $('system-here').setAttribute('aria-pressed', String(state.systemView === 'here'));
-    if ($('system-venus')) {
-      $('system-venus').setAttribute('aria-pressed', String(state.systemView === 'venus'));
-    }
+    Object.keys(ROSE_VIEWS).forEach(function (key) {
+      var b = $('system-' + key);
+      if (b) b.setAttribute('aria-pressed', String(state.systemView === key));
+    });
   }
 
   function wireViewSwitch() {
@@ -4234,7 +4301,12 @@
     /* The dome is a second drawing on the same stage and needs its own
      * handle, or the zoom buttons quietly work the map hidden behind it. */
     if (SKY_ON && $('sky-dome-svg')) skyZoom = ZoomPan.attach($('sky-dome-svg'), $('scene-orbits'));
-    if (VENUS_ON && $('venus-svg')) venusZoom = ZoomPan.attach($('venus-svg'), $('scene-orbits'));
+    /* The one view allowed to pull back past its natural size. The figure is
+     * dense and the whole of it is the point, so there is a reason to want
+     * to see it smaller; every other wheel here is drawn to fit exactly. */
+    if (ROSE_ON && $('rose-svg')) {
+      roseZoom = ZoomPan.attach($('rose-svg'), $('scene-orbits'), { min: 0.45 });
+    }
     if (BODY_ON) {
       mensesZoom = ZoomPan.attach($('menses-svg'), $('scene-menses'));
       pregZoom = ZoomPan.attach($('preg-svg'), $('scene-preg'));
@@ -4247,7 +4319,7 @@
       moon: function () { return moonZoom; },
       month: function () { return monthZoom; },
       orbits: function () {
-        if (state.systemView === 'venus') return venusZoom;
+        if (ROSE_VIEWS[state.systemView]) return roseZoom;
         return state.systemView === 'here' ? skyZoom : orbitsZoom;
       },
       menses: function () { return mensesZoom; },

@@ -1816,8 +1816,30 @@ body[data-theme="day"] {
   --vr-star: rgba(179, 77, 140, .32);
 }
 
-#venus-svg { width: 100%; height: auto; display: block; }
-#venus-svg[hidden] { display: none; }
+/* Framed the way its two stagemates are, and for the same reason: this is a
+ * square drawing on a stage that is usually wider than it is tall, so sizing
+ * it by width alone made it taller than the room and cut the top and bottom
+ * off the zodiac ring. `height` has to be capped as well, or the figure
+ * overflows a laptop's screen and no amount of zooming out brings it back,
+ * because zooming out stops at the natural size. */
+.scene-orbits #rose-svg {
+  width: 100%; height: 100%; max-width: min(92vh, 100%);
+  display: block; margin: 0 auto; overflow: visible;
+}
+.scene-orbits #rose-svg[hidden] { display: none; }
+
+/* Venus in her own colour, Mars in his. One drawing, one stylesheet: only
+ * these two lines know there is more than one planet. */
+#rose-svg[data-body="mars"] {
+  --vr: #e0715c;
+  --vr-deep: #a2402f;
+  --vr-star: rgba(224, 113, 92, .32);
+}
+body[data-theme="day"] #rose-svg[data-body="mars"] {
+  --vr: #b83a22;
+  --vr-deep: #7d2412;
+  --vr-star: rgba(184, 58, 34, .34);
+}
 
 .vr-zband { fill: var(--line-soft); }
 .vr-zsep  { stroke: var(--line); stroke-width: 1; fill: none; }

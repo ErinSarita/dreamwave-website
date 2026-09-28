@@ -1,30 +1,32 @@
-/* render-venus.js — the rose drawn.
+/* render-rose.js — a planet's rose drawn.
  *
  * The earth sits at the centre because this is the view from here. Every angle
  * is an ecliptic longitude, read against the same twelve signs the rest of the
- * site uses, so a petal tip pointing at Scorpio means Venus really is in
+ * site uses, so a petal tip pointing at Scorpio means the planet really is in
  * Scorpio at that moment. Every radius is a real distance in astronomical
- * units, marked at the half, the whole and the one and a half.
+ * units, marked with a ring at each half AU the figure reaches.
  *
- * The sun gets its own faint circle at one AU and its own marker, because the
- * whole story of Venus in the sky is her angle from the sun: nothing else
- * decides whether she is visible, when, or for how long. The wedge drawn
- * between the two sight-lines is that angle, and it never opens past about
- * forty-seven degrees.
+ * The sun gets its own faint circle and its own marker, because the whole
+ * story of a planet in the sky is its angle from the sun: nothing else decides
+ * whether it is visible, when, or for how long. The wedge drawn between the
+ * two sight-lines is that angle.
  *
- * The straight lines joining the five petal tips are drawn in the order the
- * tips happen, which is what makes a star rather than a pentagon. They are the
- * only lines here that are not a measurement, and they are faint for that
- * reason: they are a way of pointing at the pattern, not part of it.
+ * The straight lines joining the petal tips are drawn in the order the tips
+ * happen, which is what makes a star rather than a polygon. They are the only
+ * lines here that are not a measurement, and they are faint for that reason:
+ * they are a way of pointing at the pattern, not part of it.
+ *
+ * Nothing here knows which planet it is drawing. The scale, the rings and the
+ * petal count all come off the figure it is handed, and the colour comes off
+ * the element it is written into, so Venus and Mars share every line of this.
  */
 (function (global) {
   'use strict';
-  var A = global.Astro, V = global.VenusRose;
-  if (!A || !V) return;
+  var A = global.Astro;
+  if (!A) return;
 
   var CX = 500, CY = 500;
-  var RIM = 398;                       /* 1.74 AU lands here */
-  var AU = RIM / V.FURTHEST;           /* pixels per astronomical unit */
+  var RIM = 398;                       /* the furthest the planet ever gets */
   var RING_IN = 424, RING_OUT = 480;
 
   var SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra',
@@ -39,12 +41,11 @@
 
   /* Longitude runs anticlockwise from the March equinox; every wheel on this
    * site runs clockwise from the top. Same convention as the orrery, so the
-   * two views of the same sky agree. */
-  function place(lon, au) {
-    var t = (lon - 90) * Math.PI / 180;
-    var r = au * AU;
-    return [CX + r * Math.cos(t), CY + r * Math.sin(t)];
-  }
+   * two views of the same sky agree.
+   *
+   * `at` takes pixels and `place` takes astronomical units, which is the one
+   * place the drawing's scale enters. Mars goes half as far again as Venus, so
+   * the scale is worked out per figure rather than fixed in this file. */
   function at(lon, px) {
     var t = (lon - 90) * Math.PI / 180;
     return [CX + px * Math.cos(t), CY + px * Math.sin(t)];
@@ -65,11 +66,22 @@
       e.dist.toFixed(2) + ' AU';
   }
 
+  /* Near points get the biggest dot because they are the petal tips; far
+   * points are hollow; the marked angle is filled warm for the evening side
+   * and cool for the morning side; stations are the smallest, being about the
+   * planet's motion rather than about its place. Both planets use the same
+   * vocabulary, which is why an inferior planet's greatest elongation and a
+   * superior planet's quadrature share a shape: they occupy the same slot in
+   * the story. */
   var DOT = {
     inferior:          { r: 7,   cls: 'vr-tip' },
+    opposition:        { r: 7,   cls: 'vr-tip' },
     superior:          { r: 5.5, cls: 'vr-far' },
+    conjunction:       { r: 5.5, cls: 'vr-far' },
     greatestEast:      { r: 4.5, cls: 'vr-ge' },
     greatestWest:      { r: 4.5, cls: 'vr-gw' },
+    quadratureEast:    { r: 4.5, cls: 'vr-ge' },
+    quadratureWest:    { r: 4.5, cls: 'vr-gw' },
     stationRetrograde: { r: 3.5, cls: 'vr-st' },
     stationDirect:     { r: 3.5, cls: 'vr-st' }
   };
@@ -87,7 +99,12 @@
     opts = opts || {};
     /* The drawing follows whichever moment the rest of the site is showing, so
      * it must not say "now" while a date in 2019 is being read. */
-    var nowLabel = opts.nowLabel || 'Venus now';
+    var nowLabel = opts.nowLabel || (fig.planet + ' now');
+
+    /* Pixels per astronomical unit, set so the furthest this planet ever gets
+     * lands on the rim. */
+    var AU = RIM / fig.furthest;
+    var place = function (lon, au) { return at(lon, au * AU); };
 
     /* -- the zodiac, so the angles mean something ----------------------- */
     for (var i = 0; i < 12; i++) {
@@ -111,17 +128,20 @@
     p.push('<circle class="vr-zedge" cx="' + CX + '" cy="' + CY + '" r="' + RING_OUT + '"/>');
 
     /* -- how far away, marked where it can be read ---------------------- */
-    [0.5, 1.0, 1.5].forEach(function (d) {
+    (fig.rings || [0.5, 1.0, 1.5]).forEach(function (d, i) {
       p.push('<circle class="vr-dist" cx="' + CX + '" cy="' + CY + '" r="' +
              f(d * AU) + '"/>');
-      /* Labelled along the Aries-Libra line, where the curve is thinnest on
-       * a five-petalled figure whose tips avoid it. */
       /* Laid along the line due east of the earth rather than straight up:
        * the vertical is where the sign divisions and the tip lines are
        * thickest. Haloed, because there is no empty ground anywhere on this
-       * drawing to put a label on. */
-      p.push('<text class="vr-distl" x="' + f(CX + d * AU) + '" y="' + (CY - 7) +
-             '">' + d.toFixed(1) + ' AU</text>');
+       * drawing to put a label on.
+       *
+       * Alternately above and below that line. Venus wants three of these and
+       * they sit comfortably; Mars reaches half again as far and wants five,
+       * and five in a row read as one long run of numbers rather than as five
+       * marks on a ruler. */
+      p.push('<text class="vr-distl" x="' + f(CX + d * AU) + '" y="' +
+             (CY + (i % 2 ? 19 : -8)) + '">' + d.toFixed(1) + ' AU</text>');
     });
 
     /* -- the sun's ring, and where the sun stands today ----------------- */
@@ -227,7 +247,11 @@
            'L' + f(snow[0]) + ' ' + f(snow[1]) + '"/>');
     p.push('<path class="vr-sight vr-sight-venus" d="M' + CX + ' ' + CY +
            'L' + f(vnow[0]) + ' ' + f(vnow[1]) + '"/>');
-    var wedgeR = 148;
+    /* Inside the sun's own circle, wherever that falls. Fixed at a hundred
+     * and fifty it sat outside the sun on Mars's figure, where one AU is only
+     * a hundred and fifty pixels of a seven-hundred-pixel drawing, and an
+     * elongation wedge drawn beyond the sun reads as nonsense. */
+    var wedgeR = Math.max(64, 0.6 * (now.sunDist || 1) * AU);
     p.push('<path class="vr-wedge" d="' +
            (now.east ? arcPath(wedgeR, now.sunLon, now.lon)
                      : arcPath(wedgeR, now.lon, now.sunLon)) + '"/>');
@@ -246,7 +270,14 @@
            '<circle class="vr-now-halo" cx="' + f(vnow[0]) + '" cy="' + f(vnow[1]) + '" r="16"/>' +
            '<circle class="vr-now-dot" cx="' + f(vnow[0]) + '" cy="' + f(vnow[1]) + '" r="8"/>' +
            '</g>');
-    var nl = at(now.lon, now.dist * AU + 34);
+    /* Nudged around the circle rather than set straight out from the marker.
+     * The tip labels live on their own radial lines, and when the planet
+     * happens to stand near one of those lines -- Mars in September 2026 is
+     * four degrees off the line of its own January 2025 opposition -- the two
+     * captions end up side by side on the same bearing. A fixed arc of
+     * thirty-odd pixels moves this one off that line whatever the radius. */
+    var nlR = now.dist * AU + 30;
+    var nl = at(now.lon + (36 / Math.max(nlR, 48)) * (180 / Math.PI), nlR);
     p.push('<text class="vr-nowl" x="' + f(nl[0]) + '" y="' + f(nl[1]) +
            '">' + esc(nowLabel) + '</text>');
 
@@ -257,5 +288,10 @@
     return { svg: p.join('') };
   }
 
-  global.VenusView = { render: render, AU: AU };
+  /* The scale is a property of the figure now, not of this module, so a
+   * caller that wants pixels per AU asks for them with a figure in hand. */
+  global.RoseView = {
+    render: render,
+    scaleFor: function (fig) { return RIM / fig.furthest; }
+  };
 })(typeof window !== 'undefined' ? window : globalThis);
