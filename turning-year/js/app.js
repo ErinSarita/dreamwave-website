@@ -1732,6 +1732,11 @@
     $('orbits-info').addEventListener('click', function (e) {
       e.stopPropagation();
       orbitsInfoOpen = !orbitsInfoOpen;
+      /* Opening the explanation while the panel is collapsed did nothing
+       * visible: the minimised state hides everything but the title line, so
+       * the text was written into a panel that would not show it. Asking to
+       * read it is asking for the panel back. */
+      if (orbitsInfoOpen && state.orbitsMin) { state.orbitsMin = false; save(); }
       drawOrbits();
     });
     if ($('zodiac-open')) {

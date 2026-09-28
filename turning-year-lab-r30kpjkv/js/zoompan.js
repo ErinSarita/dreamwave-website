@@ -59,7 +59,32 @@
 
     function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
+    /* A panel sitting on top of the drawing that has more in it than fits is
+     * the one thing the wheel must not be taken away from. The readouts live
+     * inside the same element the gestures are bound to, so their wheel events
+     * bubble up to here, and cancelling every one of them turned "scroll this
+     * text" into "zoom the picture behind it": the explanation panel could be
+     * opened and then not read, because there was no way to reach the bottom
+     * of it.
+     *
+     * Rather than name the panels, this asks the question that actually
+     * matters -- is there something under the pointer that can still be
+     * scrolled -- so any scrollable thing laid over any of these views keeps
+     * its own wheel without this module being told about it. */
+    function scrollableUnder(target) {
+      var n = target;
+      while (n && n !== hostEl && n.nodeType === 1) {
+        if (n.scrollHeight > n.clientHeight + 1) {
+          var oy = getComputedStyle(n).overflowY;
+          if (oy === 'auto' || oy === 'scroll') return n;
+        }
+        n = n.parentElement;
+      }
+      return null;
+    }
+
     function onWheel(e) {
+      if (scrollableUnder(e.target)) return;
       e.preventDefault();
       var factor = Math.pow(1.0018, -e.deltaY);
       zoomAt(factor, e.clientX, e.clientY);
@@ -74,6 +99,9 @@
         pinchStartDist = dist(pointers[ids[0]], pointers[ids[1]]);
         pinchStartScale = scale;
       } else if (ids.length === 1 && scale > 1.01) {
+        /* Same argument as the wheel: a drag that starts on a panel with more
+         * text than fits is someone scrolling it, not panning the picture. */
+        if (scrollableUnder(e.target)) { delete pointers[e.pointerId]; return; }
         // Panning an already-zoomed view: capture so the drag continues
         // smoothly even if the finger moves past the element's edge.
         try { hostEl.setPointerCapture(e.pointerId); } catch (err) {}

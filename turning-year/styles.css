@@ -2023,3 +2023,58 @@ body[data-theme="day"] #rose-svg[data-body="mars"] {
 /* The halo eats the space between words at this weight, so "from the sun"
  * closes up into "from thesun". A little extra word spacing opens it back. */
 .vr-wedgel, .vr-nowl, .vr-earthl, .vr-distl { word-spacing: 2px; }
+
+/* ------------------------------------------- the system panel's explanation
+ *
+ * Two things kept the Venus and Mars explanations from being readable.
+ *
+ * The first is specificity. `.readout.info` raises the cap to 620px so an
+ * open explanation has somewhere to go, but `#orrery-readout` sets its own
+ * max-height and an id beats two classes, so this one panel never grew: it
+ * stayed at 31dvh with seventeen hundred pixels of content in it. The rule
+ * below is an id plus a class, so it wins the way the original intended.
+ *
+ * The second is that even 620px is not enough for a six-paragraph
+ * explanation stacked on top of a list of dated events. So while the
+ * explanation is open it has the panel to itself, which is what the moon
+ * readout already does on a narrow screen. The heading line stays, so it
+ * still says which figure is being explained, and closing the info brings
+ * the list straight back. */
+#orrery-readout.info > *:not(.mr-info-panel):not(.mr-info):not(.panel-min):not(.r-mini) {
+  display: none;
+}
+
+/* The text scrolls, the frame does not.
+ *
+ * Scrolling the card itself was the obvious way and the wrong one: the info
+ * button and the minimise chevron are positioned against the card, and an
+ * absolutely positioned child of a scrolling box scrolls with its contents.
+ * So reading to the end of the explanation carried both buttons off the top
+ * and left no way to close it without scrolling back up first.
+ *
+ * A flex column instead. The title line keeps its height, the explanation
+ * takes whatever is left and scrolls inside that, and the two buttons stay
+ * pinned where they were. `min-height: 0` is what lets a flex child be
+ * shorter than its content and so scroll at all. */
+#orrery-readout.info {
+  max-height: min(74dvh, 620px); overflow: hidden;
+  display: flex; flex-direction: column;
+}
+#orrery-readout.info .r-mini { flex: 0 0 auto; }
+#orrery-readout.info .mr-info-panel {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  overscroll-behavior: contain; touch-action: pan-y;
+  padding-right: 4px;
+}
+
+/* Something that scrolls should say so. Without a visible track there is no
+ * sign that the text continues below the fold, which is most of why it read
+ * as cut off rather than as scrollable. */
+#orrery-readout.info .mr-info-panel {
+  scrollbar-width: thin; scrollbar-color: var(--ink-3) transparent;
+}
+#orrery-readout.info .mr-info-panel::-webkit-scrollbar { width: 7px; }
+#orrery-readout.info .mr-info-panel::-webkit-scrollbar-track { background: transparent; }
+#orrery-readout.info .mr-info-panel::-webkit-scrollbar-thumb {
+  background: var(--ink-3); border-radius: 4px;
+}
