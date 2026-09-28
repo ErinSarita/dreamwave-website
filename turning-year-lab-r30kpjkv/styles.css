@@ -1796,3 +1796,208 @@ body[data-theme="day"] { --gw-cool: #2f7ea8; --gw-warm: #3f8f5f; --gw-hot: #b879
 .gw-arc:hover { opacity: .72 !important; }
 .sw-gw { background: linear-gradient(90deg, var(--gw-cool), var(--gw-warm), var(--gw-hot));
   width: 16px; height: 8px; border-radius: 2px; }
+
+/* ------------------------------------------------------------ Venus's rose
+ *
+ * A geocentric figure, so it shares nothing with the orrery's palette except
+ * the zodiac ring's greys. Venus gets one colour and keeps it: the path, the
+ * petal tips and today's marker are all the same hue at different weights,
+ * because they are all the same planet. The pentagram lines are the faintest
+ * thing on the drawing on purpose, being the only lines that are an
+ * interpretation rather than a measurement. */
+:root {
+  --vr: #e59ac8;            /* Venus */
+  --vr-deep: #a85f8b;
+  --vr-star: rgba(229, 154, 200, .3);
+}
+body[data-theme="day"] {
+  --vr: #b34d8c;
+  --vr-deep: #7d2f60;
+  --vr-star: rgba(179, 77, 140, .32);
+}
+
+#venus-svg { width: 100%; height: auto; display: block; }
+#venus-svg[hidden] { display: none; }
+
+.vr-zband { fill: var(--line-soft); }
+.vr-zsep  { stroke: var(--line); stroke-width: 1; fill: none; }
+.vr-zedge { stroke: var(--line); stroke-width: 1; fill: none; }
+.vr-zname {
+  fill: var(--ink-3); font: 600 19px/1 var(--sans); letter-spacing: .12em;
+  text-anchor: middle; dominant-baseline: middle;
+}
+
+.vr-dist  { stroke: var(--line-soft); stroke-width: 1; fill: none; }
+.vr-distl {
+  fill: var(--ink-3); font: 400 16px/1 var(--mono);
+  text-anchor: middle;
+}
+.vr-sunring {
+  stroke: var(--sun); stroke-width: 1; fill: none;
+  stroke-dasharray: 2 7; opacity: .5;
+}
+
+.vr-path {
+  fill: none; stroke: var(--vr-deep); stroke-width: 1.9;
+  stroke-linejoin: round; opacity: .55;
+}
+.vr-path-now {
+  fill: none; stroke: var(--vr); stroke-width: 3.4;
+  stroke-linejoin: round; stroke-linecap: round;
+}
+/* The one set of lines here that is an interpretation rather than a
+ * measurement, so it stays the faintest thing on the drawing. */
+.vr-star {
+  fill: none; stroke: var(--vr-star); stroke-width: 2.2;
+  stroke-dasharray: 7 6; stroke-linejoin: round;
+}
+.vr-tipline {
+  fill: none; stroke: var(--vr-star); stroke-width: 1; opacity: .55;
+}
+
+/* Markers. The hit circle is invisible and generous: the dots themselves run
+ * from 3.5 to 7 pixels, which is nothing to aim at on a phone. */
+.vr-ev-hit { fill: transparent; }
+.vr-ev { cursor: default; }
+.vr-ev-dot { stroke-width: 1.5; }
+.vr-tip .vr-ev-dot { fill: var(--vr); stroke: var(--bg); }
+.vr-far .vr-ev-dot { fill: none; stroke: var(--vr-deep); }
+.vr-ge  .vr-ev-dot { fill: var(--sun-bright); stroke: none; }
+.vr-gw  .vr-ev-dot { fill: var(--moon); stroke: none; }
+.vr-st  .vr-ev-dot { fill: var(--ink-3); stroke: none; }
+.vr-ev.is-next .vr-ev-dot { stroke: var(--today); stroke-width: 2.5; }
+
+.vr-tipn {
+  fill: var(--vr); font: 700 21px/1 var(--sans);
+  text-anchor: middle; dominant-baseline: middle;
+}
+.vr-tipy {
+  fill: var(--ink-2); font: 400 17px/1 var(--mono);
+  text-anchor: middle; dominant-baseline: middle;
+}
+
+.vr-sight { fill: none; stroke-width: 1; stroke-dasharray: 4 4; }
+.vr-sight-sun   { stroke: var(--sun); opacity: .75; }
+.vr-sight-venus { stroke: var(--vr); opacity: .85; }
+.vr-wedge  { fill: none; stroke: var(--ink-2); stroke-width: 1.5; opacity: .6; }
+.vr-wedgel {
+  fill: var(--ink-2); font: 400 17px/1 var(--sans); text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.vr-sun circle { fill: var(--sun-bright); }
+.vr-now-halo { fill: var(--vr); opacity: .22; }
+.vr-now-dot  { fill: var(--vr); stroke: var(--bg); stroke-width: 2; }
+.vr-nowl {
+  fill: var(--vr); font: 600 18px/1 var(--sans); text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.vr-earth  { fill: #4b8fd4; stroke: var(--bg); stroke-width: 2; }
+.vr-earthl {
+  fill: var(--ink-3); font: 400 16px/1 var(--sans); text-anchor: middle;
+}
+
+/* The list of dated moments under the drawing. Same shape as the planet rows
+ * it replaces, so switching views does not reshuffle the panel. */
+.vr-rows { display: flex; flex-direction: column; gap: 2px; }
+.vr-row {
+  display: grid; grid-template-columns: 14px 1fr auto; gap: 0 10px;
+  align-items: baseline; padding: 7px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.vr-row:first-child { border-top: 0; }
+.vr-row.is-next { background: rgba(255, 107, 138, .08); border-radius: 6px; }
+.vr-row.is-past { opacity: .5; }
+.vr-swatch {
+  width: 10px; height: 10px; border-radius: 50%; align-self: center;
+  border: 1.5px solid transparent;
+}
+.vr-row .vr-what { color: var(--ink); font: 500 14px/1.3 var(--sans); }
+.vr-row .vr-when { color: var(--ink-2); font: 400 12px/1.3 var(--mono); white-space: nowrap; }
+.vr-row .vr-where {
+  grid-column: 2 / -1; color: var(--ink-3); font: 400 12px/1.4 var(--sans);
+}
+.vr-row .vr-note {
+  grid-column: 2 / -1; color: var(--ink-2); font: 400 12.5px/1.45 var(--sans);
+  margin-top: 3px;
+}
+.vr-head {
+  color: var(--ink-3); font: 600 11px/1 var(--sans);
+  letter-spacing: .1em; text-transform: uppercase;
+  margin: 14px 0 6px;
+}
+.vr-head:first-child { margin-top: 2px; }
+
+/* The figure is a thousand units wide whatever the screen is, so on a phone
+ * every one of these is scaled down by about two thirds before anyone reads
+ * it. Sizes here are chosen for what comes out the other end, which is why
+ * they look oversized in the source. */
+@media (max-width: 560px) {
+  .vr-zname { font-size: 26px; }
+  .vr-tipn { font-size: 28px; }
+  .vr-tipy { font-size: 22px; }
+  .vr-distl { font-size: 21px; }
+  .vr-nowl, .vr-wedgel { font-size: 23px; }
+  .vr-earthl { font-size: 21px; }
+}
+
+/* No part of this drawing has empty ground under it, so every label on it
+ * carries its own halo. paint-order puts the stroke behind the fill, which is
+ * what makes a stroke into an outline rather than a smear. */
+.vr-distl, .vr-tiplab, .vr-wedgel, .vr-nowl, .vr-earthl {
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.vr-distl { text-anchor: start; }
+.vr-tipline { stroke: var(--vr-deep); opacity: .35; stroke-dasharray: 3 4; }
+
+.vr-tiplab { text-anchor: middle; dominant-baseline: middle; }
+
+/* On a narrow screen the switches drop to the bottom right, which works for
+ * the day view because nothing else is down there. The system view's readout
+ * is down there: it runs the full width of the screen, so the switch landed on
+ * top of its title, and a third button made it cover more. There is no room
+ * beside it either, minimised or open.
+ *
+ * So this one switch goes back up, into the band between the tool row and the
+ * top of the drawing. That band is clear at every width: the tools end at 130
+ * and the zoom buttons at 125, and the figure below has its own panel
+ * background to sit on if a short screen pushes it up. Only the system switch
+ * moves; the day view's stays where a thumb expects it. */
+@media (max-width: 760px) {
+  /* "From earth" wraps to two lines at this size, which doubles the switch's
+   * height and pushes it down onto the zodiac ring. One line keeps it in the
+   * band. */
+  /* One line each, and tall enough to hit: 36px was under the 44px a thumb
+   * needs. The switch ends up sitting over the top of the zodiac ring, which
+   * hides two of the twelve abbreviations; the figure pans and zooms, and a
+   * control that covers the panel's own title is the worse of the two. */
+  #system-switch button {
+    white-space: nowrap; padding: 0 12px;
+    min-height: 44px; display: flex; align-items: center;
+  }
+  #system-switch {
+    top: 130px; bottom: auto;
+    inset-inline-start: 50%; inset-inline-end: auto;
+    transform: translateX(-50%);
+  }
+}
+
+/* Order decides the pointer, and the labels and the curve are drawn after the
+ * markers so that they sit on top of them. That is right for the drawing and
+ * wrong for the hovering: five of the twenty-nine marks could not be reached,
+ * because a date, the elongation caption or the rose itself was catching the
+ * pointer first. Nothing here is meant to be pointed at except the marks, the
+ * sun and Venus herself, so everything else stands aside. */
+.vr-zband, .vr-zsep, .vr-zedge, .vr-zname,
+.vr-dist, .vr-distl, .vr-sunring,
+.vr-path, .vr-path-now, .vr-star, .vr-tipline,
+.vr-sight, .vr-wedge, .vr-wedgel,
+.vr-tiplab, .vr-nowl, .vr-earth, .vr-earthl { pointer-events: none; }
+
+/* The halo eats the space between words at this weight, so "from the sun"
+ * closes up into "from thesun". A little extra word spacing opens it back. */
+.vr-wedgel, .vr-nowl, .vr-earthl, .vr-distl { word-spacing: 2px; }
